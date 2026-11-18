@@ -143,11 +143,16 @@
   }
   // keep the button in step with the sign-in: it appears whenever the admin account is signed in on this
   // browser (also if that happens in another tab while the game is open) and goes away on sign-out
+  // also shown on a browser where the admin desk was opened, even while flying with a player code
+  const adminDevice = () => { try { return localStorage.getItem('erika.admin.device') === '1'; } catch (e) { return false; } };
+  const dropButton = () => { const b = document.getElementById('adminJump'); if (b) b.remove(); };
+  if (adminDevice()) adminButton();
+  window.addEventListener('storage', (e) => { if (e.key === 'erika.admin.device') { if (adminDevice()) adminButton(); else dropButton(); } });
   let adminSeq = 0;
   auth.onAuthStateChanged(async (usr) => {
     const n = ++adminSeq, ok = await isAdmin(usr);
     if (n !== adminSeq) return;
-    if (ok) adminButton(); else { const b = document.getElementById('adminJump'); if (b) b.remove(); }
+    if (ok || adminDevice()) adminButton(); else dropButton();
   });
 
   const firstUser = new Promise((r) => { const off = auth.onAuthStateChanged((u) => { off(); r(u); }); });

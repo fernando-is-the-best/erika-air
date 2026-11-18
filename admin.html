@@ -223,8 +223,11 @@ button:disabled { opacity: .5; cursor: wait }
     show('stepSign', codeOk && !isAdmin);
     show('desk', codeOk && isAdmin);
     if (codeOk && !configured) say('signMsg', 'Firebase is not set up yet: fill in firebase-config.js first.', 'bad');
-    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); }
+    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); markDevice(true); }
   }
+  // remember that the admin uses this browser, so the game shows its Admin button here even while
+  // flying with a player code (the button is only a link; the desk itself still needs the Google sign-in)
+  function markDevice(on) { try { if (on) localStorage.setItem('erika.admin.device', '1'); else localStorage.removeItem('erika.admin.device'); } catch (e) { /* storage unavailable */ } }
   if (configured) auth.onAuthStateChanged(async (u) => {
     me = u; isAdmin = await checkAdmin(u);
     const wrong = u && !u.isAnonymous && !isAdmin;
@@ -241,8 +244,8 @@ button:disabled { opacity: .5; cursor: wait }
     try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); say('signMsg', ''); }
     catch (e) { say('signMsg', e.code === 'auth/popup-blocked' ? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.' : 'Sign-in did not finish. Try again.', 'bad'); }
   });
-  $('btnOut').addEventListener('click', () => auth.signOut());
-  $('btnOut2').addEventListener('click', () => auth.signOut());
+  $('btnOut').addEventListener('click', () => { markDevice(false); auth.signOut(); });
+  $('btnOut2').addEventListener('click', () => { markDevice(false); auth.signOut(); });
 
   // ---- pilot card: who is signed in
   function paintPilot() {
