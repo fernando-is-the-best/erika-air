@@ -104,17 +104,46 @@
     return false;
   }
 
+  // turn Firebase errors into something the player (or admin) can act on, with the code for troubleshooting
+  function explain(e, fallback) {
+    const c = (e && e.code) || '';
+    if (c === 'auth/admin-restricted-operation' || c === 'auth/operation-not-allowed') return 'Player sign-in is turned off. The admin needs to enable Anonymous sign-in in Firebase. (' + c + ')';
+    if (c === 'auth/unauthorized-domain') return 'This website is not on the Firebase authorized-domains list. (' + c + ')';
+    if (c === 'auth/network-request-failed' || c === 'unavailable') return 'Could not reach the access server. Check your internet connection and reload. (' + c + ')';
+    if (c === 'permission-denied') return 'The access server refused the request. The admin should check the Firestore rules are published. (' + c + ')';
+    if (c === 'failed-precondition' || c === 'not-found') return 'The code database is not set up. The admin needs to create the Firestore database. (' + c + ')';
+    return fallback + (c ? ' (' + c + ')' : '');
+  }
+
   // the admin, signed in on admin.html in this browser, can always fly: the database itself decides,
   // because only the admin's account is allowed to list the codes
   async function isAdmin(user) {
     if (!user || user.isAnonymous) return false;
     try { await db.collection('codes').limit(1).get(); return true; } catch (e) { return false; }
   }
+  // a small shortcut back to the admin desk, shown only while the admin is signed in on this browser
+  function adminButton() {
+    if (document.getElementById('adminJump')) return;
+    const st = document.createElement('style');
+    st.textContent = '#adminJump{position:fixed;z-index:900;top:calc(10px + env(safe-area-inset-top,0px));right:calc(86px + env(safe-area-inset-right,0px));' +
+      'display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:rgba(13,22,32,.88);border:1px solid rgba(255,181,46,.55);' +
+      'color:#ffb52e;font:600 12px/1 "Barlow",system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;backdrop-filter:blur(6px)}' +
+      '#adminJump:hover{background:rgba(255,181,46,.16)}#adminJump:focus-visible{outline:2px solid #ffb52e;outline-offset:2px}' +
+      '#adminJump svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2}';
+    document.head.appendChild(st);
+    const a = document.createElement('a');
+    a.id = 'adminJump'; a.href = 'admin.html'; a.title = 'Open the admin desk';
+    a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Admin';
+    document.body.appendChild(a);
+    // signing out (in this tab or another) takes the button away
+    auth.onAuthStateChanged((usr) => { if (!usr || usr.isAnonymous) { const b = document.getElementById('adminJump'); if (b) b.remove(); } });
+  }
+
   const firstUser = new Promise((r) => { const off = auth.onAuthStateChanged((u) => { off(); r(u); }); });
 
   busy(true); say('Checking access…');
   firstUser.then(async (u) => {
-    if (await isAdmin(u)) { gate.remove(); release(); return null; }
+    if (await isAdmin(u)) { gate.remove(); release(); adminButton(); return null; }
     return u || (await auth.signInAnonymously()).user;
   }).then(async (user) => {
     if (!user) return;
@@ -123,7 +152,7 @@
     if (saved && await checkSaved(saved).catch(() => false)) { unlock(saved); return; }
     if (!saved) say('');
     busy(false); $('gateCode').focus();
-  }).catch(() => { say('Could not reach the access server. Check your connection and reload.', 'bad'); });
+  }).catch((e) => { say(explain(e, 'Could not reach the access server. Check your connection and reload.'), 'bad'); });
 
   $('gateForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -134,6 +163,6 @@
       const r = await check(code);
       if (r.ok) { say('Access granted.', 'ok'); unlock(r.hash); }
       else { say(r.why, 'bad'); busy(false); $('gateCode').select(); }
-    } catch (err) { say('Could not reach the access server. Check your connection and try again.', 'bad'); busy(false); }
+    } catch (err) { say(explain(err, 'Could not reach the access server. Check your connection and try again.'), 'bad'); busy(false); }
   });
 })();
