@@ -8119,8 +8119,11 @@ SIM.Entity = (function () {
       if (a.elev) a.elev.rotation.x = v.de * 0.4 + fl(2.4);
       if (a.elevL) a.elevL.rotation.x = v.de * 0.35 - v.da * 0.12 + fl(0.9);
       if (a.elevR) a.elevR.rotation.x = v.de * 0.35 + v.da * 0.12 + fl(3.3);
-      if (a.rud) a.rud.rotation.y = -v.dr * 0.5 + fl(1.1) * 0.6;
-      if (a.rud2) a.rud2.rotation.y = -v.dr * 0.5 + fl(1.1) * 0.6;
+      // the rudder follows only the pilot's own rudder input: yaw-damper / turn-coordinator corrections and flutter stay invisible,
+      // so the tail no longer twitches by itself
+      v.ry = v.ry || 0; v.ry += (U.clamp(ac.ctl.yaw || 0, -1, 1) - v.ry) * k; if (Math.abs(v.ry) < 0.002) v.ry = 0;
+      if (a.rud) a.rud.rotation.y = -v.ry * 0.5;
+      if (a.rud2) a.rud2.rotation.y = -v.ry * 0.5;
     }
     // airframe vibration: runway roughness on the roll-out and engine shake, so the aircraft never looks frozen
     {
