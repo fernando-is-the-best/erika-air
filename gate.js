@@ -117,9 +117,14 @@
 
   // the admin, signed in on admin.html in this browser, can always fly: the database itself decides,
   // because only the admin's account is allowed to list the codes
+  // a refusal from the rules means "not the admin"; a network hiccup is retried so the admin is not signed out by mistake
   async function isAdmin(user) {
     if (!user || user.isAnonymous) return false;
-    try { await db.collection('codes').limit(1).get(); return true; } catch (e) { return false; }
+    for (let i = 0; i < 3; i++) {
+      try { await db.collection('codes').limit(1).get({ source: 'server' }); return true; }
+      catch (e) { if (e && e.code === 'permission-denied') return false; await new Promise((r) => setTimeout(r, 800 * (i + 1))); }
+    }
+    return false;
   }
   // a small shortcut back to the admin desk, shown only while the admin is signed in on this browser
   function adminButton() {
@@ -135,9 +140,15 @@
     a.id = 'adminJump'; a.href = 'admin.html'; a.title = 'Open the admin desk';
     a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Admin';
     document.body.appendChild(a);
-    // signing out (in this tab or another) takes the button away
-    auth.onAuthStateChanged((usr) => { if (!usr || usr.isAnonymous) { const b = document.getElementById('adminJump'); if (b) b.remove(); } });
   }
+  // keep the button in step with the sign-in: it appears whenever the admin account is signed in on this
+  // browser (also if that happens in another tab while the game is open) and goes away on sign-out
+  let adminSeq = 0;
+  auth.onAuthStateChanged(async (usr) => {
+    const n = ++adminSeq, ok = await isAdmin(usr);
+    if (n !== adminSeq) return;
+    if (ok) adminButton(); else { const b = document.getElementById('adminJump'); if (b) b.remove(); }
+  });
 
   const firstUser = new Promise((r) => { const off = auth.onAuthStateChanged((u) => { off(); r(u); }); });
 
