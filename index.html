@@ -6899,7 +6899,8 @@ SIM.Gauges = (function () {
           const yb = U.clamp(mid - (st.ap.spd - v) * ppu, y + 10, y + h - 10); c.fillStyle = '#ff4cf0'; c.beginPath(); c.moveTo(x + w, yb); c.lineTo(x + w - 14, yb - 9); c.lineTo(x + w - 14, yb + 9); c.fill();
         }
         if (spd.vr) { const yr = mid - (spd.vr - v) * ppu; c.fillStyle = '#3df'; c.font = SANS(15, 1); c.textAlign = 'left'; c.fillText('R', x + 3, yr + 5); }
-        if (spd.vref) { const yr = mid - (spd.vref - v) * ppu; c.fillStyle = '#3df'; c.font = SANS(15, 1); c.textAlign = 'left'; c.fillText('REF', x + 3, yr + 5); }
+        const vref = st.vrefDyn || spd.vref;   // Vref for landing flaps at the current weight when known
+        if (vref) { const yr = mid - (vref - v) * ppu; c.fillStyle = '#3df'; c.font = SANS(15, 1); c.textAlign = 'left'; c.fillText('REF', x + 3, yr + 5); }
         c.strokeStyle = '#2f2'; c.lineWidth = 3; const tr = U.clamp(st.iasTrend, -30, 30); c.beginPath(); c.moveTo(x + w - 3, mid); c.lineTo(x + w - 3, mid - tr * ppu); c.stroke();
       },
     });
@@ -6943,7 +6944,7 @@ SIM.Gauges = (function () {
     // mode annunciators
     ctx.font = SANS(18, 1); ctx.textAlign = 'center';
     const ap = st.ap || {}, mode = (txt, x, on) => { ctx.fillStyle = on ? '#2f2' : '#556'; ctx.fillText(txt, x, 20); };
-    mode(ap.on && ap.spdOn ? 'SPD' : '', ax + aw * 0.17, true); mode(ap.on ? (ap.hdgOn ? 'HDG SEL' : 'ROLL') : '', ax + aw * 0.5, true); mode(ap.on ? (ap.altOn ? 'ALT HOLD' : 'V/S') : '', ax + aw * 0.83, true);
+    mode(ap.on && ap.spdOn ? (cfg.boeing ? 'MCP SPD' : 'SPD') : '', ax + aw * 0.17, true); mode(ap.on ? (ap.hdgOn ? 'HDG SEL' : 'ROLL') : '', ax + aw * 0.5, true); mode(ap.on ? (ap.altOn ? 'ALT HOLD' : 'V/S') : '', ax + aw * 0.83, true);
     if (ap.on) { ctx.fillStyle = '#2f2'; ctx.font = SANS(16, 1); ctx.fillText('CMD', ax + aw * 0.5, ay + 22); }
     // radio altitude, baro, g
     if (st.aglFt < 2500) { ctx.fillStyle = st.aglFt < 200 ? '#ffb000' : '#2f2'; ctx.font = MONO(24); ctx.textAlign = 'center'; ctx.fillText(fmt(Math.max(0, st.aglFt)), W / 2, ay + ah * 0.78); }
@@ -7132,14 +7133,31 @@ SIM.Gauges = (function () {
       B.push({ x0: x, y0: y, x1: x + w, y1: y + h, fn, tip: tip || label });
     };
     const bw = W * 0.075, by = H * 0.3, bh = H * 0.42;
-    btn(W * 0.02, by, bw, bh, 'A/T', !!ap.spdOn && !!ap.on, (g) => g.cockpitAP('spd'), 'Autothrottle');
-    win(W * 0.105, 'SPD', fmt(ap.spdKt || 0), !!(ap.on && ap.spdOn), (g, d) => g.cockpitAP('spdAdj', d));
-    btn(W * 0.27, by, bw, bh, 'HDG', !!ap.hdgOn && !!ap.on, (g) => g.cockpitAP('hdg'), 'Heading select');
+    const bo = !!cfg.boeing;
+    btn(W * 0.02, by, bw, bh, bo ? 'A/T ARM' : 'A/T', !!ap.spdOn && !!ap.on, (g) => g.cockpitAP('spd'), 'Autothrottle');
+    win(W * 0.105, bo ? 'IAS/MACH' : 'SPD', fmt(ap.spdKt || 0), !!(ap.on && ap.spdOn), (g, d) => g.cockpitAP('spdAdj', d));
+    btn(W * 0.27, by, bw, bh, bo ? 'HDG SEL' : 'HDG', !!ap.hdgOn && !!ap.on, (g) => g.cockpitAP('hdg'), 'Heading select');
     win(W * 0.355, 'HDG', fmt(ap.hdg || 0).padStart(3, '0'), !!(ap.on && ap.hdgOn), (g, d) => g.cockpitAP('hdgAdj', d));
-    btn(W * 0.52, by, bw, bh, 'ALT', !!ap.altOn && !!ap.on, (g) => g.cockpitAP('alt'), 'Altitude hold');
+    btn(W * 0.52, by, bw, bh, bo ? 'ALT HLD' : 'ALT', !!ap.altOn && !!ap.on, (g) => g.cockpitAP('alt'), 'Altitude hold');
     win(W * 0.605, 'ALT', fmt(ap.altFt || 0), !!(ap.on && ap.altOn), (g, d) => g.cockpitAP('altAdj', d));
-    btn(W * 0.78, by * 0.6, W * 0.095, bh * 1.35, 'A/P', !!ap.on, (g) => g.toggleAP(), 'Autopilot engage');
+    btn(W * 0.78, by * 0.6, W * 0.095, bh * 1.35, bo ? 'CMD A' : 'A/P', !!ap.on, (g) => g.toggleAP(), 'Autopilot engage');
     btn(W * 0.885, by * 0.6, W * 0.095, bh * 1.35, 'TRIM', false, (g) => { g.cockpitTrim(0); }, 'Re-trim for level');
+  }
+
+  function flapGauge(ctx, W, H, st, cfg) {   // Boeing 737 flap position indicator
+    const cx = W / 2, cy = H / 2, R = W * 0.46, lab = cfg.labels, n = lab.length - 1;
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#111316'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#555b61'; ctx.lineWidth = W * 0.02; ctx.stroke();
+    const ang = (i) => (-140 + 280 * (i / n)) * Math.PI / 180 - Math.PI / 2;
+    ctx.fillStyle = '#e8ecef'; ctx.strokeStyle = '#e8ecef'; ctx.textAlign = 'center'; ctx.font = SANS(W * 0.085, 1);
+    lab.forEach((t, i) => { const a = ang(i); ctx.lineWidth = W * 0.012; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * R * 0.86, cy + Math.sin(a) * R * 0.86); ctx.lineTo(cx + Math.cos(a) * R * 0.96, cy + Math.sin(a) * R * 0.96); ctx.stroke();
+      ctx.fillText(t === '0' ? 'UP' : t, cx + Math.cos(a) * R * 0.68, cy + Math.sin(a) * R * 0.68 + W * 0.03); });
+    ctx.fillStyle = '#9aa2a8'; ctx.font = SANS(W * 0.075, 1); ctx.fillText('FLAPS', cx, cy + R * 0.5);
+    const needle = (v, col, w) => { const a = ang(U.clamp(v, 0, n)); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx - Math.cos(a) * R * 0.12, cy - Math.sin(a) * R * 0.12); ctx.lineTo(cx + Math.cos(a) * R * 0.8, cy + Math.sin(a) * R * 0.8); ctx.stroke(); };
+    needle(st.flapPos, '#f2f2f2', W * 0.035); needle(st.flapPos, '#ffcf3a', W * 0.014);
+    ctx.fillStyle = '#2a2d31'; ctx.beginPath(); ctx.arc(cx, cy, W * 0.05, 0, 7); ctx.fill();
+    ctx.fillStyle = '#cfd3d6'; ctx.font = SANS(W * 0.07, 1); ctx.fillText('L', cx - R * 0.25, cy - R * 0.22); ctx.fillText('R', cx + R * 0.25, cy - R * 0.22);
+    if (st.flapLR) { ctx.fillStyle = '#ffb000'; ctx.font = SANS(W * 0.07, 1); ctx.fillText('LOAD RELIEF', cx, cy + R * 0.72); }
   }
 
   function strip(ctx, W, H, st, cfg) { // panel legend strip with annunciator lights
@@ -7191,7 +7209,7 @@ SIM.Gauges = (function () {
     return d;
   }
 
-  return { asi, attDial, altDial, vsiDial, turnCoord, dgDial, tach, mpDial, vario, gMeter, engCluster, compassWet, pfd, nd, eicas, hud, mfd, mcp, strip, radioStack, Dial, horizon };
+  return { asi, attDial, altDial, vsiDial, turnCoord, dgDial, tach, mpDial, vario, gMeter, engCluster, compassWet, pfd, nd, eicas, hud, mfd, mcp, strip, radioStack, Dial, horizon, flapGauge };
 })();
 
 // ---------- cockpit.js : full 3D cockpits (GA, airliner, fighter, glider) with live instruments and working controls ----------
@@ -7360,7 +7378,13 @@ SIM.Cockpit = (function () {
     st.hobbs += dt / 360 * (st.running ? 1 : 0);
     st.volts = st.running ? 13.9 - 0.1 * st.thr : 12.1;
     st.fuelKg = ac.fuel; st.fuelF = clamp(ac.fuel / Math.max(1, s.fuelCap || 1), 0, 1);
-    st.gear = ac.gearPos; st.flapPos = ac.flapPos; st.flapIdx = Math.round(ac.ctl.flap); st.spoil = ac.spoilPos; st.trim = ac.ctl.trim;
+    // Vref (1.23 Vs at landing flap: the 30 detent if there is one) for the aircraft's current weight
+    if (s.airliner && s.flaps && s.flaps.length > 1) {
+      let fi = s.flaps.findIndex((f) => f.deg === 30); if (fi < 0) fi = s.flaps.length - 1;
+      const f = s.flaps[fi], ae = s.aero, clm = ae.CL0 + f.dCL + ae.CLa * (ae.aS + (f.dA || 0));
+      st.vrefDyn = 1.23 * Math.sqrt(2 * ac.mass * 9.80665 / (1.225 * s.S * clm)) * KT;
+    }
+    st.gear = ac.gearPos; st.flapPos = ac.flapPos; st.flapLR = !!ac.flapLR; st.flapIdx = Math.round(ac.ctl.flap); st.spoil = ac.spoilPos; st.trim = ac.ctl.trim;
     st.stall = !!(ac.stallWarn || ac.stalled); st.overspeed = ac.overspeed; st.gearWarn = ac.gearWarn;
     st.ap = { on: ap.on, hdg: ap.hdg, hdgOn: ap.hdgOn, altOn: ap.altOn, spdOn: ap.spdOn, altFt: ap.alt * FT, spdKt: ap.spd * KT, spd: ap.spd * KT };
     const nv = game && game.hudInfo; st.nav = nv && nv.nav ? { dx: nv.nav.x - ac.p.x, dz: nv.nav.z - ac.p.z, label: nv.nav.label } : null; st.guide = nv && nv.guide || null;
@@ -7820,6 +7844,7 @@ SIM.Cockpit = (function () {
     const nEng = Math.max(1, Math.min(4, parseInt((s.engine.name.match(/^(\d+) x/) || [0, 2])[1], 10) || 2));
     const sp = s.speeds || {}, flaps = s.flaps || [{ deg: 0 }];
     const speedCfg = { vs1: (sp.vs1 || 55) * KT, vne: (sp.vne || 180) * KT, vr: sp.vr ? sp.vr * KT : 0, vref: sp.vref ? sp.vref * KT : 0 };
+    const ng = /^b73[89]/.test(s.id);                           // Boeing 737NG / MAX flight deck details
     const X0 = 0.55;                                            // flight-deck centreline is to the captain's right
     ck.defPitch = -0.12;
     const ZP = -0.92, TL = -0.2;                                // main panel plane
@@ -7846,13 +7871,17 @@ SIM.Cockpit = (function () {
     box(body, 0.46, 0.34, 0.01, 0x4b4f52, X0 - 0.8, 0.0, 1.07);                                          // fire axe / checklist rack
     cabinShell(body, { x0: xl - 0.05, x1: xr + 0.05, yF: -0.92, yC: 0.55, zF: -0.9, zB: 1.1, win: { z0: -0.88, z1: -0.28, y0: -0.12, y1: 0.46 }, rear: { x0: X0 - 0.2, x1: X0 + 0.2, y0: -0.7, y1: 0.35 }, solid: true, col: 0x5d6064, floor: 0x2f2f31 });
     // ---- displays
-    const pfdCfg = { speeds: speedCfg }, dz = ZP + 0.03;
-    const disp = (fn, cfg, x, y, w, h, rate, hot) => ck.face(body, ck.D(fn, 512, 512, cfg, rate || 14), w, h, x, y, dz, TL, { hot: !!hot });
+    const pfdCfg = { speeds: speedCfg, boeing: !airbus }, dz = ZP + 0.03;
+    // the panel leans back about its centre line (y -0.36), so below it the surface comes towards the pilot: sit faces on it
+    const fz = (y) => dz + Math.max(0, -0.36 - y) * Math.sin(-TL) + 0.003;
+    const disp = (fn, cfg, x, y, w, h, rate, hot) => ck.face(body, ck.D(fn, 512, 512, cfg, rate || 14), w, h, x, y, fz(y), TL, { hot: !!hot });
     if (!classic) {
-      disp(G.pfd, pfdCfg, 0.0, -0.3, 0.25, 0.25, 20);
-      disp(G.nd, {}, 0.27, -0.3, 0.25, 0.25, 12);
-      disp(G.pfd, pfdCfg, X0 * 2, -0.3, 0.25, 0.25, 12);
-      disp(G.nd, {}, X0 * 2 - 0.27, -0.3, 0.25, 0.25, 8);
+      // 737NG: outboard PFD and inboard ND sit either side of the control column, not behind it
+      const po = ng ? -0.075 : 0, no = ng ? 0.2 : 0.27;
+      disp(G.pfd, pfdCfg, po, -0.3, 0.25, 0.25, 20);
+      disp(G.nd, {}, no, -0.3, 0.25, 0.25, 12);
+      disp(G.pfd, pfdCfg, X0 * 2 - po, -0.3, 0.25, 0.25, 12);
+      disp(G.nd, {}, X0 * 2 - no, -0.3, 0.25, 0.25, 8);
       const eng = { engines: nEng, flaps: flaps.length, flapLabels: flaps.map((f) => String(f.deg)), ffMax: Math.max(1.4, (s.engine.T0 || 120e3) / 90e3 * 1.1) };
       disp(G.eicas, eng, X0, -0.265, 0.25, 0.25, 8);
       // lower centre: ND range / mode / nothing-fancy MFD (map)
@@ -7866,15 +7895,31 @@ SIM.Cockpit = (function () {
       [[X0 * 2 - 0.12, y1, G.asi, asiC], [X0 * 2, y1, G.attDial, {}], [X0 * 2 + 0.12, y1, G.altDial, {}]].forEach(([x, y, fn, cfg]) => ck.face(body, ck.D(fn, 256, 256, cfg, 10), dd, dd, x, y, dz, TL, { round: true }));
     }
     // MCP on the glareshield (clickable)
-    ck.face(body, ck.D(G.mcp, 1024, 128, {}, 8), 0.8, 0.1, X0, -0.095, ZP - 0.02, 0.05 - 0.55, { hot: true });
+    ck.face(body, ck.D(G.mcp, 1024, 128, { boeing: !airbus }, 8), 0.8, 0.1, X0, -0.095, ZP - 0.02, 0.05 - 0.55, { hot: true });
+    if (ng) {   // the 737's round flap position gauge on the centre panel, beside the gear lever
+      ck.face(body, ck.D(G.flapGauge, 256, 256, { labels: flaps.map((f) => String(f.deg)) }, 10), 0.075, 0.075, X0 + 0.16, -0.432, fz(-0.432), TL, { round: true });
+    }
     label(body, 'AUTOFLIGHT', 0.25, 0.016, X0, -0.034, ZP - 0.02, 0, '#d4d6d4', '#444', 18);
     // landing-gear / speedbrake / flaps / thrust on the pedestal
     const px = X0, py = -0.58, pzp = -0.38;
     const thrustX = [];
     for (let i = 0; i < nEng; i++) thrustX.push(px + (i - (nEng - 1) / 2) * 0.055);
-    const levers = thrustX.map((x, i) => { const g = group(body, x, py, pzp); const pv = group(g, 0, 0, 0); cyl(pv, 0.009, 0.15, 0x9aa0a6, 0, 0.075, 0, 'y'); box(pv, 0.032, 0.05, 0.05, 0x1b1d20, 0, 0.16, 0); return pv; });
+    const revs = [];
+    const levers = thrustX.map((x, i) => {
+      const g = group(body, x, py, pzp); const pv = group(g, 0, 0, 0);
+      if (ng) {
+        // 737 thrust lever: long arm with a wide grey knob (TO/GA switch below it) and a reverse-thrust lever riding on the front
+        cyl(pv, 0.011, 0.19, 0xa3a9ae, 0, 0.095, 0, 'y'); box(pv, 0.05, 0.034, 0.042, 0xc9cdd1, i ? -0.006 : 0.006, 0.2, 0); box(pv, 0.012, 0.012, 0.02, 0x15171a, 0, 0.18, -0.028);
+        const rv = group(pv, 0, 0.12, -0.02); cyl(rv, 0.006, 0.07, 0x2a2d31, 0, 0.035, -0.01, 'y'); box(rv, 0.03, 0.012, 0.016, 0x1b1d20, 0, 0.07, -0.012); revs.push(rv);
+      } else { cyl(pv, 0.009, 0.15, 0x9aa0a6, 0, 0.075, 0, 'y'); box(pv, 0.032, 0.05, 0.05, 0x1b1d20, 0, 0.16, 0); }
+      return pv;
+    });
     box(body, 0.07 + nEng * 0.055, 0.02, 0.3, 0x14161a, px, py - 0.01, pzp - 0.02);
-    ck.anims.push((st, dt, ac) => { const rev = st.rev && ac.onGround ? 0.45 : 0; levers.forEach((pv) => { pv.rotation.x = 0.2 - st.thr * 0.95 + rev; }); });
+    ck.anims.push((st, dt, ac) => {
+      const rev = st.rev && ac.onGround ? 0.45 : 0;
+      levers.forEach((pv) => { pv.rotation.x = 0.2 - st.thr * 0.95 + (ng ? 0 : rev); });
+      revs.forEach((rv) => { rv.rotation.x = st.rev && ac.onGround ? 1.1 : 0; });   // reverse levers lift up and back
+    });
     label(body, 'THRUST', 0.1, 0.018, px, py - 0.03, pzp + 0.1, -0.9, '#14161a', '#cfd3d6', 20);
     ck.zone(body, 0.28, 0.2, 0.3, px, py + 0.05, pzp, 'Thrust: click right of centre = more, left = less', (g, hit) => { const lp = hit.object.worldToLocal(hit.point.clone()); g.cockpitThrottle(lp.x > 0 ? 0.05 : -0.05); }, true);
     // speedbrake lever
@@ -7885,6 +7930,7 @@ SIM.Cockpit = (function () {
     const nf = flaps.length - 1;
     const fl = lever(ck, body, px + 0.2, py, pzp + 0.02, 0.15, 0x888d92, 0x2d3237, (st) => 0.35 - (st.flapPos / Math.max(1, nf)) * 0.75);
     label(body, 'FLAPS', 0.08, 0.018, px + 0.2, py - 0.03, pzp + 0.12, -0.9, '#14161a', '#cfd3d6', 20);
+    if (ng) label(body, flaps.map((f) => (f.deg ? f.deg : 'UP')).join('  '), 0.17, 0.016, px + 0.2, py - 0.03, pzp - 0.13, -0.9, '#14161a', '#e8ecef', 15);   // detent gate markings
     ck.zone(fl.g, 0.12, 0.25, 0.14, 0, 0.1, 0, 'Flaps: click right = next detent, left = previous', (g, hit) => { const lp = hit.object.worldToLocal(hit.point.clone()); g.flap(lp.x > 0 ? 1 : -1); });
     // gear lever (centre panel)
     const gl = lever(ck, body, X0 + 0.22, -0.43, ZP + 0.03, 0.06, 0x1c1c1c, 0xdcdcdc, (st, ac) => (ac.ctl.gear > 0.5 ? -0.5 : 0.5), Math.PI / 2 - 0.2);
@@ -7929,7 +7975,7 @@ SIM.Cockpit = (function () {
     // clock + standby gauges for glass cockpits
     if (!classic) {
       const sa = ck.D(G.attDial, 256, 256, {}, 14), sh = 0.075;
-      ck.face(body, sa, sh, sh, X0 + 0.05, -0.46, dz, TL, { round: true });
+      ck.face(body, sa, sh, sh, X0 - 0.16, -0.47, fz(-0.47), TL, { round: true });   // standby attitude, left of the lower display
     }
   }
 
