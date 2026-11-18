@@ -41,6 +41,8 @@
   function mount() {
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const g = document.createElement('div'); g.id = 'gate'; g.innerHTML = html; document.body.appendChild(g);
+    // typing a code must not reach the game underneath (its menus listen for keys on the window)
+    ['keydown', 'keyup', 'keypress'].forEach((t) => g.addEventListener(t, (e) => e.stopPropagation()));
     return g;
   }
   const gate = document.body ? mount() : null;

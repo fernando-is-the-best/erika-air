@@ -44,6 +44,9 @@ button { cursor: pointer; }
 .brand h1 { margin: 0; font: 700 40px/1 var(--f-display); letter-spacing: 0.14em; text-transform: uppercase; }
 .brand h1 b { color: var(--accent); font-weight: 700; }
 .brand span { font: 500 12px var(--f-mono); color: var(--dim); letter-spacing: 0.04em; }
+.racelink { pointer-events: auto; margin-left: auto; font: 600 13px var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: #9fdcff; text-decoration: none; border: 1px solid rgba(60,196,255,0.45); border-radius: 4px; padding: 6px 11px; }
+.racelink:hover, .racelink:focus-visible { background: rgba(60,196,255,0.14); color: #dff4ff; }
+.racelink + .wallet { margin-left: 0; }
 .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--line); }
 .tab { white-space: nowrap; background: none; border: 0; padding: 9px 14px 10px; font: 600 15px var(--f-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
@@ -253,7 +256,7 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 
   <section id="menu">
     <div class="sheet">
-      <div class="brand"><h1>Erika <b>Air</b></h1><span id="brandSub">aircraft &middot; airfields &middot; 6-DOF physics</span><div class="wallet" id="wallet" title="Earn credits by completing challenges"></div></div>
+      <div class="brand"><h1>Erika <b>Air</b></h1><span id="brandSub">aircraft &middot; airfields &middot; 6-DOF physics</span><a class="racelink" href="gp.html" title="Erika Racing: circuit racing in a second game">Racing &rsaquo;</a><div class="wallet" id="wallet" title="Earn credits by completing challenges"></div></div>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="free" aria-selected="true">Free flight</button>
         <button class="tab" role="tab" data-tab="chal" aria-selected="false">Challenges</button>
