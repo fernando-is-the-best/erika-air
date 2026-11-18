@@ -5378,6 +5378,11 @@ SIM.Models = (function () {
         [r.u, 1 - r.u].forEach((u) => { x.beginPath(); x.ellipse(u * W, V(zf), rx * 1.0, ry * 0.9, 0, 0, 7); x.fill(); });
       }
     });
+    // overwing exits (737: two per side): smaller hatches outlined around a window over the wing root
+    if (T.b737) {
+      x.strokeStyle = 'rgba(80,86,95,0.85)'; x.lineWidth = 2;
+      [0.42, 0.66].forEach((k) => { const zf = (g.zr + g.cr * k + L / 2) / LEN; rows.forEach((r) => [r.u, 1 - r.u].forEach((u) => x.strokeRect(u * W - 0.26 * pxm, V(zf) - 0.5 * pym * 0.5, 0.52 * pxm, 1.0 * pym * 0.5))); });
+    }
     // doors
     x.strokeStyle = 'rgba(80,86,95,0.85)'; x.lineWidth = 2;
     doors.forEach((d) => [0.215, 0.785].forEach((u) => x.strokeRect(u * W - 0.45 * pxm * 1.0 * 0.9, V(d) - 0.95 * pym * 0.5, 0.9 * pxm * 0.9, 1.9 * pym * 0.5)));
@@ -5607,10 +5612,12 @@ SIM.Models = (function () {
     function nacelle(en, hbp, i) {
       const eg = new THREE.Group(); eg.position.set(en.x, en.y, en.z); grp.add(eg);
       const s = T.fanR / 0.86, lc = LV.engine;
+      // CFM56-7 on the 737NG: accessories moved to the sides give the cowl its flattened bottom ("hamster pouch")
+      const flat = (m) => { if (!T.flatNac) return m; const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), r = Math.hypot(x, y), t = 0.5 * r; if (y < -t) P.setY(i, -t + (y + t) * 0.5); if (Math.abs(x) > 0.55 * r && y < 0) P.setX(i, x * 1.05); } P.needsUpdate = true; m.geometry.computeVertexNormals(); return m; };
       if (hbp) {
         const prof = [[-0.2, 0.86], [-0.02, 1.0], [0.4, 1.02], [2.0, 0.96], [3.6, 0.84], [4.3, 0.62], [4.3, 0.45], [5.1, 0.12]].map((p) => [p[0] * s, p[1] * s]);
-        eg.add(K.lathe(prof, engM, 28, 1, 0.94));
-        eg.add(K.lathe([[-0.2 * s, 0.84 * s], [-0.1 * s, 0.94 * s]], dk, 28));
+        eg.add(flat(K.lathe(prof, engM, 36, 1, 0.94)));
+        eg.add(flat(K.lathe([[-0.2 * s, 0.84 * s], [-0.1 * s, 0.94 * s]], dk, 36)));
         eg.add(K.lathe([[4.3 * s, 0.46 * s], [5.0 * s, 0.3 * s], [5.5 * s, 0.14 * s], [5.55 * s, 0.01]], K.heatMat(), 20)); K.chevrons(eg, 4.3 * s, 0.6 * s, 16, 0.12 * s, 0.38 * s);
       } else {
         const prof = [[0, 0.60 * T.fanR / 0.5 * 0.5 + 0.05], [0.12 * s, 0.70 * s * 0.8], [1.2 * s, 0.74 * s * 0.8], [4.0 * s, 0.72 * s * 0.8], [5.4 * s, 0.6 * s * 0.8], [5.9 * s, 0.5 * s * 0.8]];
@@ -5661,6 +5668,21 @@ SIM.Models = (function () {
       grp.add(K.panel(s, wingM, { flip: sd < 0, n: 8 })); const e = K.ctrl(s, stabX0 + 0.1, stabHalf - 0.2, 0.66, grey, { flip: sd < 0, n: 8 }); grp.add(e.outer);
       if (sd > 0) a.elevR = e.inner; else a.elevL = e.inner;
     });
+    if (T.b737) {
+      // long dorsal fin fillet running forward from the fin root
+      const top = (z) => K.interp(st, 't', z);
+      const zA = finZ0 - 0.55 * finRootC, zB = finZ0 + 0.25 * finRootC, hB = finRootY + finH * 0.16;
+      const sh = new THREE.Shape(); sh.moveTo(zA, top(zA) - 0.05); sh.quadraticCurveTo(finZ0 - 0.05 * finRootC, top(finZ0) + 0.05, zB, hB); sh.lineTo(zB + 0.3, top(zB) - 0.1); sh.lineTo(zA, top(zA) - 0.05);
+      const dg = new THREE.ExtrudeGeometry(sh, { depth: 0.22, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 2, curveSegments: 10 });
+      dg.rotateY(-Math.PI / 2); dg.translate(0.11, 0, 0);
+      grp.add(new THREE.Mesh(dg, rudMat));
+      // VHF / TCAS / satcom blades on the crown and belly
+      const bladeM = K.mat(hex(LV.base), { r: 0.35 });
+      [[-0.28, 1, 0.3], [-0.12, 1, 0.24], [0.06, 1, 0.28], [-0.2, -1, 0.24], [0.18, -1, 0.22]].forEach(([zf, sd, h]) => {
+        const z = zf * L, y = sd > 0 ? top(z) : K.interp(st, 'b', z), b = new THREE.Mesh(new THREE.BoxGeometry(0.04, h, 0.3), bladeM);
+        b.position.set(0, y + sd * h * 0.42, z); b.rotation.x = -sd * 0.35; grp.add(b);
+      });
+    }
     // tail cone details: APU exhaust
     const apu = K.lathe([[0, 0.28], [0.5, 0.22]], dk, 10); apu.position.set(0, K.interp(st, 't', L / 2 - 0.2) - 0.15, L / 2 - 0.3); grp.add(apu);
     // 727 centre engine (S-duct inlet on top of the rear fuselage, exhaust at the tail)
@@ -5710,13 +5732,18 @@ SIM.Models = (function () {
     // lights
     a.beacon = K.blink('#ff2020', 0.9); a.beacon.position.set(0, Rv + 0.1, -0.1 * L); grp.add(a.beacon);
     a.strobe = K.blink('#ffffff', 1.2); a.strobe.position.set(0, K.interp(st, 't', L / 2 - 0.3) + 0.1, L / 2 - 0.2); grp.add(a.strobe);
+    if (T.b737) {
+      // lower anti-collision beacon and wingtip strobes share the materials, so they flash with the upper ones
+      const lb = new THREE.Sprite(a.beacon.material); lb.scale.copy(a.beacon.scale); lb.position.set(0, -Rv - 0.12, 0.05 * L); grp.add(lb);
+      [1, -1].forEach((sd) => { const ws = new THREE.Sprite(a.strobe.material); ws.scale.setScalar(1.0); ws.position.set(sd * (semi + 0.35), tipS.y + 0.2, tipS.z + tipS.c * 0.85); grp.add(ws); });
+    }
     return { group: grp, anim: a };
   }
 
   SIM.AIRLINER_TYPES.forEach((T) => { M.reg(T.id, (spec) => build(T, spec)); });
   // the original two hand-built airliners now use the shared builder too
   SIM.AIRLINER_BASE = SIM.AIRLINER_BASE || [
-    { id: 'b738', len: 39.5, dia: 3.76, span: 34.3, S: 124.6, sweep: 25, taper: 0.28, dih: 6, oew: 41400, mtow: 79000, fuel: 20800, thr: 121e3, n: 2, mount: 'wing', fanR: 0.88, nac: 'hbp', eng: [0.31], tail: 'conv', tailH: 12.6, stab: 0.33, tips: 'blend', deck: 'none', gear: { main: 2, body: 0 } },
+    { id: 'b738', b737: true, flatNac: true, doors: [0.0, 1.0], len: 39.5, dia: 3.76, span: 34.3, S: 124.6, sweep: 25, taper: 0.28, dih: 6, oew: 41400, mtow: 79000, fuel: 20800, thr: 121e3, n: 2, mount: 'wing', fanR: 0.88, nac: 'hbp', eng: [0.31], tail: 'conv', tailH: 12.6, stab: 0.42, tips: 'blend', deck: 'none', gear: { main: 2, body: 0 } },
     { id: 'b747', len: 70.7, dia: 6.5, span: 64.4, S: 541, sweep: 37.5, taper: 0.24, dih: 6, oew: 183500, mtow: 396900, fuel: 173000, thr: 250e3, n: 4, mount: 'wing', fanR: 1.35, nac: 'hbp', eng: [0.35, 0.74], tail: 'conv', tailH: 19.4, stab: 0.34, tips: 'blend', deck: 'hump', gear: { main: 4, body: 2, bodyW: 4 } },
   ];
   SIM.AIRLINER_BASE.forEach((T) => { SIM.AIRLINER_REGISTERED = 1; M.reg(T.id, (spec) => build(Object.assign({ cruiseM: 0.8 }, T), spec)); });
@@ -8225,7 +8252,8 @@ SIM.Entity = (function () {
     const blink = Math.floor(this.t * 1.1) % 3 === 0 && (this.t * 1.1 % 1) < 0.18;
     const L = this.lights;
     if (a.strobe) a.strobe.material.opacity = L.strobe ? (blink ? 1 : 0.05) : 0.02;
-    if (a.beacon) a.beacon.material.opacity = L.beacon ? 0.35 + 0.65 * (Math.sin(this.t * 5) * 0.5 + 0.5) : 0.04;
+    const bp = (this.t * 1.0) % 1;   // anti-collision beacon: a sharp red pulse about once a second
+    if (a.beacon) a.beacon.material.opacity = L.beacon ? 0.06 + 0.94 * Math.exp(-Math.pow((bp - 0.1) / 0.08, 2)) : 0.04;
     if (a.navL) a.navL.material.opacity = L.nav ? 0.85 : 0.1;
     if (a.navR) a.navR.material.opacity = L.nav ? 0.85 : 0.1;
   };
