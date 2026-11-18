@@ -11711,6 +11711,7 @@ SIM.Game = (function () {
     SIM.inputActive = true;
     this.mode = 'play'; this.preview = false; this.crashT = 0; this.result = null; this.clock = 0; this.acc = 0; this.warp = 1; this.warpLimit = 1; this.apNav = true; this.holdBrake = false; this.starting = null;
     this.events.length = 0; this.ac.events.length = 0;
+    if (window.ErikaAccess) window.ErikaAccess.flew(this.spec.name || this.spec.id);   // planes-flown list on the admin desk
     this.world3d.updateTerrainStream(this.ac.p.x, this.ac.p.z);
     this.ent.syncTransform();
     this.dom.onBegin && this.dom.onBegin();

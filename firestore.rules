@@ -30,6 +30,14 @@ service cloud.firestore {
         && request.resource.data.lastSeen == request.time
         && request.resource.data.plays == resource.data.get('plays', 0) + 1
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'plays'])
+      ) || (
+        // the code's owner records which aircraft they flew: only the 'fleet' map changes, and it stays small
+        request.auth != null
+        && resource.data.claimedBy == request.auth.uid
+        && resource.data.revoked != true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fleet'])
+        && request.resource.data.fleet is map
+        && request.resource.data.fleet.size() <= 300
       );
     }
 
