@@ -84,15 +84,24 @@
     let c = snap.data();
     if (c.revoked) return { ok: false, why: 'This code has been turned off by the admin.' };
     if (c.claimedBy === uid) return { ok: true, hash };
-    if (c.claimedBy) return { ok: false, why: 'This code is already being used by someone else.' };
+    if (c.claimedBy) { reportShared(hash); return { ok: false, why: 'This code is already being used by someone else.' }; }
     if (quiet) return { ok: false, why: '' };
     try {
       await ref.update({ claimedBy: uid, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
       return { ok: true, hash };
     } catch (e) {
       snap = await ref.get(); c = snap.exists ? snap.data() : {};
+      if (c.claimedBy && c.claimedBy !== uid) reportShared(hash);
       return { ok: false, why: c.claimedBy && c.claimedBy !== uid ? 'This code is already being used by someone else.' : 'Could not use this code. Try again in a moment.' };
     }
+  }
+
+  // someone tried a code that belongs to another player: leave an alert for the admin desk (at most once per code every
+  // 10 minutes from this browser). Only the code's id, this browser's anonymous id and the time are stored.
+  function reportShared(hash) {
+    const k = 'erika.alerted.' + hash.slice(0, 16);
+    try { const t = +sessionStorage.getItem(k) || 0; if (Date.now() - t < 600000) return; sessionStorage.setItem(k, String(Date.now())); } catch (e) { /* storage unavailable */ }
+    db.collection('alerts').add({ code: hash, by: uid, at: firebase.firestore.FieldValue.serverTimestamp(), seen: false }).catch(() => {});
   }
 
   async function checkSaved(hash) {
@@ -138,8 +147,24 @@
     document.head.appendChild(st);
     const a = document.createElement('a');
     a.id = 'adminJump'; a.href = 'admin.html'; a.title = 'Open the admin desk';
-    a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Admin';
+    a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Admin<b id="adminBadge" hidden></b>';
+    st.textContent += '#adminBadge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff5e5e;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;letter-spacing:0}';
     document.body.appendChild(a);
+  }
+  // unseen code-sharing alerts: a red count on the Admin button (readable only by the signed-in admin account)
+  let alertOff = null, alertSeen = null;
+  function watchAlerts(on) {
+    if (!on) { if (alertOff) { alertOff(); alertOff = null; } alertSeen = null; return; }
+    if (alertOff) return;
+    alertOff = db.collection('alerts').where('seen', '==', false).onSnapshot((qs) => {
+      const b = document.getElementById('adminBadge'); if (!b) return;
+      b.hidden = qs.size === 0; b.textContent = qs.size > 9 ? '9+' : String(qs.size);
+      const btn = document.getElementById('adminJump'); if (btn) btn.title = qs.size ? qs.size + ' code-sharing alert' + (qs.size > 1 ? 's' : '') + ': open the admin desk' : 'Open the admin desk';
+      if (alertSeen != null && qs.size > alertSeen && window.Notification && Notification.permission === 'granted') {
+        try { new Notification('Erika Air: shared code', { body: 'Someone tried to use a code that belongs to another player.', tag: 'erika-alert' }); } catch (e) { /* not supported here */ }
+      }
+      alertSeen = qs.size;
+    }, () => {});
   }
   // keep the button in step with the sign-in: it appears whenever the admin account is signed in on this
   // browser (also if that happens in another tab while the game is open) and goes away on sign-out
@@ -153,6 +178,7 @@
     const n = ++adminSeq, ok = await isAdmin(usr);
     if (n !== adminSeq) return;
     if (ok || adminDevice()) adminButton(); else dropButton();
+    watchAlerts(ok);
   });
 
   const firstUser = new Promise((r) => { const off = auth.onAuthStateChanged((u) => { off(); r(u); }); });

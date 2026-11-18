@@ -65,6 +65,15 @@ button:disabled { opacity: .5; cursor: wait }
 .bar { height: 6px; border-radius: 99px; background: var(--raise); overflow: hidden; display: flex }
 .bar i { display: block; height: 100% }
 
+/* code-sharing alerts */
+.alerts { border-color: rgba(255, 94, 94, 0.45) }
+.alerts h2 { color: var(--bad) }
+.al { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; padding: 12px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--bad); min-width: 0 }
+.al .t { font-weight: 600 } .al .s { font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums }
+.al .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end } .al .acts button { padding: 6px 10px; font-size: 13px }
+.pill.new { color: var(--bad) }
+@media (max-width: 560px) { .al { grid-template-columns: 1fr } .al .acts { justify-content: flex-start } }
+
 /* new codes */
 .fresh { display: grid; gap: 10px; padding: 16px; border-radius: 10px; background: var(--bg); border: 1px dashed var(--accent) }
 .fresh .fc { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px }
@@ -134,6 +143,12 @@ button:disabled { opacity: .5; cursor: wait }
       <div class="gauge live"><span class="v" id="gLive">0</span><span class="k">Flew today</span></div>
     </section>
     <div class="bar" aria-hidden="true"><i id="bUsed" style="background:var(--warn)"></i><i id="bFree" style="background:var(--ok)"></i><i id="bOff" style="background:var(--bad)"></i></div>
+
+    <section class="card alerts" id="alerts" hidden aria-live="polite">
+      <div class="row" style="justify-content:space-between;align-items:center"><h2 id="alertsH">Shared code alerts</h2><div class="row"><button id="btnNotify" type="button" hidden>Turn on desktop alerts</button><button id="btnClearAlerts" type="button">Clear all</button></div></div>
+      <p>Someone tried to use a code that already belongs to another player. If that player shared their code, you can turn it off.</p>
+      <div class="list" id="alertList"></div>
+    </section>
 
     <section class="card">
       <h2>Make codes</h2>
@@ -212,6 +227,7 @@ button:disabled { opacity: .5; cursor: wait }
   const cfg = window.ERIKA_FIREBASE || {};
   const configured = window.firebase && cfg.apiKey && !/PASTE_/.test(cfg.apiKey + cfg.projectId);
   let auth = null, db = null, isAdmin = false, unsub = null, me = null;
+  let alerts = [], unAlerts = null, alertsLoaded = false;
   if (configured) { firebase.initializeApp(cfg); auth = firebase.auth(); db = firebase.firestore(); }
 
   async function checkAdmin(user) {
@@ -223,7 +239,7 @@ button:disabled { opacity: .5; cursor: wait }
     show('stepSign', codeOk && !isAdmin);
     show('desk', codeOk && isAdmin);
     if (codeOk && !configured) say('signMsg', 'Firebase is not set up yet: fill in firebase-config.js first.', 'bad');
-    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); markDevice(true); }
+    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); if (!unAlerts) watchAlerts(); markDevice(true); }
   }
   // remember that the admin uses this browser, so the game shows its Admin button here even while
   // flying with a player code (the button is only a link; the desk itself still needs the Google sign-in)
@@ -234,6 +250,7 @@ button:disabled { opacity: .5; cursor: wait }
     if (wrong) say('signMsg', 'This Google account (' + (u.email || 'unknown') + ') is not the admin. Sign out and use the admin account.', 'bad');
     show('btnOut2', !!wrong);
     if (!isAdmin && unsub) { unsub(); unsub = null; }
+    if (!isAdmin && unAlerts) { unAlerts(); unAlerts = null; alerts = []; paintAlerts(); }
     route();
   });
   route();
@@ -313,7 +330,7 @@ button:disabled { opacity: .5; cursor: wait }
   function watch() {
     unsub = db.collection('codes').orderBy('createdAt', 'desc').onSnapshot((qs) => {
       docs = []; qs.forEach((d) => docs.push({ ref: d.ref, c: d.data() }));
-      paintStats(); paintList();
+      paintStats(); paintList(); if (alerts.length) paintAlerts();
     }, () => { $('list').innerHTML = '<p>Could not load codes. Check that you are signed in as admin.</p>'; });
   }
   function paintStats() {
@@ -362,7 +379,71 @@ button:disabled { opacity: .5; cursor: wait }
       it.append(left, acts); L.appendChild(it);
     });
   }
-  setInterval(() => { if (docs.length && !editing) paintList(); }, 60000);   // keep "last flew" times fresh
+  setInterval(() => { if (docs.length && !editing) paintList(); if (alerts.length) paintAlerts(); }, 60000);   // keep times fresh
+
+  // ---- code-sharing alerts: written by the game when someone tries a code that another player already owns
+  const baseTitle = document.title;
+  function watchAlerts() {
+    alertsLoaded = false;
+    unAlerts = db.collection('alerts').orderBy('at', 'desc').limit(50).onSnapshot((qs) => {
+      const before = new Set(alerts.map((a) => a.id));
+      alerts = []; qs.forEach((d) => alerts.push({ id: d.id, ref: d.ref, a: d.data() }));
+      const fresh = alertsLoaded ? alerts.filter((x) => !before.has(x.id)) : [];
+      alertsLoaded = true;
+      if (fresh.length) notify(fresh);
+      paintAlerts(); markSeenSoon();
+    }, () => { /* rules not published yet: the panel stays hidden */ });
+  }
+  // "Alex's code", "an unnamed code", "a deleted code"
+  const codeName = (hash) => { const d = docs.find((x) => x.ref.id === hash); return !d ? 'a deleted code' : d.c.label ? d.c.label + "'s code" : 'an unnamed code'; };
+  function paintAlerts() {
+    const L = $('alertList'); L.textContent = '';
+    show('alerts', alerts.length > 0);
+    const unseen = alerts.filter((x) => !x.a.seen).length;
+    $('alertsH').textContent = 'Shared code alerts' + (unseen ? ' (' + unseen + ' new)' : '');
+    document.title = (unseen ? '(' + unseen + ') ' : '') + baseTitle;
+    show('btnNotify', !!window.Notification && Notification.permission === 'default');
+    alerts.forEach(({ ref, a }) => {
+      const it = document.createElement('div'); it.className = 'al';
+      const left = document.createElement('div'); left.style.minWidth = '0';
+      const t = document.createElement('div'); t.className = 't'; t.textContent = 'Someone else tried ' + codeName(a.code);
+      const sub = document.createElement('div'); sub.className = 's';
+      if (!a.seen) { const n = document.createElement('span'); n.className = 'pill new'; n.textContent = 'New'; sub.append(n, ' '); }
+      sub.append((a.at ? ago(a.at) + ' · ' + fmt(a.at) : 'just now'));
+      left.append(t, sub);
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const code = docs.find((x) => x.ref.id === a.code);
+      if (code && !code.c.revoked) { const b = document.createElement('button'); b.type = 'button'; b.className = 'danger'; b.textContent = 'Turn off code'; b.addEventListener('click', () => code.ref.update({ revoked: true }).catch(() => say('listMsg', 'That change did not save. Check your connection.', 'bad'))); acts.appendChild(b); }
+      const d = document.createElement('button'); d.type = 'button'; d.textContent = 'Dismiss'; d.addEventListener('click', () => ref.delete().catch(() => {})); acts.appendChild(d);
+      it.append(left, acts); L.appendChild(it);
+    });
+  }
+  // once the desk has been on screen for a few seconds the alerts count as seen (clears the badge in the game too)
+  let seenT = null;
+  function markSeenSoon() {
+    clearTimeout(seenT);
+    seenT = setTimeout(() => {
+      if (document.hidden) return;
+      const un = alerts.filter((x) => !x.a.seen); if (!un.length) return;
+      const b = db.batch(); un.forEach((x) => b.update(x.ref, { seen: true })); b.commit().catch(() => {});
+    }, 5000);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && alerts.length) markSeenSoon(); });
+  function notify(fresh) {
+    const body = fresh.length > 1 ? fresh.length + ' new attempts to use codes that belong to other players.' : 'Someone else tried ' + codeName(fresh[0].a.code) + '.';
+    if (window.Notification && Notification.permission === 'granted') { try { new Notification('Erika Air: shared code', { body, tag: 'erika-alert' }); } catch (e) { /* not supported here */ } }
+    try {   // a short two-tone chime
+      const ac = new (window.AudioContext || window.webkitAudioContext)(), t0 = ac.currentTime;
+      [[880, 0], [660, 0.18]].forEach(([f, d]) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0 + d); g.gain.exponentialRampToValueAtTime(0.25, t0 + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.16); o.connect(g).connect(ac.destination); o.start(t0 + d); o.stop(t0 + d + 0.2); });
+    } catch (e) { /* audio blocked until the page is clicked */ }
+  }
+  $('btnNotify').addEventListener('click', () => { Notification.requestPermission().then(() => paintAlerts()); });
+  let clearArmed = false;
+  $('btnClearAlerts').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (!clearArmed) { clearArmed = true; b.textContent = 'Confirm clear'; setTimeout(() => { clearArmed = false; b.textContent = 'Clear all'; }, 3000); return; }
+    const batch = db.batch(); alerts.forEach((x) => batch.delete(x.ref)); batch.commit().catch(() => {});
+  });
 })();
 </script>
 </body>
