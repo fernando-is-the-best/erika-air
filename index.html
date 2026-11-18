@@ -12086,9 +12086,11 @@ SIM.Game = (function () {
     previewForChallenge();
   }
   function paintChallenge() {
-    document.querySelectorAll('.chal').forEach((b) => {
+    // trip cards share the .chal style but are not challenges: skip them
+    document.querySelectorAll('.chal:not(.tripcard)').forEach((b) => {
+      const more = b.querySelector('.more'); if (!more) return;
       const on = b.dataset.id === sel.chal; b.setAttribute('aria-pressed', String(on));
-      const more = b.querySelector('.more'); more.hidden = !on;
+      more.hidden = !on;
       if (on) {
         const d = SIM.Challenges.byId[sel.chal], chips = more.querySelector('.chips'); chips.innerHTML = '';
         d.aircraft.forEach((id) => {
