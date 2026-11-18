@@ -32,5 +32,20 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'plays'])
       );
     }
+
+    // Code-sharing alerts: a player may only report a real code that is already claimed by someone else.
+    // Only the admin can read, mark as seen, or delete them.
+    match /alerts/{alertId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['code', 'by', 'at', 'seen'])
+        && request.resource.data.code is string
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.at == request.time
+        && request.resource.data.seen == false
+        && exists(/databases/$(database)/documents/codes/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/codes/$(request.resource.data.code)).data.claimedBy != null
+        && get(/databases/$(database)/documents/codes/$(request.resource.data.code)).data.claimedBy != request.auth.uid;
+    }
   }
 }
