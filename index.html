@@ -1212,6 +1212,8 @@ SIM.Aircraft = (function () {
     }
     // warnings
     this.overspeed = this.ias > s.speeds.vne * 0.99 || (s.speeds.mmo > 0 && this.mach > s.speeds.mmo + 0.004);
+    // take-off configuration warning (737): thrust advanced on the ground with flaps not set for take-off, speedbrake up or parking brake on
+    this.toConfig = !!(s.speeds.flapKt && this.onGround && ctl.throttle > 0.6 && ctl.rev <= 0 && this.gs < 45 && (this.flapPos < 0.95 || this.flapPos > 6.05 || this.spoilPos > 0.05 || ctl.parking));
     // flap placard speeds (kt per detent)
     const fk = s.speeds.flapKt;
     this.flapOver = !!(fk && this.flapPos > 0.05 && !this.onGround && this.ias * 1.94384 > fk[Math.min(fk.length - 1, Math.ceil(this.flapPos - 0.05))] + 3);
@@ -9041,6 +9043,7 @@ SIM.HUD = (function () {
     if (ac.overspeed) warn('OVERSPEED', '#ff8020');
     if (ac.gearWarn) warn('GEAR', '#ffcc30');
     if (ac.flapOver) warn('FLAP SPEED', '#ff8020');
+    if (ac.toConfig) warn('TAKEOFF CONFIG', '#ff4040');
     if (ac.flapLR) warn('LOAD RELIEF', '#ffcc30');
     if (ac.failMsg && ac.failMsg.length) ac.failMsg.forEach((m) => warn(m, (Math.floor(performance.now() / 450) & 1) ? '#ff3030' : '#ffd040'));
     if (ac.fail && ac.fail.splat) { ctx.save(); ctx.fillStyle = 'rgba(92,48,34,0.62)'; [[0.38, 0.34, 46], [0.42, 0.4, 24], [0.34, 0.45, 16], [0.62, 0.3, 30], [0.58, 0.38, 14], [0.5, 0.26, 20]].forEach((q) => { ctx.beginPath(); ctx.ellipse(W * q[0], H * q[1], q[2], q[2] * 0.7, 0.5, 0, 6.3); ctx.fill(); }); ctx.fillStyle = 'rgba(200,190,170,0.5)'; ctx.fillRect(W * 0.41, H * 0.32, 3, 18); ctx.restore(); }
@@ -11249,7 +11252,7 @@ SIM.Audio = (function () {
     opt = opt || {};
     const t = c.currentTime, S = (p, v, tc) => p.setTargetAtTime(v, t, tc || 0.08);
     const run = on && !ac.crashed;
-    if (this._prof !== spec.id) { this._prof = spec.id; this._p = profile(spec); this._g.gear = ac.gearPos; this._g.flap = ac.flapPos; this._g.ev = 0; }
+    if (this._prof !== spec.id) { this._prof = spec.id; this._p = profile(spec); this._g.apWas = false; this._g.gear = ac.gearPos; this._g.flap = ac.flapPos; this._g.ev = 0; }
     const p = this._p, cockpit = !!opt.cockpit;
     const ias = Math.max(0, ac.ias || 0), tas = ac.tas || ias, onG = ac.onGround, gs = ac.gs || 0;
     const sig = ac.sigma != null ? clamp(ac.sigma, 0.2, 1.1) : 1;
@@ -11335,9 +11338,15 @@ SIM.Audio = (function () {
         if (e.type === 'touchdown') { const s = clamp((e.sink || 1) / 3, 0.25, 1.4), big = spec.airliner || (spec.emptyMass > 5000); this._burst('noise', 0.28 * s, 0.22 + 0.12 * s, 2400 + rn(700), 1.4); this._burst('tone', 0.55 * s, big ? 0.5 : 0.3, big ? 60 : 85); this._burst('noise', 0.2 * s, 0.4, 260, 0.8); }
       }
     }
-    // stall horn
-    const horn = run && ac.stallWarn && Math.floor(t * 6) % 2 === 0;
+    // stall warning: a horn in light aircraft; airliners have a stick shaker (a hard ~20 Hz rattle of the control column)
+    const shaker = run && spec.airliner && (ac.stallWarn || ac.stalled);
+    let horn = run && !spec.airliner && ac.stallWarn && Math.floor(t * 6) % 2 === 0;
+    if (shaker) { S(N.thump.frequency, 30, 0.02); S(N.thumpLfo.frequency, 21, 0.02); S(N.thumpG.gain, 0.16, 0.02); S(N.thumpLG.gain, 0.16, 0.02); if (t > (G.shakeT || 0)) { this._burst('noise', 0.05, 0.04, 180, 1.5); G.shakeT = t + 0.048; } }
+    // airliner aural alerts: take-off configuration (intermittent horn) and landing gear (steady horn)
+    if (run && spec.airliner && ac.toConfig) horn = Math.floor(t * 2.6) % 2 === 0;
+    if (run && spec.airliner && ac.gearWarn) horn = true;
     S(N.sg.gain, horn ? 0.05 : 0, 0.015);
+    if (spec.airliner) this._alerts(ac, spec, run, t, cockpit, opt.dt || 0.016);
     // glider vario: rising chirps in lift, a low tone in sink
     let vg = 0, vf = 700;
     if (run && spec.glider && !onG) {
@@ -11347,6 +11356,55 @@ SIM.Audio = (function () {
     }
     S(N.vo.frequency, vf, 0.01); S(N.vg.gain, vg, 0.01);
     this.hush = !run;
+  };
+
+  // ---- airliner alerts: overspeed clacker, autopilot-disconnect wailer, stabiliser trim wheel clatter and GPWS voice callouts
+  P._alerts = function (ac, spec, run, t, cockpit, dt) {
+    const G = this._g;
+    if (!run) { G.apWas = ac.ap.on; G.aglWas = null; return; }
+    // overspeed clacker (~8 clacks a second)
+    if (ac.overspeed && t > (G.clackT || 0)) { this._burst('noise', 0.16, 0.035, 2600, 2.5); this._burst('tone', 0.08, 0.03, 900); G.clackT = t + 0.12; }
+    // autopilot disconnect: a rising-falling wail, three cycles
+    if (G.apWas && !ac.ap.on) this._wail();
+    G.apWas = ac.ap.on;
+    // stab trim wheel: clicks while the trim is running (the autopilot trims too), heard best in the flight deck
+    const tr = ac.ctl.trim, rate = G.trimWas == null ? 0 : Math.abs(tr - G.trimWas) / Math.max(dt, 1e-3); G.trimWas = tr;
+    G.trimRate = (G.trimRate || 0) + (rate - (G.trimRate || 0)) * Math.min(1, dt * 6);
+    if (G.trimRate > 0.0015 && t > (G.trimT || 0)) { this._burst('noise', cockpit ? 0.09 : 0.02, 0.025, 1800, 4); G.trimT = t + 1 / Math.min(14, 3 + G.trimRate * 300); }
+    // GPWS: radio-altitude callouts on approach and the classic warnings
+    const gh = spec.gear && spec.gear.length ? -Math.min.apply(null, spec.gear.map((g) => g.pos[1])) : 0, ft = (ac.agl - gh) * 3.28084, vsF = (ac.vs || 0) * 196.85, prev = G.aglWas;
+    G.aglWas = ft;
+    if (ac.onGround || prev == null || ac.airTime < 6) { G.calls = {}; return; }
+    G.calls = G.calls || {};
+    const down = vsF < -200;
+    if (down) for (const [h, w] of [[2500, 'Twenty five hundred'], [1000, 'One thousand'], [500, 'Five hundred'], [100, 'One hundred'], [50, 'Fifty'], [40, 'Forty'], [30, 'Thirty'], [20, 'Twenty'], [10, 'Ten']]) {
+      if (prev > h && ft <= h && !G.calls[h]) { G.calls[h] = 1; this.say(w, h <= 50); }
+    }
+    if (ft > 2600) G.calls = {};
+    // warnings (repeat no more than every 3 s)
+    if (t > (G.gpwsT || 0)) {
+      let w = null;
+      if (ft < 1500 && ft > 40 && vsF < -(1500 + ft * 2.2)) w = vsF < -(2500 + ft * 3) ? 'Pull up' : 'Sink rate';
+      else if (ft < 500 && ft > 40 && ac.gearPos < 0.5 && down && ac.ias * 1.944 < 190) w = 'Too low, gear';
+      else if (Math.abs(ac.euler.roll) > 35 * Math.PI / 180 && ft > 30) w = 'Bank angle, bank angle';
+      if (w) { this.say(w, true); G.gpwsT = t + 3; }
+    }
+  };
+  P._wail = function () {
+    const c = this.ctx; if (!c) return; const t = c.currentTime;
+    const o = c.createOscillator(); o.type = 'square'; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2400; const g = c.createGain();
+    o.frequency.setValueAtTime(1100, t); for (let i = 0; i < 3; i++) { o.frequency.linearRampToValueAtTime(1550, t + i * 0.6 + 0.3); o.frequency.linearRampToValueAtTime(1100, t + i * 0.6 + 0.6); }
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.05); g.gain.setValueAtTime(0.06, t + 1.7); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.85);
+    o.connect(f); f.connect(g); g.connect(this.bus); o.start(t); o.stop(t + 1.9);
+  };
+  // synthetic GPWS voice through the browser's speech engine (silently skipped where unavailable)
+  P.say = function (text, urgent) {
+    try {
+      const sp = window.speechSynthesis; if (!sp || this.vol <= 0) return;
+      if (urgent) sp.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.rate = 1.15; u.pitch = 0.75; u.volume = Math.min(1, this.vol * 1.4);
+      sp.speak(u);
+    } catch (e) { /* no speech */ }
   };
   return A;
 })();
