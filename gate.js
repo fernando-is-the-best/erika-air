@@ -90,6 +90,7 @@
       await ref.update({ claimedBy: uid, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
       return { ok: true, hash };
     } catch (e) {
+      if (e && e.code !== 'permission-denied') throw e;
       snap = await ref.get(); c = snap.exists ? snap.data() : {};
       if (c.claimedBy && c.claimedBy !== uid) reportShared(hash);
       return { ok: false, why: c.claimedBy && c.claimedBy !== uid ? 'This code is already being used by someone else.' : 'Could not use this code. Try again in a moment.' };
@@ -201,10 +202,21 @@
     const code = $('gateCode').value.trim();
     if (!code) return;
     busy(true); say('Checking code…');
-    try {
-      const r = await check(code);
-      if (r.ok) { say('Access granted.', 'ok'); unlock(r.hash); }
-      else { say(r.why, 'bad'); busy(false); $('gateCode').select(); }
-    } catch (err) { say(explain(err, 'Could not reach the access server. Check your connection and try again.'), 'bad'); busy(false); }
+    const done = (r) => { if (r.ok) { say('Access granted.', 'ok'); unlock(r.hash); } else { say(r.why, 'bad'); busy(false); $('gateCode').select(); } };
+    try { done(await check(code)); }
+    catch (err) {
+      // a refusal here means this browser's player sign-in is no longer valid (for example the anonymous account was
+      // removed in Firebase): start a fresh player session and try the code once more
+      if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
+        try {
+          say('Refreshing your player session…');
+          await auth.signOut().catch(() => {});
+          uid = (await auth.signInAnonymously()).user.uid; store.set(null);
+          done(await check(code)); return;
+        } catch (err2) { err = err2; }
+      }
+      console.error('Erika Air access check failed', err);
+      say(explain(err, 'Could not reach the access server. Check your connection and try again.'), 'bad'); busy(false);
+    }
   });
 })();
