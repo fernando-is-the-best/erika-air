@@ -96,6 +96,10 @@ button:disabled { opacity: .5; cursor: wait }
 .item .meta { font-size: 13px; color: var(--dim); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-variant-numeric: tabular-nums }
 .item .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-self: start }
 .item .acts button { padding: 6px 10px; font-size: 13px }
+.fleet { display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px }
+.fleet span { padding: 3px 9px; border-radius: 99px; background: var(--raise); border: 1px solid var(--line); color: var(--text) }
+.fleet span b { color: var(--accent); font-weight: 600; margin-left: 4px }
+.fleet.none { color: var(--dim); font-style: italic }
 .item .ren { display: flex; gap: 6px; flex-wrap: wrap } .item .ren input { flex: 1 1 160px; padding: 6px 10px; font-size: 15px }
 .pill { font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid currentColor }
 .pill.free { color: var(--ok) } .pill.used { color: var(--warn) } .pill.off { color: var(--bad) }
@@ -163,7 +167,7 @@ button:disabled { opacity: .5; cursor: wait }
     </section>
 
     <section class="card">
-      <div class="row" style="justify-content:space-between;align-items:center"><h2>Codes</h2><div class="row"><button id="btnBlur" type="button" aria-pressed="false">Hide codes</button><button id="btnCopyUnused" type="button">Copy unused codes</button></div></div>
+      <div class="row" style="justify-content:space-between;align-items:center"><h2>Codes</h2><div class="row"><button id="btnFleet" type="button" aria-pressed="false">Show planes flown</button><button id="btnBlur" type="button" aria-pressed="false">Hide codes</button><button id="btnCopyUnused" type="button">Copy unused codes</button></div></div>
       <div class="tools">
         <input id="search" type="search" placeholder="Search by name or code" aria-label="Search codes">
         <div class="chips" role="group" aria-label="Filter">
@@ -319,6 +323,9 @@ button:disabled { opacity: .5; cursor: wait }
     filter = b.dataset.f; document.querySelectorAll('.chips button').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); paintList();
   }));
   $('search').addEventListener('input', (e) => { q = e.target.value.trim().toLowerCase(); paintList(); });
+  // planes flown per player: only shown when asked for
+  let showFleet = false;
+  $('btnFleet').addEventListener('click', (e) => { showFleet = !showFleet; e.currentTarget.setAttribute('aria-pressed', String(showFleet)); e.currentTarget.textContent = showFleet ? 'Hide planes flown' : 'Show planes flown'; paintList(); });
   $('btnBlur').addEventListener('click', (e) => { const on = $('list').classList.toggle('blur'); e.currentTarget.setAttribute('aria-pressed', on ? 'true' : 'false'); e.currentTarget.textContent = on ? 'Show codes' : 'Hide codes'; });
   $('btnCopyUnused').addEventListener('click', (e) => {
     const u = docs.filter((d) => stateOf(d.c) === 'free');
@@ -367,6 +374,13 @@ button:disabled { opacity: .5; cursor: wait }
       info.textContent = [st === 'used' ? 'claimed ' + fmt(c.claimedAt) : 'made ' + fmt(c.createdAt), c.lastSeen ? 'last flew ' + ago(c.lastSeen) : '', c.plays ? c.plays + (c.plays === 1 ? ' flight' : ' flights') : ''].filter(Boolean).join(' · ');
       meta.appendChild(info);
       left.append(code, meta);
+      if (showFleet) {
+        const fl = document.createElement('div'), list = Object.entries(c.fleet || {}).sort((a, b) => b[1] - a[1]);
+        fl.className = 'fleet' + (list.length ? '' : ' none');
+        if (!list.length) fl.textContent = 'No flights recorded yet';
+        list.forEach(([name, n]) => { const t = document.createElement('span'); t.append(name); const k = document.createElement('b'); k.textContent = '×' + n; t.appendChild(k); fl.appendChild(t); });
+        left.appendChild(fl);
+      }
       const acts = document.createElement('div'); acts.className = 'acts';
       const btn = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; if (cls) b.className = cls; b.addEventListener('click', fn); acts.appendChild(b); return b; };
       const fail = () => say('listMsg', 'That change did not save. Check your connection.', 'bad');

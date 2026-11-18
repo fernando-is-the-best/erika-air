@@ -63,8 +63,18 @@
   const auth = firebase.auth(), db = firebase.firestore();
   let uid = null, unwatch = null;
 
+  // every flight started with a code adds one to that aircraft's count on the code (shown on the admin desk on request)
+  let codeHash = null;
+  window.ErikaAccess = {
+    flew(name) {
+      if (!codeHash || !name) return;
+      const key = String(name).replace(/[.~*/\[\]`]/g, ' ').slice(0, 60);
+      db.collection('codes').doc(codeHash).update(new firebase.firestore.FieldPath('fleet', key), firebase.firestore.FieldValue.increment(1)).catch(() => {});
+    },
+  };
+
   function unlock(hash) {
-    store.set(hash);
+    store.set(hash); codeHash = hash;
     gate.remove();
     release();
     // log this flight for the admin desk (last flew + flight count)
