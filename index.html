@@ -370,6 +370,11 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
   <div id="loading"><div><div class="w">AERO<b>SIM</b></div><p id="loadMsg">Building terrain&hellip;</p><div class="bar"><i></i></div></div></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="gate.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 var SIM = {};
@@ -12404,7 +12409,8 @@ SIM.Game = (function () {
     window.__aerosim = { sel, game, buildTrips, startFree: () => $('btnFly').click(), start: (id, ac) => { const d = SIM.Challenges.byId[id]; game.startChallenge(d, ac || d.aircraft[0]); } };
   }
   const ready = window.__hot_ready;
-  boot();
+  // the game starts only after the access gate lets this browser in (a valid code, or the admin signed in)
+  if (window.__gateReady) window.__gateReady.then(boot); else boot();
 })();
 
 

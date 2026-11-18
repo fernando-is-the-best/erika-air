@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Erika Air Admin</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a flight-ops desk — pilot card (who is signed in) and live readouts across the top, code maker, then the roster of issued codes. */
+:root {
+  color-scheme: dark;
+  --bg: #070b10; --panel: #0d1620; --raise: #13202d; --line: rgba(160, 190, 215, 0.16);
+  --text: #e8f0f6; --dim: #8ea3b4; --accent: #ffb52e; --accent-ink: #1a1203;
+  --ok: #46d98a; --bad: #ff5e5e; --warn: #ffb52e; --blue: #62b6ff;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 var(--f-body) }
+body { background: radial-gradient(ellipse at 50% -10%, #142a40 0%, var(--bg) 55%) fixed, var(--bg);
+  padding-block: max(24px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+main { max-width: 880px; margin: 0 auto; display: grid; gap: 20px }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap }
+h1 { margin: 0; font: 700 34px/1 var(--f-display); text-transform: uppercase; letter-spacing: .02em; text-wrap: balance }
+h1 b { color: var(--accent) }
+h2 { margin: 0; font: 600 18px/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .1em; color: var(--dim) }
+a { color: var(--dim) }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 14px; min-width: 0 }
+p { margin: 0; color: var(--dim) }
+label, .lbl { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim) }
+input, select { width: 100%; padding: 11px 13px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: 15px var(--f-body) }
+input.mono { font-family: var(--f-mono) }
+button { padding: 10px 15px; border: 1px solid var(--line); border-radius: 9px; background: var(--raise); color: var(--text); font: 500 15px var(--f-body); cursor: pointer; transition: border-color .15s, transform .1s }
+button:hover { border-color: rgba(160, 190, 215, 0.4) } button:active { transform: translateY(1px) }
+button.main { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600 }
+button.danger { color: var(--bad) }
+button:disabled { opacity: .5; cursor: wait }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end }
+.row > .grow { flex: 1 1 200px; min-width: 0; display: grid; gap: 6px }
+.row > .fix { flex: 0 0 110px; display: grid; gap: 6px }
+.msg { min-height: 1.4em; font-size: 14px } .msg.bad { color: var(--bad) } .msg.ok { color: var(--ok) }
+
+/* pilot card */
+.pilot { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center }
+.avatar { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; background: var(--raise); display: grid; place-items: center; font: 700 26px var(--f-display); color: var(--accent) }
+.pilot .name { font: 700 26px/1.1 var(--f-display); letter-spacing: .02em }
+.pilot .sub { font-size: 14px; color: var(--dim); word-break: break-all }
+.badge { display: inline-block; font: 600 11px var(--f-body); letter-spacing: .12em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; background: var(--accent); color: var(--accent-ink); vertical-align: middle; margin-left: 8px }
+.pilot .acts { display: flex; gap: 8px; flex-wrap: wrap }
+.clock { font: 500 13px var(--f-mono); color: var(--dim); font-variant-numeric: tabular-nums }
+@media (max-width: 620px) { .pilot { grid-template-columns: auto 1fr } .pilot .acts { grid-column: 1 / -1 } }
+
+/* readouts */
+.gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px }
+.gauge { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; min-width: 0 }
+.gauge .v { font: 700 34px/1 var(--f-display); font-variant-numeric: tabular-nums }
+.gauge .k { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim) }
+.gauge.free .v { color: var(--ok) } .gauge.used .v { color: var(--warn) } .gauge.off .v { color: var(--bad) } .gauge.live .v { color: var(--blue) }
+.bar { height: 6px; border-radius: 99px; background: var(--raise); overflow: hidden; display: flex }
+.bar i { display: block; height: 100% }
+
+/* new codes */
+.fresh { display: grid; gap: 10px; padding: 16px; border-radius: 10px; background: var(--bg); border: 1px dashed var(--accent) }
+.fresh .fc { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px }
+.fresh .fc:last-of-type { border-bottom: 0 }
+.fresh code { font: 500 18px/1.3 var(--f-mono); color: var(--accent); word-break: break-all; letter-spacing: .03em; min-width: 0 }
+.fresh .who { font-size: 13px; color: var(--dim) }
+
+/* roster */
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.tools input { flex: 1 1 220px; min-width: 0 }
+.chips { display: flex; gap: 6px; flex-wrap: wrap }
+.chips button { padding: 6px 12px; font-size: 13px; border-radius: 99px }
+.chips button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent }
+.list { display: grid; gap: 10px }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--st, var(--line)); border-radius: 10px; background: var(--bg); min-width: 0 }
+.item.free { --st: var(--ok) } .item.used { --st: var(--warn) } .item.off { --st: var(--bad); opacity: .8 }
+.item .nm { font: 600 18px/1.2 var(--f-body) }
+.item .nm.none { color: var(--dim); font-style: italic; font-weight: 400 }
+.item code { font: 14px var(--f-mono); word-break: break-all; color: var(--dim) }
+.item .meta { font-size: 13px; color: var(--dim); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-variant-numeric: tabular-nums }
+.item .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-self: start }
+.item .acts button { padding: 6px 10px; font-size: 13px }
+.item .ren { display: flex; gap: 6px; flex-wrap: wrap } .item .ren input { flex: 1 1 160px; padding: 6px 10px; font-size: 15px }
+.pill { font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid currentColor }
+.pill.free { color: var(--ok) } .pill.used { color: var(--warn) } .pill.off { color: var(--bad) }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 0 var(--blue); animation: ping 1.8s infinite }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(98,182,255,.6) } 100% { box-shadow: 0 0 0 8px rgba(98,182,255,0) } }
+.blur code { filter: blur(5px); transition: filter .15s } .blur .item:hover code { filter: none }
+@media (max-width: 560px) { .item { grid-template-columns: 1fr } .item .acts { justify-content: flex-start } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none } * { transition: none !important } }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Erika <b>Air</b> Admin</h1><a href="./">Back to the game</a></header>
+
+  <form class="card" id="stepCode" autocomplete="off">
+    <h2>Admin code</h2>
+    <p>Enter the admin code to open the control desk.</p>
+    <div class="row"><div class="grow"><label for="adminCode">Admin code</label><input id="adminCode" class="mono" type="password" spellcheck="false" required></div><button class="main" type="submit">Continue</button></div>
+    <div class="msg" id="codeMsg" role="status" aria-live="polite"></div>
+  </form>
+
+  <section class="card" id="stepSign" hidden>
+    <h2>Sign in</h2>
+    <p>Sign in with the Google account set as admin in your Firebase rules. While you stay signed in, this browser can play the game without a code.</p>
+    <div class="row"><button class="main" id="btnGoogle" type="button">Sign in with Google</button><button id="btnOut2" type="button" hidden>Sign out</button></div>
+    <div class="msg" id="signMsg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="desk" hidden style="display:grid;gap:20px">
+    <section class="card pilot" aria-label="Signed-in admin">
+      <div id="avatar" class="avatar" aria-hidden="true"></div>
+      <div style="min-width:0">
+        <div class="name"><span id="pName">Admin</span><span class="badge">Admin</span></div>
+        <div class="sub" id="pEmail"></div>
+        <div class="clock" id="pClock"></div>
+      </div>
+      <div class="acts"><a href="./"><button type="button" class="main">Play the game</button></a><button id="btnOut" type="button">Sign out</button></div>
+    </section>
+
+    <section class="gauges" aria-label="Code readouts">
+      <div class="gauge"><span class="v" id="gTotal">0</span><span class="k">Codes issued</span></div>
+      <div class="gauge used"><span class="v" id="gUsed">0</span><span class="k">In use</span></div>
+      <div class="gauge free"><span class="v" id="gFree">0</span><span class="k">Unused</span></div>
+      <div class="gauge off"><span class="v" id="gOff">0</span><span class="k">Turned off</span></div>
+      <div class="gauge live"><span class="v" id="gLive">0</span><span class="k">Flew today</span></div>
+    </section>
+    <div class="bar" aria-hidden="true"><i id="bUsed" style="background:var(--warn)"></i><i id="bFree" style="background:var(--ok)"></i><i id="bOff" style="background:var(--bad)"></i></div>
+
+    <section class="card">
+      <h2>Make codes</h2>
+      <p>Each code is 24 characters of letters, numbers and symbols. The first person to enter it owns it; anyone else who tries it is blocked.</p>
+      <div class="row">
+        <div class="grow"><label for="who">Name</label><input id="who" maxlength="60" placeholder="Who is this code for?"></div>
+        <div class="fix"><label for="qty">How many</label><select id="qty"><option>1</option><option>3</option><option>5</option><option>10</option></select></div>
+        <button class="main" id="btnMake" type="button">Generate</button>
+      </div>
+      <div class="fresh" id="fresh" hidden><span class="lbl">New codes — copy them now and send them to your players</span><div id="freshList" style="display:grid;gap:8px"></div><div class="row"><button id="btnCopyFresh" type="button">Copy all new codes</button></div></div>
+      <div class="msg" id="makeMsg" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:center"><h2>Codes</h2><div class="row"><button id="btnBlur" type="button" aria-pressed="false">Hide codes</button><button id="btnCopyUnused" type="button">Copy unused codes</button></div></div>
+      <div class="tools">
+        <input id="search" type="search" placeholder="Search by name or code" aria-label="Search codes">
+        <div class="chips" role="group" aria-label="Filter">
+          <button type="button" data-f="all" aria-pressed="true">All</button><button type="button" data-f="used" aria-pressed="false">In use</button><button type="button" data-f="free" aria-pressed="false">Unused</button><button type="button" data-f="off" aria-pressed="false">Turned off</button>
+        </div>
+      </div>
+      <div class="list" id="list"><p>Loading codes…</p></div>
+      <div class="msg" id="listMsg" role="status" aria-live="polite"></div>
+    </section>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function () {
+  const ADMIN_HASH = '4b2342c4b0d1cb10c1529f31d7765d31038ac2acad4821d141bc23669721dff7';
+  const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ', LOWER = 'abcdefghijkmnopqrstuvwxyz', DIGIT = '23456789', SYM = '!@#$%^&*-_+=?';
+  const ALL = UPPER + LOWER + DIGIT + SYM;
+  const $ = (id) => document.getElementById(id);
+  const say = (id, t, kind) => { const m = $(id); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
+  const show = (id, on) => { $(id).hidden = !on; };
+
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+  // unbiased random index below n, from the browser's cryptographic random source
+  function rnd(n) { const lim = 65536 - (65536 % n), b = new Uint16Array(1); do { crypto.getRandomValues(b); } while (b[0] >= lim); return b[0] % n; }
+  function makeCode() {
+    const out = [UPPER, LOWER, DIGIT, SYM].map((s) => s[rnd(s.length)]);   // at least one of each kind
+    while (out.length < 24) out.push(ALL[rnd(ALL.length)]);
+    for (let i = out.length - 1; i > 0; i--) { const j = rnd(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+    return out.join('');
+  }
+  async function copy(text, btn) {
+    try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1400); }
+    catch (e) { window.prompt('Copy this:', text); }
+  }
+  const fmt = (ts) => (ts && ts.toDate ? ts.toDate().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '');
+  function ago(ts) {
+    if (!ts || !ts.toDate) return '';
+    const s = (Date.now() - ts.toDate().getTime()) / 1000;
+    if (s < 90) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago'; if (s < 86400) return Math.round(s / 3600) + ' h ago';
+    return Math.round(s / 86400) + ' days ago';
+  }
+
+  // ---- step 1: admin code
+  let codeOk = false;
+  try { codeOk = sessionStorage.getItem('erika.admin.ok') === '1'; } catch (e) { /* storage unavailable */ }
+  $('stepCode').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (await sha256($('adminCode').value.trim()) === ADMIN_HASH) {
+      codeOk = true; try { sessionStorage.setItem('erika.admin.ok', '1'); } catch (er) { /* ignore */ }
+      say('codeMsg', ''); route();
+    } else say('codeMsg', 'That admin code is not right.', 'bad');
+  });
+
+  const cfg = window.ERIKA_FIREBASE || {};
+  const configured = window.firebase && cfg.apiKey && !/PASTE_/.test(cfg.apiKey + cfg.projectId);
+  let auth = null, db = null, isAdmin = false, unsub = null, me = null;
+  if (configured) { firebase.initializeApp(cfg); auth = firebase.auth(); db = firebase.firestore(); }
+
+  async function checkAdmin(user) {
+    if (!user || user.isAnonymous) return false;
+    try { await db.collection('codes').limit(1).get(); return true; } catch (e) { return false; }
+  }
+  function route() {
+    show('stepCode', !codeOk);
+    show('stepSign', codeOk && !isAdmin);
+    show('desk', codeOk && isAdmin);
+    if (codeOk && !configured) say('signMsg', 'Firebase is not set up yet: fill in firebase-config.js first.', 'bad');
+    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); }
+  }
+  if (configured) auth.onAuthStateChanged(async (u) => {
+    me = u; isAdmin = await checkAdmin(u);
+    const wrong = u && !u.isAnonymous && !isAdmin;
+    if (wrong) say('signMsg', 'This Google account (' + (u.email || 'unknown') + ') is not the admin. Sign out and use the admin account.', 'bad');
+    show('btnOut2', !!wrong);
+    if (!isAdmin && unsub) { unsub(); unsub = null; }
+    route();
+  });
+  route();
+
+  $('btnGoogle').addEventListener('click', async () => {
+    if (!configured) return;
+    say('signMsg', 'Opening Google sign-in…');
+    try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); say('signMsg', ''); }
+    catch (e) { say('signMsg', e.code === 'auth/popup-blocked' ? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.' : 'Sign-in did not finish. Try again.', 'bad'); }
+  });
+  $('btnOut').addEventListener('click', () => auth.signOut());
+  $('btnOut2').addEventListener('click', () => auth.signOut());
+
+  // ---- pilot card: who is signed in
+  function paintPilot() {
+    if (!me) return;
+    const av = $('avatar'); av.textContent = '';
+    const nm = me.displayName || (me.email || 'Admin').split('@')[0];
+    if (me.photoURL) { const img = document.createElement('img'); img.src = me.photoURL; img.alt = ''; img.referrerPolicy = 'no-referrer'; img.className = 'avatar'; img.onerror = () => { av.textContent = nm[0].toUpperCase(); }; av.replaceWith(img); img.id = 'avatar'; }
+    else av.textContent = nm[0].toUpperCase();
+    $('pName').textContent = nm;
+    const since = me.metadata && me.metadata.lastSignInTime ? new Date(me.metadata.lastSignInTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    $('pEmail').textContent = (me.email || '') + (since ? ' · signed in ' + since : '');
+  }
+  function tick() {
+    const h = new Date().getHours(), g = h < 5 ? 'Night flying' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    $('pClock').textContent = g + ' · ' + new Date().toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---- make codes
+  let fresh = [];
+  $('btnMake').addEventListener('click', async () => {
+    const b = $('btnMake'); b.disabled = true; say('makeMsg', '');
+    const n = +$('qty').value || 1, base = $('who').value.trim().slice(0, 60);
+    try {
+      const batch = db.batch(), made = [];
+      for (let i = 0; i < n; i++) {
+        const code = makeCode(), id = await sha256(code), label = base && n > 1 ? base + ' ' + (i + 1) : base;
+        batch.set(db.collection('codes').doc(id), { code, label, createdAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: null, claimedAt: null, revoked: false, plays: 0, lastSeen: null });
+        made.push({ code, label });
+      }
+      await batch.commit();
+      fresh = made; paintFresh(); $('who').value = '';
+      say('makeMsg', n === 1 ? 'Code saved.' : n + ' codes saved.', 'ok');
+    } catch (e) { say('makeMsg', 'Could not save the codes. Check your connection and that you are signed in as admin.', 'bad'); }
+    b.disabled = false;
+  });
+  function paintFresh() {
+    const L = $('freshList'); L.textContent = '';
+    fresh.forEach((f) => {
+      const row = document.createElement('div'); row.className = 'fc';
+      const left = document.createElement('div'); left.style.minWidth = '0';
+      const c = document.createElement('code'); c.textContent = f.code; left.appendChild(c);
+      if (f.label) { const w = document.createElement('div'); w.className = 'who'; w.textContent = 'For ' + f.label; left.appendChild(w); }
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Copy'; b.addEventListener('click', (e) => copy(f.code, e.currentTarget));
+      row.append(left, b); L.appendChild(row);
+    });
+    show('fresh', fresh.length > 0);
+  }
+  $('btnCopyFresh').addEventListener('click', (e) => copy(fresh.map((f) => (f.label ? f.label + ': ' : '') + f.code).join('\n'), e.currentTarget));
+
+  // ---- roster
+  let docs = [], filter = 'all', q = '';
+  document.querySelectorAll('.chips button').forEach((b) => b.addEventListener('click', () => {
+    filter = b.dataset.f; document.querySelectorAll('.chips button').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); paintList();
+  }));
+  $('search').addEventListener('input', (e) => { q = e.target.value.trim().toLowerCase(); paintList(); });
+  $('btnBlur').addEventListener('click', (e) => { const on = $('list').classList.toggle('blur'); e.currentTarget.setAttribute('aria-pressed', on ? 'true' : 'false'); e.currentTarget.textContent = on ? 'Show codes' : 'Hide codes'; });
+  $('btnCopyUnused').addEventListener('click', (e) => {
+    const u = docs.filter((d) => stateOf(d.c) === 'free');
+    if (!u.length) { say('listMsg', 'There are no unused codes to copy.', 'bad'); return; }
+    copy(u.map((d) => (d.c.label ? d.c.label + ': ' : '') + d.c.code).join('\n'), e.currentTarget); say('listMsg', '');
+  });
+  const stateOf = (c) => (c.revoked ? 'off' : c.claimedBy ? 'used' : 'free');
+
+  function watch() {
+    unsub = db.collection('codes').orderBy('createdAt', 'desc').onSnapshot((qs) => {
+      docs = []; qs.forEach((d) => docs.push({ ref: d.ref, c: d.data() }));
+      paintStats(); paintList();
+    }, () => { $('list').innerHTML = '<p>Could not load codes. Check that you are signed in as admin.</p>'; });
+  }
+  function paintStats() {
+    let free = 0, used = 0, off = 0, live = 0; const day = Date.now() - 86400000;
+    docs.forEach(({ c }) => { const s = stateOf(c); if (s === 'free') free++; else if (s === 'used') used++; else off++; if (c.lastSeen && c.lastSeen.toDate && c.lastSeen.toDate().getTime() > day) live++; });
+    const t = docs.length; $('gTotal').textContent = t; $('gUsed').textContent = used; $('gFree').textContent = free; $('gOff').textContent = off; $('gLive').textContent = live;
+    const pc = (v) => (t ? (v / t) * 100 : 0) + '%'; $('bUsed').style.width = pc(used); $('bFree').style.width = pc(free); $('bOff').style.width = pc(off);
+  }
+  let editing = null;
+  function paintList() {
+    const L = $('list'); L.textContent = '';
+    const rows = docs.filter(({ c }) => (filter === 'all' || stateOf(c) === filter) && (!q || (c.label || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q)));
+    if (!rows.length) { const p = document.createElement('p'); p.textContent = docs.length ? 'No codes match.' : 'No codes yet. Make one above.'; L.appendChild(p); return; }
+    rows.forEach(({ ref, c }) => {
+      const st = stateOf(c), it = document.createElement('div'); it.className = 'item ' + st;
+      const left = document.createElement('div'); left.style.cssText = 'min-width:0;display:grid;gap:6px';
+      if (editing === ref.id) {
+        const box = document.createElement('div'); box.className = 'ren';
+        const inp = document.createElement('input'); inp.value = c.label || ''; inp.maxLength = 60; inp.setAttribute('aria-label', 'Name');
+        const save = () => { ref.update({ label: inp.value.trim().slice(0, 60) }).catch(() => say('listMsg', 'Could not rename the code.', 'bad')); editing = null; paintList(); };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { editing = null; paintList(); } });
+        const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'main'; ok.textContent = 'Save'; ok.addEventListener('click', save);
+        const no = document.createElement('button'); no.type = 'button'; no.textContent = 'Cancel'; no.addEventListener('click', () => { editing = null; paintList(); });
+        box.append(inp, ok, no); left.appendChild(box); setTimeout(() => inp.focus(), 0);
+      } else {
+        const nm = document.createElement('div'); nm.className = 'nm' + (c.label ? '' : ' none'); nm.textContent = c.label || 'No name'; left.appendChild(nm);
+      }
+      const code = document.createElement('code'); code.textContent = c.code || '(hidden)';
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const pill = document.createElement('span'); pill.className = 'pill ' + st; pill.textContent = st === 'free' ? 'Unused' : st === 'used' ? 'In use' : 'Turned off'; meta.appendChild(pill);
+      const recent = c.lastSeen && c.lastSeen.toDate && Date.now() - c.lastSeen.toDate().getTime() < 15 * 60000;
+      if (recent && st === 'used') { const d = document.createElement('span'); d.className = 'dot'; d.title = 'Flying in the last 15 minutes'; meta.appendChild(d); }
+      const info = document.createElement('span');
+      info.textContent = [st === 'used' ? 'claimed ' + fmt(c.claimedAt) : 'made ' + fmt(c.createdAt), c.lastSeen ? 'last flew ' + ago(c.lastSeen) : '', c.plays ? c.plays + (c.plays === 1 ? ' flight' : ' flights') : ''].filter(Boolean).join(' · ');
+      meta.appendChild(info);
+      left.append(code, meta);
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const btn = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; if (cls) b.className = cls; b.addEventListener('click', fn); acts.appendChild(b); return b; };
+      const fail = () => say('listMsg', 'That change did not save. Check your connection.', 'bad');
+      btn('Copy', (e) => copy(c.code, e.currentTarget));
+      btn('Rename', () => { editing = ref.id; paintList(); });
+      if (c.claimedBy) btn('Free up', () => ref.update({ claimedBy: null, claimedAt: null }).catch(fail));
+      btn(c.revoked ? 'Turn on' : 'Turn off', () => ref.update({ revoked: !c.revoked }).catch(fail));
+      let armed = false;
+      const del = btn('Delete', () => { if (!armed) { armed = true; del.textContent = 'Confirm delete'; setTimeout(() => { armed = false; del.textContent = 'Delete'; }, 3000); return; } ref.delete().catch(fail); }, 'danger');
+      it.append(left, acts); L.appendChild(it);
+    });
+  }
+  setInterval(() => { if (docs.length && !editing) paintList(); }, 60000);   // keep "last flew" times fresh
+})();
+</script>
+</body>
+</html>
