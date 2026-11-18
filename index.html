@@ -576,7 +576,7 @@ SIM.Aircraft = (function () {
     this.eng.ab = 0;
     this.fuel = opt.fuel != null ? opt.fuel : this.spec.fuelDefaultKg;
     this.fcsState.hold = false; this.fcsState.iq = 0;
-    this.ap.on = false; this.dmg = 0; this.airTime = opt.speed > 15 ? 10 : 0; this.groundTime = 0;
+    this.ap.on = false; this.dmg = 0; this.autoSpoil = false; this._gsArm = false; this._flrOn = false; this.airTime = opt.speed > 15 ? 10 : 0; this.groundTime = 0;
     this.maxG = 1; this.minG = 1;
     this.events.length = 0;
     this.wheels.forEach((w) => { w.on = false; w.was = false; w.Fn = 0; w.comp = 0; });
@@ -721,6 +721,8 @@ SIM.Aircraft = (function () {
 
     // ---- lift / drag / side force
     let CL = lc.CL * 1.0 + (fc.dCL * 0); // flap dCL already in CL0
+    const geIn = 1 - ge;                  // 0 out of ground effect .. ~0.3 at touchdown
+    if (s.geLift) CL *= 1 + s.geLift * geIn;
     const spoilL = this.spoilPos * (s.spoilerCL || 0);
     CL += spoilL;
     const CLind = lc.lin + spoilL;
@@ -753,7 +755,9 @@ SIM.Aircraft = (function () {
     const rollDampEff = 1 - 2.4 * sigma;
     let Cm = ae.Cm0 + ae.Cma * clamp(alpha, -0.6, 0.6) * (1 + 0.5 * Math.max(0, M - 1))
       + ae.Cmq * qh + ae.Cmde * sf.de * qr + (ae.Cmtrim || ae.Cmde) * ctl.trim * qr + fc.dCm
-      - (ae.Cmstall || 0.35) * sigma * U.sign(alpha) + (s.spoilerCm || 0) * this.spoilPos;
+      - (ae.Cmstall || 0.35) * sigma * U.sign(alpha) + (s.spoilerCm || 0) * this.spoilPos + (s.geCm || 0) * geIn;
+    // Mach tuck: past the maximum operating Mach the centre of lift moves aft and the nose drops
+    if (s.speeds.mmo && M > s.speeds.mmo) Cm -= 0.03 * sat((M - s.speeds.mmo) / 0.06);
     // CG shift with fuel not modelled; flaps pitching handled via dCm
     let Cl = ae.Clb * beta + ae.Clp * ph * rollDampEff + ae.Clr * rh + ae.Clda * sf.da * aileronEff + (ae.Cldr || 0) * sf.dr * qr
       + (s.stallRoll || 0.05) * sigma * Math.sin(this.t * 3.1 + beta * 6) * 0.6 + (s.stallRoll || 0.05) * sigma * clamp(-rYaw * 2, -1, 1);
@@ -985,7 +989,8 @@ SIM.Aircraft = (function () {
     let rev = (ctl.rev > 0 && this.onGround) ? ctl.rev : 0;
     let n1T = eng.running ? (E.idle + (1 - E.idle) * Math.min(thrTgt, E.milAt || 1) / (E.milAt || 1)) : 0;
     if (rev > 0 && eng.running) n1T = E.idle + (1 - E.idle) * 0.7 * rev;
-    const tau = (n1T > eng.n1 ? E.spoolUp : E.spoolDown);
+    // turbofans accelerate slowly from idle and quickly near the top (spoolNL)
+    const tau = (n1T > eng.n1 ? E.spoolUp * (E.spoolNL ? 1.6 - eng.n1 : 1) : E.spoolDown);
     eng.n1 += (n1T - eng.n1) * Math.min(1, dt / tau);
     const abT = (eng.running && E.ab && !rev && thr > (E.milAt || 1)) ? sat((thr - E.milAt) / (1 - E.milAt)) : 0;
     eng.ab += (abT - eng.ab) * Math.min(1, dt / 0.5);
@@ -998,7 +1003,8 @@ SIM.Aircraft = (function () {
       Tn = E.T0 * frac * lapse;
       if (E.ab) Tn += (E.Tab - E.T0) * eng.ab * lapse * (E.abLapse || 1);
       if (rev > 0) Tn = -E.rev * E.T0 * frac * Math.pow(sigma, 0.7) * Math.min(1, V / 8 + 0.4);
-      const ff = Math.abs(Tn) * (E.tsfc || 1.7e-5) * (1 + (E.ab ? 2.2 * eng.ab : 0));
+      let ff = Math.abs(Tn) * (E.tsfc || 1.7e-5) * (1 + (E.tsfcM || 0) * M) * (1 + (E.ab ? 2.2 * eng.ab : 0));
+      if (E.ffIdle) ff = Math.max(ff, E.ffIdle * (0.35 + 0.65 * sigma));   // an idling engine still burns fuel
       eng.fuelFlow = ff; this.fuel = Math.max(0, this.fuel - ff * dt);
     } else { Tn = -0.01 * E.T0 * sigma; eng.fuelFlow = 0; }
     eng.thrFrac = frac; eng.thrust = Tn * (Tn > 0 ? this.fail.thr : 1); eng.power = 0;
@@ -1040,7 +1046,8 @@ SIM.Aircraft = (function () {
         pCmd = clamp(2.2 * (phiCmd - e.roll), -0.4, 0.4);
         const dh = ap.alt - this.p.y;
         const vsMax = ap.vsMax * clamp((this.ias - f.vMinAP) / 12, 0, 1);
-        ap.vsI = clamp(ap.vsI + dh * 0.0008 * dt, -2, 2);
+        // the integrator only trims out small steady errors; it bleeds off during large captures (no wind-up overshoot)
+        ap.vsI = Math.abs(dh) < 40 ? clamp(ap.vsI + dh * 0.0008 * dt, -2, 2) : ap.vsI * Math.exp(-dt / 4);
         let vsCmd = clamp(dh * 0.14 + ap.vsI, -ap.vsMax, Math.max(vsMax, 0.0));
         if (!ap.altOn) vsCmd = 0;
         const thCmd = clamp(clamp(vsCmd / V, -0.25, 0.25) + aoa + (f.apAoaOff || 0), -0.35, 0.40);
@@ -1049,13 +1056,20 @@ SIM.Aircraft = (function () {
         st.hold = true;
         qCmd = 0;
         // direct attitude loops
-        de = sched * (f.Kth * (st.thT - e.pitch) - f.Kq * qRate) + (c.trim * 0);
+        // stiffComp: elevator to overcome the aircraft's own pitch stiffness (|Cma|/Cmde per radian, independent of speed)
+        const kStiff = (f.stiffComp || 0) * Math.abs(s.aero.Cma) / s.aero.Cmde;
+        de = sched * (f.Kth * (st.thT - e.pitch) - f.Kq * qRate) + kStiff * (st.thT - e.pitch) + (c.trim * 0);
         da = sched * f.Kp * (pCmd - pRate);
         dr = f.Kr * (this._rTurn(e) - rRate) + f.Kb * this.beta;
+        // stabiliser trim follows the elevator, so the autopilot holds its pitch at any speed and hands back a trimmed aircraft
+        c.trim = clamp(c.trim + clamp(sf.de, -1, 1) * (f.apTrim != null ? f.apTrim : 0.12) * (s.aero.Cmde / (s.aero.Cmtrim || s.aero.Cmde)) * dt, -1, 1);
         // autothrottle
         if (ap.spdOn) {
           const err = ap.spd - this.ias;
-          c.throttle = clamp(c.throttle + (f.atK || 0.025) * err * dt - (f.atD || 0.4) * (this.accel.z * G0 - 0) * 0.0 * dt, 0, 1);
+          // integral on the speed error plus a damping term on the speed trend (filtered dIAS/dt), like a real autothrottle
+          const d = this._iasP != null && dt > 0 ? (this.ias - this._iasP) / dt : 0; this._iasP = this.ias;
+          this._iasDot = (this._iasDot || 0) + (d - (this._iasDot || 0)) * Math.min(1, dt * 1.5);
+          c.throttle = clamp(c.throttle + ((f.atK || 0.025) * err - (f.atD != null ? f.atD : 0.1) * this._iasDot) * dt, 0, 1);
         }
       } else if (upright) {
         // -------- rate-command / attitude-hold
@@ -1068,7 +1082,14 @@ SIM.Aircraft = (function () {
         }
         let attErr = st.hold && Math.abs(e.pitch) < f.holdPitch ? (st.thT - e.pitch) : 0;
         if (!f.attHold) attErr = 0;
-        de = sched * (f.Kth * attErr + f.Kq * (qCmd - qRate)) + c.trim * 0.0;
+        // feed-forward (stiffComp): the elevator this pitch rate needs against the aircraft's own stiffness and damping
+        // (alpha for the extra g, plus pitch damping), so the response does not depend on a large feedback gain
+        let ffq = 0;
+        if (f.stiffComp) {
+          const dA = (V * qCmd / G0) * this.mass * G0 / (Math.max(qd, 200) * s.S * s.aero.CLa);
+          ffq = f.stiffComp * (Math.abs(s.aero.Cma) * dA + Math.abs(s.aero.Cmq) * qCmd * s.c / (2 * V)) / s.aero.Cmde;
+        }
+        de = sched * (f.Kth * attErr + f.Kq * (qCmd - qRate)) + (f.stiffComp || 0) * Math.abs(s.aero.Cma) / s.aero.Cmde * attErr + ffq + c.trim * 0.0;
         // alpha limiter
         const aLim = f.alphaLim != null ? f.alphaLim : 0.88 * aS;
         if (aoa > aLim) de -= f.Kalpha * (aoa - aLim) * 5;
@@ -1081,7 +1102,9 @@ SIM.Aircraft = (function () {
           else pc = 0;
           if (!f.attHold) pc = 0;
         }
-        da = sched * f.Kp * (pc - pRate);
+        // feed-forward (stiffComp): aileron that balances roll damping at the commanded rate
+        const ffp = f.stiffComp ? f.stiffComp * Math.abs(s.aero.Clp) * pc * s.b / (2 * V) / s.aero.Clda : 0;
+        da = sched * f.Kp * (pc - pRate) + ffp;
         // yaw: coordinate + damp
         dr = sy + f.Kr * (this._rTurn(e) - rRate) * (f.yDamp != null ? f.yDamp : 0.6) + f.Kb * this.beta + f.Kff * sr;
       } else {
@@ -1116,7 +1139,23 @@ SIM.Aircraft = (function () {
     // actuators
     const gTarget = s.fixedGear ? 1 : (this.fail.gear ? this.gearPos : ctl.gear); this.gearPos += clamp(gTarget - this.gearPos, -dt / (s.gearTime || 6), dt / (s.gearTime || 6));
     const nFl = s.flaps ? s.flaps.length - 1 : 0;
-    const flTarget = this.fail.flap ? this.flapPos : clamp(ctl.flap, 0, nFl); this.flapPos += clamp(flTarget - this.flapPos, -dt * (s.flapRate || 0.25), dt * (s.flapRate || 0.25));
+    let flTarget = this.fail.flap ? this.flapPos : clamp(ctl.flap, 0, nFl);
+    // flap load relief: above its limit speed a detent retracts to the one below, and re-extends as the speed falls
+    this.flapLR = false;
+    if (s.flapRelief && !this.onGround && !this.fail.flap) {
+      const kt = this.ias * 1.94384, hy = this._flrOn ? 4 : 0; let t = Math.round(flTarget);
+      while (s.flapRelief[t] && kt > s.flapRelief[t][0] - hy) { t = s.flapRelief[t][1]; this.flapLR = true; }
+      if (this.flapLR) flTarget = Math.min(flTarget, t);
+      this._flrOn = this.flapLR;
+    }
+    this.flapPos += clamp(flTarget - this.flapPos, -dt * (s.flapRate || 0.25), dt * (s.flapRate || 0.25));
+    if (s.autoSpoilers) {
+      if (!this.onGround && this.airTime > 3) this._gsArm = true;
+      const fast = this.gs > 30, idle = ctl.throttle < 0.08;
+      if (this.onGround && fast && ((this._gsArm && idle) || ctl.rev > 0) && !this.autoSpoil) { this.autoSpoil = true; this._spoilWas = ctl.spoiler; ctl.spoiler = 1; this.emit('groundSpoilers'); }
+      if (this.autoSpoil && (ctl.throttle > 0.3 || (this.gs < 3 && ctl.rev <= 0))) { this.autoSpoil = false; this._gsArm = false; ctl.spoiler = this._spoilWas || 0; }
+      if (!this.onGround && this.autoSpoil && this.airTime > 1) { this.autoSpoil = false; ctl.spoiler = this._spoilWas || 0; }
+    }
     this.spoilPos += clamp(ctl.spoiler - this.spoilPos, -dt * 1.5, dt * 1.5);
     this.updateEngine(dt);
     this.controlLaws(dt);
@@ -1172,7 +1211,10 @@ SIM.Aircraft = (function () {
       if (this.ias > vne * 1.35 && this.mach < 1.5) this._crash('Structural failure (overspeed)');
     }
     // warnings
-    this.overspeed = this.ias > s.speeds.vne * 0.99;
+    this.overspeed = this.ias > s.speeds.vne * 0.99 || (s.speeds.mmo > 0 && this.mach > s.speeds.mmo + 0.004);
+    // flap placard speeds (kt per detent)
+    const fk = s.speeds.flapKt;
+    this.flapOver = !!(fk && this.flapPos > 0.05 && !this.onGround && this.ias * 1.94384 > fk[Math.min(fk.length - 1, Math.ceil(this.flapPos - 0.05))] + 3);
     this.gearWarn = this.gearPos < 0.99 && !this.onGround && this.agl < 150 && ctl.throttle < 0.25 && this.vs < -1.0;
     this._updateDerived(dt);
     this.tas = this.V; this.mach = this.V / this.atm.a;
@@ -1321,16 +1363,20 @@ SIM.flatEnv = function (groundY) {
     id: 'b738', name: 'Boeing 737-800', cls: 'Twin-engine airliner', kind: 'jet', model: 'b738',
     blurb: 'Fly it like the real thing: flap detents, rotation speeds, spoilers, reverse thrust, autopilot with altitude, heading and speed hold.',
     emptyMass: 41400, payload: 14500, fuelCap: 20800, fuelDefault: 0.32,
-    inertia: [1.1e7, 1.4e7, 3.6e6], S: 124.6, b: 34.3, c: 4.17, wingDY: 0.3, washFrac: 0, thrustOffset: 1.3,
+    // pitch / yaw / roll inertia from Roskam's radii of gyration for twin-jet transports at ~65 t; span and MAC with blended winglets
+    inertia: [3.9e6, 5.2e6, 1.6e6], S: 124.6, b: 35.8, c: 3.96, wingDY: 0.3, washFrac: 0, thrustOffset: 1.3,
     takeoffTrim: 0.0, gearTime: 9, flapRate: 0.4, stallRoll: 0.03, spoilerCL: -0.30, spoilerCD: 0.075, spoilerCm: 0.0,
-    gearCD: 0.018,
-    aero: { CL0: 0.25, CLa: 5.1, aS: 14 * D, aSn: -11 * D, CD0: 0.0215, k: 0.043, CDb: 0.5, CYb: -0.9, CYdr: 0.1,
+    gearCD: 0.018, geLift: 0.22, geCm: -0.05, autoSpoilers: true,
+    // flap load relief (detent index: [kt above which it retracts, detent it retracts to]): 40 -> 30 -> 25 -> 15
+    flapRelief: { 8: [163, 7], 7: [176, 6], 6: [191, 5] },
+    aero: { CL0: 0.25, CLa: 5.1, aS: 14 * D, aSn: -11 * D, CD0: 0.0205, k: 0.039, CDb: 0.5, CYb: -0.9, CYdr: 0.1,
       Cm0: 0.03, Cma: -1.25, Cmq: -24, Cmde: 1.0, Cmtrim: 0.9, Cmstall: 0.45,
       Clb: -0.14, Clp: -0.45, Clr: 0.12, Clda: 0.045, Cldr: 0.02,
       Cnb: 0.13, Cnr: -0.25, Cnp: -0.04, Cndr: 0.075, Cnda: -0.004 },
     flaps: fl738,
     waveDrag: [[0.72, 0], [0.78, 0.0012], [0.82, 0.006], [0.86, 0.022], [0.92, 0.06], [1.05, 0.11], [2, 0.1]],
-    engine: { type: 'jet', name: '2 x CFM56-7B27', T0: 240e3, idle: 0.22, spoolUp: 3.6, spoolDown: 2.4, tsfc: 1.6e-5, rev: 0.36, rhoExp: 0.80, mA: -0.52, mB: 0.18, n1Exp: 2.0 },
+    // CFM56-7B27: ~0.38 lb/lbf/h static rising to ~0.63 at cruise Mach; ~300 kg/h per engine at ground idle
+    engine: { type: 'jet', name: '2 x CFM56-7B27', T0: 240e3, idle: 0.22, spoolUp: 2.2, spoolNL: true, spoolDown: 2.4, tsfc: 1.0e-5, tsfcM: 0.95, ffIdle: 0.17, rev: 0.36, rhoExp: 0.80, mA: -0.72, mB: 0.24, n1Exp: 2.0 },
     gear: [
       { name: 'nose', pos: [0, -3.3, -14.35], k: 4.0e5, c: 5.5e4, travel: 0.38, steer: 0.75, steerFade: 7 },
       { name: 'mainL', pos: [-2.8, -3.3, 1.25], k: 1.15e6, c: 2.3e5, travel: 0.45, brake: true, brakeMu: 0.5 },
@@ -1339,9 +1385,10 @@ SIM.flatEnv = function (groundY) {
       { name: 'Left engine', pos: [-5.0, -1.85, -2.5], r: 0.9 }, { name: 'Right engine', pos: [5.0, -1.85, -2.5], r: 0.9 },
       { name: 'Left wingtip', pos: [-17.1, 0.9, 5.0] }, { name: 'Right wingtip', pos: [17.1, 0.9, 5.0] },
       { name: 'Tail', pos: [0, 1.0, 22.5], soft: true }, { name: 'Belly', pos: [0, -2.8, 0], soft: true }],
-    speeds: { vs0: 54, vs1: 66, vr: 75, vy: 100, vne: 175, vfe: 83, vle: 139, vcruise: 231, vref: 70 },
+    speeds: { vs0: 54, vs1: 66, vr: 75, vy: 100, vne: 175, vfe: 83, vle: 139, vcruise: 231, vref: 70, mmo: 0.82,
+      flapKt: [0, 250, 250, 250, 210, 200, 190, 175, 162] },   // Vmo 340 kt / Mmo 0.82, flap placards per detent
     gLimit: [2.5, -1.0], crashSink: 4.8, hardSink: 3.0,
-    fcs: { law: 'direct', vRef: 80, bwQ: 1.1, bwTh: 0.55, bwP: 0.9, bwR: 0.6, qMax: 0.09, nzCmdMax: 1.9, pMax: 0.22, pSched: 0, levelBank: 28, Kphi: 0.35, holdPitch: 0.5, attHold: true, apBank: 0.44, apHdgK: 1.2, vMinAP: 72, apAoaOff: 0.0, surfRate: 1.2, Kalpha: 0.8, atK: 0.012, groundYawDamp: 1.2, yDamp: 2.2, rudRateMul: 4 },
+    fcs: { law: 'direct', vRef: 80, stiffComp: 0.8, bwQ: 1.1, bwTh: 0.55, bwP: 0.9, bwR: 0.6, qMax: 0.09, nzCmdMax: 1.9, pMax: 0.22, pSched: 0, levelBank: 28, Kphi: 0.35, holdPitch: 0.5, attHold: true, apBank: 0.44, apHdgK: 1.2, vMinAP: 72, apAoaOff: 0.0, surfRate: 1.2, Kalpha: 0.8, atK: 0.012, groundYawDamp: 1.2, yDamp: 2.2, rudRateMul: 4 },
     ap: { vsMax: 12 }, eye: [0, 1.65, -17.2], chase: 46, units: { spd: 'kt' }, hasAP: true,
     stats: ['2 x 27,300 lbf turbofans', 'Vref ~140 kt', 'Cruise M0.78', 'Ceiling FL410']
   };
@@ -8919,6 +8966,8 @@ SIM.HUD = (function () {
     if (ac.stallWarn || ac.stalled) warn('STALL', '#ff4040');
     if (ac.overspeed) warn('OVERSPEED', '#ff8020');
     if (ac.gearWarn) warn('GEAR', '#ffcc30');
+    if (ac.flapOver) warn('FLAP SPEED', '#ff8020');
+    if (ac.flapLR) warn('LOAD RELIEF', '#ffcc30');
     if (ac.failMsg && ac.failMsg.length) ac.failMsg.forEach((m) => warn(m, (Math.floor(performance.now() / 450) & 1) ? '#ff3030' : '#ffd040'));
     if (ac.fail && ac.fail.splat) { ctx.save(); ctx.fillStyle = 'rgba(92,48,34,0.62)'; [[0.38, 0.34, 46], [0.42, 0.4, 24], [0.34, 0.45, 16], [0.62, 0.3, 30], [0.58, 0.38, 14], [0.5, 0.26, 20]].forEach((q) => { ctx.beginPath(); ctx.ellipse(W * q[0], H * q[1], q[2], q[2] * 0.7, 0.5, 0, 6.3); ctx.fill(); }); ctx.fillStyle = 'rgba(200,190,170,0.5)'; ctx.fillRect(W * 0.41, H * 0.32, 3, 18); ctx.restore(); }
     if (ac.crashed) warn('CRASHED — ' + ac.crashReason.toUpperCase(), '#ff3030');
@@ -11559,7 +11608,8 @@ SIM.Game = (function () {
     this.R = R;
     if (cfg.start === 'air' || this.spec.para) {
       const s = this.spec, gh = this.terrain.heightAt(R.x, R.z);
-      const ias = s.speeds.vcruise * (s.airliner ? 0.74 : s.fighter ? 0.6 : s.glider ? 1.0 : 0.82);
+      let ias = s.speeds.vcruise * (s.airliner ? 0.74 : s.fighter ? 0.6 : s.glider ? 1.0 : 0.82);
+      if (s.airliner) ias = Math.min(ias, 250 / U.KT);   // airliners keep to 250 kt below 10,000 ft
       this.placeAir(R.x, Math.max(gh, R.y) + (s.airliner ? 1600 : s.para ? 450 : s.glider ? 700 : s.fighter ? 1500 : 650), R.z, R.hdg, { speed: ias, throttle: 0.5, gearUp: !s.fixedGear && !s.glider });
       SIM.settle(this.ac, { ias, fpa: 0, speedByPitch: !!s.glider, thr: 0.45, gain: SIM.gainOf(s) });
       this.assist();
