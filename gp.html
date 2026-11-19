@@ -111,7 +111,7 @@
   #menu[data-screen=world] #topbar{display:flex}
   #scr-world{position:fixed;inset:0;overflow:hidden;pointer-events:none}
   #scr-world>*{pointer-events:auto}
-  #menu[data-screen=world]{background:linear-gradient(180deg,rgba(7,8,12,.55) 0%,rgba(7,8,12,0) 16%,rgba(7,8,12,0) 86%,rgba(7,8,12,.45) 100%)}
+  #menu:not([data-screen=home]):not([data-screen=title])[data-screen=world]{background:linear-gradient(180deg,rgba(7,8,12,.55) 0%,rgba(7,8,12,0) 16%,rgba(7,8,12,0) 86%,rgba(7,8,12,.45) 100%)}
   #scr-world .wtitle{position:absolute;left:clamp(16px,3vw,48px);top:16px;display:flex;align-items:center;gap:14px;z-index:2}
   #scr-world .wtitle h2{margin:0;font:700 34px "Barlow Condensed","Segoe UI",system-ui,sans-serif;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,.45)}
   #scr-world .whint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:14px;opacity:.85;text-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:none}
@@ -297,6 +297,20 @@ table.records{width:100%;border-collapse:collapse;font-size:13px}table.records t
   .mpbox{min-width:360px;max-width:92vw;border-color:#2aa8f0}
   p.bad{color:#ff8a7a}
   /* telemetry */
+  /* home and title: a frosted-glass dock at the bottom left over the bright morning scene */
+  #menu:is([data-screen=home],[data-screen=title]){align-items:flex-end;background:linear-gradient(90deg,rgba(4,16,30,.5) 0%,rgba(4,16,30,.18) 40%,rgba(4,16,30,0) 58%),linear-gradient(0deg,rgba(4,16,30,.6) 0%,rgba(4,16,30,0) 26%)}
+  #menu:is([data-screen=home],[data-screen=title])::after{background:radial-gradient(130% 110% at 65% 40%,transparent 60%,rgba(0,10,25,.35) 100%)}
+  #menu:is([data-screen=home],[data-screen=title]) .menu-box{max-width:560px;margin-bottom:clamp(64px,9vh,104px);padding:22px 22px 20px;background:rgba(6,20,36,.5);border:1px solid rgba(255,255,255,.18);border-radius:24px;
+    backdrop-filter:blur(16px) saturate(1.35);-webkit-backdrop-filter:blur(16px) saturate(1.35);box-shadow:0 24px 70px rgba(0,12,30,.35)}
+  #menu:is([data-screen=home],[data-screen=title]) .logo{margin:0 0 18px;font-size:clamp(34px,4.4vw,52px)}
+  #menu:is([data-screen=home],[data-screen=title]) .logo::after{background:linear-gradient(90deg,#ffd166,#3cc4ff 45%,rgba(60,196,255,0))}
+  #menu:is([data-screen=home],[data-screen=title]) .item.hm{border-radius:16px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.08);grid-template-columns:52px 1fr 22px}
+  #menu:is([data-screen=home],[data-screen=title]) .item.hm svg{width:44px;height:44px;padding:9px;box-sizing:border-box;border-radius:50%;background:linear-gradient(160deg,#5fd2ff,#1677d2);color:#fff;box-shadow:0 4px 14px rgba(22,119,210,.45)}
+  #menu:is([data-screen=home],[data-screen=title]) .item.hm:hover,#menu:is([data-screen=home],[data-screen=title]) .item.hm.sel{background:rgba(60,196,255,.22);border-color:rgba(134,220,255,.9)!important;box-shadow:0 0 0 1px rgba(134,220,255,.7),0 10px 26px rgba(0,30,60,.35);transform:translateY(-2px)}
+  #menu:is([data-screen=home],[data-screen=title]) .item.hm:hover svg,#menu:is([data-screen=home],[data-screen=title]) .item.hm.sel svg{background:linear-gradient(160deg,#ffe08a,#ff9f1c);color:#3a2200}
+  #menu:is([data-screen=home],[data-screen=title]) #topbar{background:rgba(6,20,36,.5);border-color:rgba(255,255,255,.18);border-radius:18px;backdrop-filter:blur(14px)}
+  /* short screens (phones on their side): a compact dock that clears the top bar and the hints */
+  @media (max-height:560px){#menu:is([data-screen=home],[data-screen=title]) .menu-box{max-width:min(380px,45vw);margin-bottom:50px;padding:10px 12px 10px;border-radius:18px}#menu:is([data-screen=home],[data-screen=title]) .logo{font-size:24px;margin:0 0 8px;padding-bottom:7px}#menu:is([data-screen=home],[data-screen=title]) .homemenu{gap:6px}#menu:is([data-screen=home],[data-screen=title]) .item.hm,#menu:is([data-screen=home],[data-screen=title]) .item.hm.big{padding:6px 10px 6px 6px;grid-template-columns:40px 1fr 16px}#menu:is([data-screen=home],[data-screen=title]) .item.hm b,#menu:is([data-screen=home],[data-screen=title]) .item.hm.big b{font-size:16px}#menu:is([data-screen=home],[data-screen=title]) .item.hm svg{width:34px;height:34px;padding:7px}#menu:is([data-screen=home],[data-screen=title]) .item.hm small{display:none}}
   #tele{left:16px;bottom:16px;width:170px;padding:10px 12px;font-size:12px;font-variant-numeric:tabular-nums}
   #tele.off{display:none}
   #tele .th{font:700 12px "Barlow Condensed",system-ui,sans-serif;letter-spacing:.18em;color:#86dcff;display:flex;justify-content:space-between;margin-bottom:6px}
@@ -2084,7 +2098,7 @@ const TIME_OF_DAY = {
   golden:  { sun: [-.8, .2, -.56], top: '#4b6ea6', horizon: '#f1c08c', ground: '#8f8573', sunCol: '#ffb36a', sunI: 2.7, glow: [1, .68, .38], hemiSky: '#bcc6dc', hemiGround: '#7b6a56', hemiI: .5, fog: [300, 2200], exp: 1.02, envGround: '#6f6455' },
   // night: floodlit circuit (the "sun" is the floodlights: high overhead, cool white, short shadows)
   night:   { sun: [.25, .93, .18], top: '#03050b', horizon: '#18202f', ground: '#121418', sunCol: '#e2e9ff', sunI: 1.7, glow: [.0, .0, .0], hemiSky: '#8a98bf', hemiGround: '#2a2c30', hemiI: .42, fog: [180, 1300], exp: 1.3, envGround: '#1c1e22', night: true },
-  island:  { sun: [-.9, .09, -.3], top: '#4d74ad', horizon: '#f2c898', ground: '#8f8573', sunCol: '#ffc283', sunI: 2.9, glow: [1, .72, .45], hemiSky: '#c6d0e4', hemiGround: '#8a7a62', hemiI: .74, fog: [900, 5400], exp: 1.06, envGround: '#6f6a5a' },
+  island:  { sun: [.5, .55, -.66], top: '#2f78d0', horizon: '#cfe5f4', ground: '#8f8a76', sunCol: '#fff3df', sunI: 3.1, glow: [1, .93, .82], hemiSky: '#d4e6f7', hemiGround: '#8d8a6c', hemiI: .95, fog: [1500, 7200], exp: 1.0, envGround: '#7a7866' },
   dusk:    { sun: [-.86, .055, -.5], top: '#202c4c', horizon: '#ee8a5e', ground: '#4c4642', sunCol: '#ff8448', sunI: 1.5, glow: [1, .5, .28], hemiSky: '#6e7ba3', hemiGround: '#3f372f', hemiI: .62, fog: [250, 1900], exp: 1.2, envGround: '#453d36' },
 };
 function applyTimeOfDay(key) {
@@ -7723,27 +7737,44 @@ const ISLE = (() => {
     circ:   { x: 190, z: -40, rx: 300, rz: 195, fall: 90, tag: 46 },
     cafe:   { x: -470, z: 268, r: 30, fall: 45, h: 2.7, tag: 15 },
     lic:    { x: -440, z: -70, r: 95, fall: 60, tag: 36 },
-    champ:  { x: -140, z: -200, r: 24, fall: 80, h: 44, tag: 36 },
+    champ:  { x: -95, z: -175, r: 24, fall: 70, tag: 36 },
     garage: { x: 20, z: 215, r: 30, fall: 50, tag: 50 },
     board:  { x: 450, z: 215, r: 26, fall: 45, tag: 34 },
     chal:   { x: -200, z: 300, r: 66, fall: 50, tag: 16 },
     free:   { x: 712, z: 66, r: 20, fall: 55, h: 28, tag: 42 },
   };
-  function coast(x, z) {   // > 0 inland (fraction of the way in from the shore), < 0 out at sea
+  // small islets offshore: [x, z, radius]
+  const ISLETS = [[-905, 455, 78], [915, -470, 64], [655, 585, 46], [-760, -585, 58], [140, 735, 40]];
+  function mainCoast(x, z) {
     const u = x / 780, v = z / 500, th = Math.atan2(v, u);
-    let R = 1 + .1 * Math.sin(3 * th + .6) + .06 * Math.sin(5 * th + 2.1) + .035 * Math.sin(8 * th + 4) + .22 * (fbm(n2, x / 240, z / 240, 3) - .5);
-    R += .17 * Math.exp(-(adiff(th, .1) ** 2) / .01) + .13 * Math.exp(-(adiff(th, 2.42) ** 2) / .02);
+    let R = 1 + .08 * Math.sin(3 * th + 1.7) + .07 * Math.sin(5 * th + .4) + .04 * Math.sin(9 * th + 2.6) + .2 * (fbm(n2, x / 240, z / 240, 3) - .5);
+    R += .2 * Math.exp(-(adiff(th, .1) ** 2) / .008);                // the lighthouse headland, east
+    R += .16 * Math.exp(-(adiff(th, 2.05) ** 2) / .012);             // a long spit, south-west
+    R -= .5 * Math.exp(-(adiff(th, 1.0) ** 2) / .022);               // Crescent Bay, a sheltered lagoon on the south side
+    R += .14 * Math.exp(-(adiff(th, -1.95) ** 2) / .05);             // the volcano's northern flank pushes out to sea
     return 1 - Math.hypot(u, v) / R;
   }
+  function coast(x, z) {   // > 0 inland (fraction of the way in from the shore), < 0 out at sea
+    let t = mainCoast(x, z);
+    for (const [ix, iz, ir] of ISLETS) t = Math.max(t, (1 - Math.hypot(x - ix, z - iz) / ir) * .35);
+    return t;
+  }
+  const VX = -250, VZ = -345;   // Mount Erika, the volcano
   function natural(x, z) {
     const t = coast(x, z);
-    if (t < 0) return Math.max(-38, t * 120) - .6;
-    const ridge = 135 * Math.exp(-(((x + 170) / 250) ** 2) - (((z + 330) / 115) ** 2)) * (.7 + .6 * fbm(n3, x / 90, z / 90, 4))
+    if (t < 0) {   // the sea floor, with a coral reef about 60-110 m out and a calm lagoon between reef and beach
+      const sea = Math.max(-38, t * 120) - .6, reef = -1.1 - 9 * Math.abs(t + .13) / .05 + (fbm(n1, x / 40, z / 40, 3) - .5) * 3;
+      return Math.max(sea, Math.min(-.7, reef));
+    }
+    const vd = Math.hypot(x - VX, z - VZ), cone = 250 * Math.pow(clamp((1 - vd / 380) / (1 - 62 / 380), 0, 1), 1.45) * (.88 + .24 * fbm(n3, x / 70, z / 70, 4));
+    const ridge = cone - 75 * Math.exp(-((vd / 46) ** 2))                                        // Mount Erika and its crater
                 + 55 * Math.exp(-(((x - 480) / 170) ** 2) - (((z + 240) / 120) ** 2));
     return -.6 + 3.6 * ss(0, .06, t) + ss(.03, .3, t) * (Math.max(0, fbm(n1, x / 170, z / 170, 5) * 50 - 17) + ridge)
       + (fbm(n3, x / 35, z / 35, 3) - .5) * 2.6 * ss(.04, .15, t);
   }
   { const a = Math.atan2(S.cafe.z, S.cafe.x); for (let d = 250; d < 1100; d += 2) { const x = Math.cos(a) * d, z = Math.sin(a) * d; if (coast(x, z) < .045) { S.cafe.x = x; S.cafe.z = z; S.cafe.face = a; break; } } }
+  // the lighthouse stands right out at the tip of the eastern headland, with the sea on three sides
+  { const a = Math.atan2(S.free.z, S.free.x); for (let d = 500; d < 1200; d += 2) { const x = Math.cos(a) * d, z = Math.sin(a) * d; if (coast(x, z) < .11) { S.free.x = x; S.free.z = z; S.free.h = Math.max(7, natural(x, z) + 3); S.free.fall = 24; break; } } }
   for (const s of Object.values(S)) if (s.h == null) s.h = Math.max(4, natural(s.x, s.z));
   const padD = (s, x, z) => s.rx ? (Math.hypot((x - s.x) / s.rx, (z - s.z) / s.rz) - 1) * Math.min(s.rx, s.rz) : Math.hypot(x - s.x, z - s.z) - s.r;
   function h(x, z) {
@@ -7752,7 +7783,7 @@ const ISLE = (() => {
     return y;
   }
   const nearSite = (x, z, m) => { for (const k in S) if (padD(S[k], x, z) < m) return k; return null; };
-  return { h, natural, coast, S, fbm, n1, n2, n3, ss, padD, nearSite, centre: new THREE.Vector3(40, 0, 10) };
+  return { h, natural, coast, S, fbm, n1, n2, n3, ss, padD, nearSite, ISLETS, volcano: { x: VX, z: VZ }, centre: new THREE.Vector3(40, 0, 10) };
 })();
 
 /* ---------- terrain: one height-field mesh, coloured sand → grass → forest floor → rock ---------- */
@@ -7773,7 +7804,7 @@ function islandTerrain(step) {
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) H[j * nx + i] = ISLE.h(X0 + i * step, Z0 + j * step);
   const pos = new Float32Array(nx * nz * 3), col = new Float32Array(nx * nz * 3), uv = new Float32Array(nx * nz * 2), I = [];
   const L = h => lin(h), SAND = L('#e9d9b0'), WET = L('#b9a47c'), SEABED = L('#7d8a6c'), GRASS = L('#6f9446'), DRY = L('#a39f66'), LUSH = L('#4b7432'),
-    FLOOR = L('#3d5a26'), ROCK = L('#8a8178'), DARK = L('#5d5650'), MOWN = L('#6aa043');
+    FLOOR = L('#3d5a26'), ROCK = L('#8a8178'), DARK = L('#5d5650'), MOWN = L('#6aa043'), BASALT = L('#3f3a38'), ASH = L('#5a5350'), CRATER = L('#6b4030');
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const { fbm, n1, n2, n3, ss } = ISLE;
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
@@ -7784,7 +7815,10 @@ function islandTerrain(step) {
     g = mix(g, LUSH, ss(.45, .62, F) * .8);
     g = mix(g, FLOOR, ss(.52, .64, F) * ss(8, 16, y));
     if (ISLE.nearSite(x, z, 4)) g = mix(g, MOWN, .8);
-    const rock = Math.max(ss(.62, 1.0, slope + (nB - .5) * .4), ss(88, 112, y + (nB - .5) * 30));
+    const vd = Math.hypot(x - ISLE.volcano.x, z - ISLE.volcano.z);
+    g = mix(g, mix(BASALT, ASH, ss(.3, .7, nB)), ss(300, 150, vd) * ss(70, 150, y + (nB - .5) * 40));
+    if (vd < 62) g = mix(g, CRATER, ss(62, 30, vd));
+    const rock = Math.max(ss(.62, 1.0, slope + (nB - .5) * .4), ss(88, 112, y + (nB - .5) * 30)) * (1 - ss(320, 200, Math.hypot(x - ISLE.volcano.x, z - ISLE.volcano.z)));
     g = mix(g, mix(ROCK, DARK, ss(.35, .7, nB)), rock);
     let c = mix(mix(WET, SAND, ss(-.2, 1.3, y)), g, ss(2.4, 3.8, y + (nB - .5) * 2.6));
     if (y < 0) c = mix(c, SEABED, ss(1, 14, -y));
@@ -8137,7 +8171,7 @@ function buildIsland(root) {
   const P = propGeos(); const cm = instanced(P.cone, P.coneMat, cones, (o, c) => { o.position.set(c.x, 0, c.y); o.scale.setScalar(c.s); o.rotation.set(0, 0, 0); }); if (cm) root.add(cm);
   // trees: forests on the hills, scattered trees elsewhere, never on a landmark or the beach
   const trees = [], palms = [], rocks = [], stepT = hi ? 8 : 10;
-  for (let x = -900; x < 900; x += stepT) for (let z = -650; z < 650; z += stepT) {
+  for (let x = -1100; x < 1100; x += stepT) for (let z = -800; z < 800; z += stepT) {
     const px = x + (r() - .5) * stepT, pz = z + (r() - .5) * stepT, y = ISLE.h(px, pz), t = ISLE.coast(px, pz);
     if (t < 0) continue;
     const F = ISLE.fbm(ISLE.n3, px / 210, pz / 210, 3), dens = ISLE.ss(.46, .6, F) * .9 + .05;
@@ -8159,11 +8193,17 @@ function buildIsland(root) {
   const boats = [], bg = [boatGeo(true), boatGeo(false)], bm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .5, side: THREE.DoubleSide });
   for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(bg[k % 3 === 2 ? 1 : 0], bm); m.castShadow = true; const a = k / 9 * 6.283 + r() * .3, R = 1050 + r() * 450; m.userData = { a, R, w: (r() < .5 ? -1 : 1) * (.004 + r() * .004) }; boats.push(m); root.add(m); }
   root.userData.boats = boats; root.userData.track = track;
+  // a lazy plume of steam drifting from Mount Erika's crater
+  { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+    gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.45, 'rgba(240,240,240,.45)'); gr.addColorStop(1, 'rgba(230,230,230,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(cv), puffs = [], V = ISLE.volcano, top = ISLE.h(V.x, V.z);
+    for (let k = 0; k < 18; k++) { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: true, color: '#f2f1ee' })); m.userData.ph = k / 18; root.add(m); puffs.push(m); }
+    root.userData.plume = { puffs, x: V.x, z: V.z, y: top }; }
 }
 
 /* ============================ MENU BACKDROP ============================
-   The island at golden hour, behind every menu. The main menu is a low shot at the stadium with your car
-   on the start straight; "Your World" flies up to an aerial view; other screens frame their landmark.   */
+   The island on a bright morning, behind every menu. The main menu shows your car on the lighthouse headland
+   with the open sea behind; "Your World" flies up to an aerial view; other screens frame their landmark.   */
 const MenuScene = {
   ready: false, t: 0, eye: new THREE.Vector3(), tgt: new THREE.Vector3(), snap: true,
   start() {
@@ -8180,13 +8220,14 @@ const MenuScene = {
     // clear skies; dry track
     WX.mode = 'clear'; WX.rain = WX.rainT = WX.wet = 0; WX.cloud = WX.cloudT = 0; WX.fx = false; WX.puddles = [];
     if (GFX.wxRoot) GFX.wxRoot.clear(); if (GFX.rain) GFX.rain.visible = false; MAT.asphalt.envMap = null; MAT.asphalt.needsUpdate = true;
-    // the sun sets straight down the start straight
-    const tr = root.userData.track, i = tr.si - 10, t = tr.T[i];
-    SKY.sunDir.set(-t[0], .13, -t[1] - .12).normalize(); buildEnv(); WX.envCloud = 0; WX.apply();
+    // home: your car parked on the lighthouse headland, nose to the sea, with Mount Erika behind; a high morning sun over the sea
+    const L = ISLE.S.free; let best = 1e9, ux = 1, uz = 0;   // u: from the lighthouse towards the nearest open sea
+    for (let k = 0; k < 72; k++) { const a = k / 72 * 6.2832, cx = Math.cos(a), cz = Math.sin(a); for (let d = 10; d < best; d += 5) if (ISLE.coast(L.x + cx * d, L.z + cz * d) < 0) { best = d; ux = cx; uz = cz; break; } }
+    SKY.sunDir.set(-ux * .55 + uz * .6, .66, -uz * .55 - ux * .6).normalize(); buildEnv(); WX.envCloud = 0; WX.apply();
     this.obj = createCarObject('gt', PLAYER_LIVERY.gt, { number: 1, team: 'ERIKA RACING' });
     GFX.carsRoot.add(this.obj.group);
-    const [x, , y] = tr.at(i, -1.6, 0);
-    this.pose = { x, y, h: Math.atan2(-t[1], -t[0]), s: 0, steer: .1, axS: 0, latG: 0, v: 0, yawRate: 0 };
+    const x = L.x + ux * 11 + uz * 10, y = L.z + uz * 11 - ux * 10;   // beside the lighthouse, on the seaward side of its pad
+    this.pose = { x, y, h: Math.atan2(-uz, -ux) + .55, s: 0, steer: .15, axS: 0, latG: 0, v: 0, yawRate: 0 };
     groundPose(this.pose, 4.6, 2.0);
     const sh = GFX.sun.shadow; this.shadowSave = this.shadowSave || { b: sh.bias, nb: sh.normalBias };
     this.ready = true; this.t = 0; this.snap = true; this.shadowKey = ''; document.body.classList.add('scene-on');
@@ -8209,23 +8250,23 @@ const MenuScene = {
       return { eye: e, tgt: c.clone().add(new THREE.Vector3(f.z, 0, -f.x).multiplyScalar(dist * .3)).setY(c.y + lift), sh: [c, Math.max(90, dist * 1.1)] };
     };
     if (scr === 'world') {
-      const it = Menu.items()[Menu.sel], k = it && it.dataset.site, C = ISLE.centre.clone(), sw = Math.sin(t * .045) * .1;
+      const it = Menu.items()[Menu.sel], k = it && it.dataset.site, C = ISLE.centre.clone().add(new THREE.Vector3(-150, 0, -150)), sw = Math.sin(t * .045) * .1;
       const az = 1.95 + sw, el = .66;
       if (k) { const c = site(k), T = C.lerp(c, .55), d = 1050; return { eye: new THREE.Vector3(T.x + Math.cos(az) * Math.cos(el) * d, T.y + Math.sin(el) * d, T.z + Math.sin(az) * Math.cos(el) * d), tgt: T, sh: [ISLE.centre, 820] }; }
-      const d = 1750; return { eye: new THREE.Vector3(C.x + Math.cos(az) * Math.cos(el) * d, Math.sin(el) * d, C.z + Math.sin(az) * Math.cos(el) * d), tgt: C, sh: [ISLE.centre, 820] };
+      const d = 2050; return { eye: new THREE.Vector3(C.x + Math.cos(az) * Math.cos(el) * d, Math.sin(el) * d, C.z + Math.sin(az) * Math.cos(el) * d), tgt: C, sh: [ISLE.centre, 820] };
     }
     if (scr === 'cafe') return frame('cafe', 66, 23, S.cafe.face + Math.PI + .95 + Math.sin(t * .05) * .05, 7);
     if (scr === 'board') return frame('board', 95, 24, 2.15, 18);
     if (scr === 'chal') return frame('chal', 120, 30, 1.9 + Math.sin(t * .05) * .06);
     if (scr === 'career') { const f = Menu.careerFocus; return f === 'garage' ? frame('garage', 95, 20, 1.6, 18) : f === 'events' ? frame('champ', 80, 10, 1.9, 16) : frame('lic', 170, 50, 1.9); }
     if (scr === 'race' || scr === 'track' || scr === 'setup') return frame('circ', 330, 85, 1.75 + Math.sin(t * .04) * .05, 0);
-    // home (and everything else): low behind your car on the start straight, looking into the sunset
+    // home (and everything else): a slow orbit in front of your car on the headland, looking past it out to sea
     const fx = Math.cos(p.h), fy = Math.sin(p.h), nx = -fy, ny = fx, sw = Math.sin(t * .07);
     // a slow, low orbit round the front three-quarter of your car, framed to the right of the menu
-    const a = .62 + .22 * sw, d = 7.8 + .5 * Math.sin(t * .05);
-    const ex = p.x + (fx * Math.cos(a) + nx * Math.sin(a)) * d, ey = p.y + (fy * Math.cos(a) + ny * Math.sin(a)) * d, ez = GFX.heightAt(ex, ey) + .75 + .1 * Math.sin(t * .09);
-    const tx = p.x + nx * 1.9 - fx * .6, ty = p.y + ny * 1.9 - fy * .6;
-    return { eye: new THREE.Vector3(ex, ez, ey), tgt: new THREE.Vector3(tx, GFX.heightAt(tx, ty) + .55, ty), sh: [new THREE.Vector3(p.x, 0, p.y), 60], home: true };
+    const a = .7 + .18 * sw, d = 11 + .6 * Math.sin(t * .05);
+    const ex = p.x + (fx * Math.cos(a) + nx * Math.sin(a)) * d, ey = p.y + (fy * Math.cos(a) + ny * Math.sin(a)) * d, ez = Math.max(GFX.heightAt(ex, ey), GFX.heightAt(p.x, p.y)) + 2.1 + .15 * Math.sin(t * .09);
+    const tx = p.x + nx * 3.0 - fx * 1.2, ty = p.y + ny * 3.0 - fy * 1.2;
+    return { eye: new THREE.Vector3(ex, ez, ey), tgt: new THREE.Vector3(tx, GFX.heightAt(p.x, p.y) + .9, ty), sh: [new THREE.Vector3(p.x, 0, p.y), 60], home: true };
   },
   render() {
     const now = performance.now(), dt = Math.min(.05, (now - (this.last || now)) / 1000); this.last = now; this.t += dt;
@@ -8239,6 +8280,11 @@ const MenuScene = {
     C.position.copy(this.eye); C.up.set(0, 1, 0); C.lookAt(this.tgt);
     GFX.sky.position.copy(C.position);
     ud.water.material.uniforms.uTime.value = this.t;
+    if (ud.plume) for (const m of ud.plume.puffs) {   // each puff rises, swells, drifts with the breeze and fades, then starts again
+      const u = (m.userData.ph + this.t * .022) % 1, P = ud.plume;
+      m.position.set(P.x + u * 260 + Math.sin(u * 9 + m.userData.ph * 20) * 12, P.y + 10 + u * 210, P.z + u * 60);
+      m.scale.setScalar(30 + u * 150); m.material.opacity = Math.min(1, u * 8) * (1 - u) * .55;
+    }
     for (const bt of ud.boats) {   // sailing slow loops round the island
       const u = bt.userData, sg = Math.sign(u.w); u.a += u.w * dt;
       bt.position.set(ISLE.centre.x + Math.cos(u.a) * u.R, .1 + Math.sin(this.t * 1.1 + u.R) * .12, ISLE.centre.z + Math.sin(u.a) * u.R * .8);
