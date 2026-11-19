@@ -319,7 +319,7 @@ table.records{width:100%;border-collapse:collapse;font-size:13px}table.records t
 
 <div id="menu" data-screen="home">
   <div id="topbar"></div>
-  <div id="hintbar"><div class="keys"><a id="erikaBack" href="./">← Erika Air</a><span><i>✕</i>Select</span><span><i>○</i>Back</span></div><div class="tag">DRIVE &nbsp;•&nbsp; COMPETE &nbsp;•&nbsp; PROGRESS</div></div>
+  <div id="hintbar"><div class="keys"><a id="erikaBack" href="./" title="Back to the game choice">← Fly or race</a><span><i>✕</i>Select</span><span><i>○</i>Back</span></div><div class="tag">DRIVE &nbsp;•&nbsp; COMPETE &nbsp;•&nbsp; PROGRESS</div></div>
   <div class="menu-box">
     <h1>ERIKA <span>RACING</span></h1>
     <div id="scr-home" class="screen hidden">
@@ -2652,8 +2652,8 @@ function carMats() {
   CARMAT.carbon = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .28, metalness: .35 });
   CARMAT.glass = new THREE.MeshPhysicalMaterial({ color: '#0b1016', roughness: .02, metalness: .2, transparent: true, opacity: .86, envMapIntensity: 1.8 });
   CARMAT.chrome = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 1, roughness: .16 });
-  CARMAT.alloy = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: .9, roughness: .28, side: THREE.DoubleSide });
-  CARMAT.tyre = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, side: THREE.DoubleSide, emissive: '#c8c8c8', emissiveIntensity: .45, emissiveMap: tyreLetters() });
+  CARMAT.alloy = new THREE.MeshStandardMaterial({ vertexColors: true, color: '#d6cfc4', metalness: .9, roughness: .33, side: THREE.DoubleSide });   // a hint of brake dust
+  CARMAT.tyre = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, side: THREE.DoubleSide, emissive: '#c8c8c8', emissiveIntensity: .16, emissiveMap: tyreLetters() });
   CARMAT.head = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#fff3d6', emissiveIntensity: 3.2, roughness: .1 });
   CARMAT.carbon.map = carbonWeave(); CARMAT.carbon.roughness = .22; CARMAT.carbon.clearcoat = 1;
   for (const k of ['glass', 'chrome', 'carbon', 'alloy']) if (CARMAT[k]) carEnv(CARMAT[k]);
@@ -2735,7 +2735,25 @@ function liveryTexture(cls, base, accent, number, team) {
       line(.73, .38, .73, .62); line(.27, .4, .27, .6);
       for (const c of [.42, .58]) line(.73, c, 1, c);
     } else { for (const c of [.25, .75]) line(.22, c - .06, .22, c + .06); }
+    // road grime: a dusty film low on the sides and underneath, and spray streaming back from each wheel
+    const grime = (v0, v1, a) => { const y0 = vy(v0), y1 = vy(v1), gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, `rgba(48,40,32,${a})`); gr.addColorStop(1, 'rgba(48,40,32,0)'); g.fillStyle = gr; g.fillRect(0, Math.min(y0, y1), W2, Math.abs(y1 - y0)); };
+    const ga = cls === 'f1' ? .22 : cls === 'road' ? .3 : .38;
+    grime(0, .17, ga); grime(1, .83, ga);
+    let rs = (seed % 2147483646) + 1; const rnd = () => (rs = (rs * 16807) % 2147483647) / 2147483647;
+    for (const wu of cls === 'f1' ? [.16, .72] : [.2, .8]) for (const [s0, s1] of [[.05, .2], [.8, .95]]) for (let k = 0; k < 160; k++) {
+      const u = wu - Math.pow(rnd(), 1.6) * .14, v = s0 + rnd() * (s1 - s0);
+      g.fillStyle = `rgba(56,46,36,${.04 + rnd() * .1})`; g.fillRect(u * W2, vy(v), 2 + rnd() * 6, 1 + rnd() * 1.6);
+    }
   });
+}
+// metallic flake: tiny random normals under the clear coat make road-car paint sparkle in the sun
+let FLAKE_TEX = null;
+function flakeNormals() {
+  if (FLAKE_TEX) return FLAKE_TEX;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d'), im = g.createImageData(256, 256);
+  for (let i = 0; i < im.data.length; i += 4) { const a = Math.random() * 6.283, r = Math.random() * .55; im.data[i] = 128 + Math.cos(a) * r * 127; im.data[i + 1] = 128 + Math.sin(a) * r * 127; im.data[i + 2] = 255; im.data[i + 3] = 255; }
+  g.putImageData(im, 0, 0);
+  FLAKE_TEX = new THREE.CanvasTexture(cv); FLAKE_TEX.wrapS = FLAKE_TEX.wrapT = THREE.RepeatWrapping; FLAKE_TEX.repeat.set(14, 14); return FLAKE_TEX;
 }
 const BANNER_CACHE = {};
 function bannerMat(text) {
@@ -2754,8 +2772,8 @@ function paintMat(cls, base, accent, number, team) {
   const key = [cls, base, accent, number, team].join('|');
   if (PAINT_CACHE[key]) return PAINT_CACHE[key];
   // road car: metallic paint under clear coat; race cars: solid colours with a satin-ish clear coat over the decals
-  const o = cls === 'road' ? { color: '#ffffff', metalness: .6, roughness: .38, clearcoat: 1, clearcoatRoughness: .04 }
-                           : { color: '#ffffff', metalness: .15, roughness: .42, clearcoat: .8, clearcoatRoughness: .12 };
+  const o = cls === 'road' ? { color: '#ffffff', metalness: .62, roughness: .34, clearcoat: 1, clearcoatRoughness: .03, normalMap: flakeNormals(), normalScale: new THREE.Vector2(.22, .22) }
+                           : { color: '#ffffff', metalness: .12, roughness: .4, clearcoat: 1, clearcoatRoughness: .06 };
   o.map = liveryTexture(cls, base, accent, number, team);
   const pm = PAINT_CACHE[key] = new THREE.MeshPhysicalMaterial(o); carEnv(pm); return pm;
 }
