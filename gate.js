@@ -1,10 +1,15 @@
-// Erika Air access gate: the game only starts once this browser holds a valid access code.
-// The first person to enter a code owns it; anyone else who tries the same code is turned away.
+// Erika access gate: a game only starts once this browser holds a valid access code for THAT game.
+// window.ERIKA_GAME = 'air' (flight, the default) or 'race' (Erika Racing); codes are made for one game.
+// Two kinds of code: a 35-character code that the first person to enter it owns (anyone else is turned away),
+// and a one-time 10-digit code that unlocks a single visit and is then spent.
+// window.ERIKA_GATE_DEFER = true: the gate waits until window.__gateStart() is called (the game choice comes first).
 (function () {
   let release;
   window.__gateReady = new Promise((r) => { release = r; });
+  const GAME = window.ERIKA_GAME === 'race' ? 'race' : 'air';
+  const NAME = GAME === 'race' ? 'Erika Racing' : 'Erika Air', OTHER = GAME === 'race' ? 'Erika Air' : 'Erika Racing';
 
-  const KEY = 'erika.access.v1';
+  const KEY = GAME === 'air' ? 'erika.access.v1' : 'erika.access.' + GAME + '.v1';
   const store = {
     get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } },
     set(v) { try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) { /* storage unavailable */ } },
@@ -26,18 +31,19 @@
     #gate .msg{min-height:1.4em;font-size:14px}
     #gate .msg.bad{color:var(--bad,#ff5e5e)} #gate .msg.ok{color:var(--ok,#46d98a)}
     #gate .foot{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--dim,#8ea3b4)}
-    #gate .foot a{color:var(--dim,#8ea3b4)}`;
+    #gate .foot a{color:var(--dim,#8ea3b4)}` + (GAME === 'race' ? '#gate{--accent:#3cc4ff;--accent-ink:#04121d}' : '');
   const html = `
     <form class="card" id="gateForm" autocomplete="off">
-      <h1>Erika <b>Air</b></h1>
-      <p>Enter your access code to fly. Each code works for one person only.</p>
+      <h1>Erika <b>${GAME === 'race' ? 'Racing' : 'Air'}</b></h1>
+      <p>Enter your ${NAME} access code to ${GAME === 'race' ? 'race' : 'fly'}. Codes work for one game and one person only.</p>
       <label for="gateCode">Access code</label>
-      <input id="gateCode" name="code" spellcheck="false" autocapitalize="off" maxlength="64" placeholder="24-character code" required>
+      <input id="gateCode" name="code" spellcheck="false" autocapitalize="off" maxlength="64" placeholder="35-character code, or 10-digit one-time code" required>
       <button id="gateGo" type="submit">Unlock</button>
       <div class="msg" id="gateMsg" role="status" aria-live="polite"></div>
       <div class="foot"><span>Ask the admin for a code.</span><a href="admin.html">Admin</a></div>
     </form>`;
 
+  function run() {
   function mount() {
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const g = document.createElement('div'); g.id = 'gate'; g.innerHTML = html; document.body.appendChild(g);
@@ -75,8 +81,9 @@
     },
   };
 
-  function unlock(hash) {
-    store.set(hash); codeHash = hash;
+  function unlock(hash, once) {
+    if (!once) store.set(hash);   // a one-time code is good for this visit only
+    codeHash = hash;
     gate.remove();
     release();
     // log this flight for the admin desk (last flew + flight count)
@@ -88,19 +95,23 @@
     }, () => {});
   }
 
+  // a 10-digit one-time code may be typed with spaces or dashes ("12345 67890")
+  const normal = (code) => (/^[\d\s-]+$/.test(code) ? code.replace(/\D/g, '') : code);
   async function check(code, quiet) {
-    const hash = await sha256(code);
+    const hash = await sha256(normal(code));
     const ref = db.collection('codes').doc(hash);
     let snap = await ref.get();
     if (!snap.exists) return { ok: false, why: 'That code is not valid. Check it and try again.' };
     let c = snap.data();
+    if ((c.game || 'air') !== GAME) return { ok: false, why: 'That is an ' + OTHER + ' code. It only works in ' + OTHER + '.' };
     if (c.revoked) return { ok: false, why: 'This code has been turned off by the admin.' };
+    if (c.once && c.claimedBy) { if (c.claimedBy !== uid) reportShared(hash); return { ok: false, why: 'This one-time code has already been used.' }; }
     if (c.claimedBy === uid) return { ok: true, hash };
     if (c.claimedBy) { reportShared(hash); return { ok: false, why: 'This code is already being used by someone else.' }; }
     if (quiet) return { ok: false, why: '' };
     try {
       await ref.update({ claimedBy: uid, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      return { ok: true, hash };
+      return { ok: true, hash, once: !!c.once };
     } catch (e) {
       if (e && e.code !== 'permission-denied') throw e;
       snap = await ref.get(); c = snap.exists ? snap.data() : {};
@@ -120,7 +131,7 @@
   async function checkSaved(hash) {
     const snap = await db.collection('codes').doc(hash).get();
     const c = snap.exists ? snap.data() : null;
-    if (c && !c.revoked && c.claimedBy === uid) return true;
+    if (c && !c.revoked && !c.once && (c.game || 'air') === GAME && c.claimedBy === uid) return true;
     store.set(null);
     say(!c ? 'Your code no longer exists. Enter a new one.' : c.revoked ? 'Your code has been turned off by the admin.' : 'Your code is now assigned to someone else.', 'bad');
     return false;
@@ -214,7 +225,7 @@
     const code = $('gateCode').value.trim();
     if (!code) return;
     busy(true); say('Checking code…');
-    const done = (r) => { if (r.ok) { say('Access granted.', 'ok'); unlock(r.hash); } else { say(r.why, 'bad'); busy(false); $('gateCode').select(); } };
+    const done = (r) => { if (r.ok) { say(r.once ? 'Access granted for this visit.' : 'Access granted.', 'ok'); unlock(r.hash, r.once); } else { say(r.why, 'bad'); busy(false); $('gateCode').select(); } };
     try { done(await check(code)); }
     catch (err) {
       // a refusal here means this browser's player sign-in is no longer valid (for example the anonymous account was
@@ -227,8 +238,11 @@
           done(await check(code)); return;
         } catch (err2) { err = err2; }
       }
-      console.error('Erika Air access check failed', err);
+      console.error('Erika access check failed', err);
       say(explain(err, 'Could not reach the access server. Check your connection and try again.'), 'bad'); busy(false);
     }
   });
+  }
+  if (window.ERIKA_GATE_DEFER) { let started = false; window.__gateStart = () => { if (!started) { started = true; run(); } }; }
+  else run();
 })();

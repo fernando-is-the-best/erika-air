@@ -394,6 +394,7 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script>window.ERIKA_GAME = 'air'; window.ERIKA_GATE_DEFER = true;   // the game choice comes before the code</script>
 <script src="gate.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -12619,7 +12620,7 @@ SIM.Game = (function () {
     return new Promise((resolve) => {
       if (/[?&]fly\b/.test(location.search)) { resolve(); return; }
       const el = document.createElement('div'); el.id = 'chooser';
-      el.innerHTML = '<div class="wrap" role="dialog" aria-labelledby="chooseH"><h1 id="chooseH">Fly or race?</h1><p class="sub">Pick a game. You can switch any time from the menu.</p><div class="cards">'
+      el.innerHTML = '<div class="wrap" role="dialog" aria-labelledby="chooseH"><h1 id="chooseH">Fly or race?</h1><p class="sub">Pick a game, then enter the access code for that game. Each game has its own codes.</p><div class="cards">'
         + '<button type="button" class="card fly" data-g="fly"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>'
         + '<b>Erika <i>Air</i></b><span>Flight simulator: airliners, light aircraft, gliders and fighters. Free flight, challenges and multi-leg trips.</span><em>Fly &rsaquo;</em></button>'
         + '<a class="card race" href="gp.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15l2-5c.4-1 1.2-1.5 2.2-1.5h9.6c1 0 1.8.5 2.2 1.5l2 5v3h-2.5M3 18v-3m0 3h2.5"/><circle cx="7.5" cy="18" r="2"/><circle cx="16.5" cy="18" r="2"/><path d="M9.5 18h5M6 12h12"/></svg>'
@@ -12630,8 +12631,8 @@ SIM.Game = (function () {
       setTimeout(() => { try { el.querySelector('[data-g="fly"]').focus(); } catch (e) { /* ignore */ } }, 50);
     });
   }
-  // the game starts only after the access gate lets this browser in (a valid code, or the admin signed in)
-  if (window.__gateReady) window.__gateReady.then(chooseGame).then(boot); else chooseGame().then(boot);
+  // first the choice of game, then the Erika Air access code (or the admin signed in), then the game starts
+  chooseGame().then(() => { if (window.__gateStart) window.__gateStart(); return window.__gateReady; }).then(boot);
 })();
 
 

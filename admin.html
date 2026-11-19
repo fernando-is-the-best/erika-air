@@ -102,6 +102,7 @@ button:disabled { opacity: .5; cursor: wait }
 .fleet.none { color: var(--dim); font-style: italic }
 .item .ren { display: flex; gap: 6px; flex-wrap: wrap } .item .ren input { flex: 1 1 160px; padding: 6px 10px; font-size: 15px }
 .pill { font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid currentColor }
+.pill.game.air { color: var(--accent) } .pill.game.race { color: #3cc4ff }
 .pill.free { color: var(--ok) } .pill.used { color: var(--warn) } .pill.off { color: var(--bad) }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 0 var(--blue); animation: ping 1.8s infinite }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(98,182,255,.6) } 100% { box-shadow: 0 0 0 8px rgba(98,182,255,0) } }
@@ -156,9 +157,11 @@ button:disabled { opacity: .5; cursor: wait }
 
     <section class="card">
       <h2>Make codes</h2>
-      <p>Each code is 24 characters of letters, numbers and symbols. The first person to enter it owns it; anyone else who tries it is blocked.</p>
+      <p>Codes work for one game. A <b>35-character code</b> belongs to the first person who enters it; anyone else is blocked. A <b>10-digit one-time code</b> unlocks a single visit and is then used up.</p>
       <div class="row">
         <div class="grow"><label for="who">Name</label><input id="who" maxlength="60" placeholder="Who is this code for?"></div>
+        <div class="fix" style="flex-basis:150px"><label for="game">Game</label><select id="game"><option value="air">Erika Air (flight)</option><option value="race">Erika Racing</option></select></div>
+        <div class="fix" style="flex-basis:190px"><label for="kind">Type</label><select id="kind"><option value="long">35-character code</option><option value="once">10-digit one-time code</option></select></div>
         <div class="fix"><label for="qty">How many</label><select id="qty"><option>1</option><option>3</option><option>5</option><option>10</option></select></div>
         <button class="main" id="btnMake" type="button">Generate</button>
       </div>
@@ -187,7 +190,7 @@ button:disabled { opacity: .5; cursor: wait }
 <script>
 (function () {
   const ADMIN_HASH = '4b2342c4b0d1cb10c1529f31d7765d31038ac2acad4821d141bc23669721dff7';
-  const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ', LOWER = 'abcdefghijkmnopqrstuvwxyz', DIGIT = '23456789', SYM = '!@#$%^&*-_+=?';
+  const DIGIT10 = '0123456789', UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ', LOWER = 'abcdefghijkmnopqrstuvwxyz', DIGIT = '23456789', SYM = '!@#$%^&*-_+=?';
   const ALL = UPPER + LOWER + DIGIT + SYM;
   const $ = (id) => document.getElementById(id);
   const say = (id, t, kind) => { const m = $(id); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
@@ -201,10 +204,13 @@ button:disabled { opacity: .5; cursor: wait }
   function rnd(n) { const lim = 65536 - (65536 % n), b = new Uint16Array(1); do { crypto.getRandomValues(b); } while (b[0] >= lim); return b[0] % n; }
   function makeCode() {
     const out = [UPPER, LOWER, DIGIT, SYM].map((s) => s[rnd(s.length)]);   // at least one of each kind
-    while (out.length < 24) out.push(ALL[rnd(ALL.length)]);
+    while (out.length < 35) out.push(ALL[rnd(ALL.length)]);
     for (let i = out.length - 1; i > 0; i--) { const j = rnd(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
     return out.join('');
   }
+  const makeOnce = () => { let d = ''; for (let i = 0; i < 10; i++) d += DIGIT10[rnd(10)]; return d; };   // ten random digits
+  const showCode = (c) => (c && c.once && /^\d{10}$/.test(c.code || '') ? c.code.slice(0, 5) + ' ' + c.code.slice(5) : (c && c.code) || '');
+  const GAMES = { air: 'Erika Air', race: 'Erika Racing' };
   async function copy(text, btn) {
     try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1400); }
     catch (e) { window.prompt('Copy this:', text); }
@@ -289,13 +295,13 @@ button:disabled { opacity: .5; cursor: wait }
   let fresh = [];
   $('btnMake').addEventListener('click', async () => {
     const b = $('btnMake'); b.disabled = true; say('makeMsg', '');
-    const n = +$('qty').value || 1, base = $('who').value.trim().slice(0, 60);
+    const n = +$('qty').value || 1, base = $('who').value.trim().slice(0, 60), game = $('game').value === 'race' ? 'race' : 'air', once = $('kind').value === 'once';
     try {
       const batch = db.batch(), made = [];
       for (let i = 0; i < n; i++) {
-        const code = makeCode(), id = await sha256(code), label = base && n > 1 ? base + ' ' + (i + 1) : base;
-        batch.set(db.collection('codes').doc(id), { code, label, createdAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: null, claimedAt: null, revoked: false, plays: 0, lastSeen: null });
-        made.push({ code, label });
+        const code = once ? makeOnce() : makeCode(), id = await sha256(code), label = base && n > 1 ? base + ' ' + (i + 1) : base;
+        batch.set(db.collection('codes').doc(id), { code, label, game, once, createdAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: null, claimedAt: null, revoked: false, plays: 0, lastSeen: null });
+        made.push({ code, label, game, once });
       }
       await batch.commit();
       fresh = made; paintFresh(); $('who').value = '';
@@ -308,14 +314,14 @@ button:disabled { opacity: .5; cursor: wait }
     fresh.forEach((f) => {
       const row = document.createElement('div'); row.className = 'fc';
       const left = document.createElement('div'); left.style.minWidth = '0';
-      const c = document.createElement('code'); c.textContent = f.code; left.appendChild(c);
-      if (f.label) { const w = document.createElement('div'); w.className = 'who'; w.textContent = 'For ' + f.label; left.appendChild(w); }
+      const c = document.createElement('code'); c.textContent = showCode(f); left.appendChild(c);
+      const w = document.createElement('div'); w.className = 'who'; w.textContent = [f.label ? 'For ' + f.label : '', GAMES[f.game], f.once ? 'one-time' : ''].filter(Boolean).join(' · '); left.appendChild(w);
       const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Copy'; b.addEventListener('click', (e) => copy(f.code, e.currentTarget));
       row.append(left, b); L.appendChild(row);
     });
     show('fresh', fresh.length > 0);
   }
-  $('btnCopyFresh').addEventListener('click', (e) => copy(fresh.map((f) => (f.label ? f.label + ': ' : '') + f.code).join('\n'), e.currentTarget));
+  $('btnCopyFresh').addEventListener('click', (e) => copy(fresh.map((f) => (f.label ? f.label + ': ' : '') + showCode(f) + ' (' + GAMES[f.game] + (f.once ? ', one-time' : '') + ')').join('\n'), e.currentTarget));
 
   // ---- roster
   let docs = [], filter = 'all', q = '';
@@ -330,7 +336,7 @@ button:disabled { opacity: .5; cursor: wait }
   $('btnCopyUnused').addEventListener('click', (e) => {
     const u = docs.filter((d) => stateOf(d.c) === 'free');
     if (!u.length) { say('listMsg', 'There are no unused codes to copy.', 'bad'); return; }
-    copy(u.map((d) => (d.c.label ? d.c.label + ': ' : '') + d.c.code).join('\n'), e.currentTarget); say('listMsg', '');
+    copy(u.map((d) => (d.c.label ? d.c.label + ': ' : '') + showCode(d.c) + ' (' + GAMES[d.c.game || 'air'] + (d.c.once ? ', one-time' : '') + ')').join('\n'), e.currentTarget); say('listMsg', '');
   });
   const stateOf = (c) => (c.revoked ? 'off' : c.claimedBy ? 'used' : 'free');
 
@@ -349,7 +355,7 @@ button:disabled { opacity: .5; cursor: wait }
   let editing = null;
   function paintList() {
     const L = $('list'); L.textContent = '';
-    const rows = docs.filter(({ c }) => (filter === 'all' || stateOf(c) === filter) && (!q || (c.label || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q)));
+    const rows = docs.filter(({ c }) => (filter === 'all' || stateOf(c) === filter) && (!q || (c.label || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q) || (c.game === 'race' ? 'racing' : 'flight').includes(q)));
     if (!rows.length) { const p = document.createElement('p'); p.textContent = docs.length ? 'No codes match.' : 'No codes yet. Make one above.'; L.appendChild(p); return; }
     rows.forEach(({ ref, c }) => {
       const st = stateOf(c), it = document.createElement('div'); it.className = 'item ' + st;
@@ -365,9 +371,10 @@ button:disabled { opacity: .5; cursor: wait }
       } else {
         const nm = document.createElement('div'); nm.className = 'nm' + (c.label ? '' : ' none'); nm.textContent = c.label || 'No name'; left.appendChild(nm);
       }
-      const code = document.createElement('code'); code.textContent = c.code || '(hidden)';
+      const code = document.createElement('code'); code.textContent = showCode(c) || '(hidden)';
       const meta = document.createElement('div'); meta.className = 'meta';
-      const pill = document.createElement('span'); pill.className = 'pill ' + st; pill.textContent = st === 'free' ? 'Unused' : st === 'used' ? 'In use' : 'Turned off'; meta.appendChild(pill);
+      const pill = document.createElement('span'); pill.className = 'pill ' + st; pill.textContent = st === 'free' ? 'Unused' : st === 'used' ? (c.once ? 'Used' : 'In use') : 'Turned off'; meta.appendChild(pill);
+      const gp = document.createElement('span'); gp.className = 'pill game ' + (c.game || 'air'); gp.textContent = (c.game === 'race' ? 'Racing' : 'Flight') + (c.once ? ' · one-time' : ''); meta.appendChild(gp);
       const recent = c.lastSeen && c.lastSeen.toDate && Date.now() - c.lastSeen.toDate().getTime() < 15 * 60000;
       if (recent && st === 'used') { const d = document.createElement('span'); d.className = 'dot'; d.title = 'Flying in the last 15 minutes'; meta.appendChild(d); }
       const info = document.createElement('span');

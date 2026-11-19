@@ -22,7 +22,10 @@ The game stays locked until this is done. It takes about 10 minutes, once.
 
 ## 5. Use it
 - Admin page: https://fernando-is-the-best.github.io/erika-air/admin.html — enter the admin code, then sign in with Google.
-- Make a code, give it a name, and send it to a player. The first person to enter it owns it; anyone else who tries it is blocked.
+- Make a code: give it a name, pick the **Game** (Erika Air or Erika Racing: each game needs its own code) and the **Type**:
+  - **35-character code**: the first person to enter it owns it and stays unlocked on their browser; anyone else who tries it is blocked.
+  - **10-digit one-time code**: unlocks one visit, then it is used up (it can be typed with a space, e.g. `12345 67890`). **Free up** makes it usable once more.
+- Codes made before games were separate count as Erika Air codes.
 - If a player changes device or clears their browser, click **Free up** on their code so they can enter it again.
 - **Shared code alerts:** when someone tries a code that already belongs to another player, an alert appears at the top of the admin desk (with a chime, and a desktop notification once you click **Turn on desktop alerts**). The Admin button in the game shows a red count while alerts are unread. From the alert you can **Turn off code**.
   - This needs the `alerts` block from `firestore.rules`. If you set up the rules before it existed, open **Firestore Database → Rules**, paste the `match /alerts/{alertId} { ... }` block from `firestore.rules` just above the last two closing braces, and click **Publish** (keep your admin email in place).
