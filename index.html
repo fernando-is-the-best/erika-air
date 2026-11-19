@@ -327,6 +327,7 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
             <dt>Arrows / W S A D</dt><dd>Pitch and roll (up = nose down)</dd>
             <dt>Q / E</dt><dd>Rudder, nosewheel and tailwheel steering</dd>
             <dt>Shift / Ctrl</dt><dd>Throttle up / down (0&ndash;9 sets power)</dd>
+            <dt>Helicopters</dt><dd>Shift / Ctrl collective, arrows cyclic, Q / E pedals. With assist on, let go to hover and hold height</dd>
             <dt>G</dt><dd>Landing gear</dd>
             <dt>F / V</dt><dd>Flaps down / up</dd>
             <dt>B or Space</dt><dd>Wheel brakes (hold)</dd>
@@ -1262,6 +1263,351 @@ SIM.Aircraft = (function () {
   return Aircraft;
 })();
 
+// ---------- heli.js : helicopter flight model (rotors, engine + governor, flight control system) ----------
+// Each main rotor: blade-element thrust with uniform inflow (momentum theory in climb, the empirical curve through the vortex
+// ring in a steep descent, Glauert's forward-flight inflow), ground effect, profile power and retreating-blade stall. The disc
+// tilts with cyclic, flaps back with airspeed and lags the fuselage (the rotor's own pitch and roll damping). One transmission
+// ties the engine, its governor and the rotor's inertia together, so RPM droop, autorotation and low-rotor-RPM stall come out
+// of the physics. Single-rotor types carry a tail rotor (torque balance, yaw damping, drift); tandem types pitch with
+// differential collective and yaw with differential lateral cyclic.
+// Controls: ctl.throttle = collective (0 bottom .. 1 top), ctl.pitch / ctl.roll = cyclic, ctl.yaw = pedals.
+(function () {
+  const U = SIM.U, Q = U.Q, G0 = U.G0, clamp = U.clamp, smooth = U.smooth, P = SIM.Aircraft.prototype;
+  const forces0 = P._forces, engine0 = P.updateEngine, laws0 = P.controlLaws, place0 = P.place;
+
+  // geometry and constants derived once per spec
+  SIM.heliPrep = function (s) {
+    const H = s.heli; if (!H || H._k) return s;
+    const R = H.R, A = Math.PI * R * R, sigma = H.nb * H.chord / (Math.PI * R);
+    H._k = { A, sigma, sa2: sigma * (H.a || 5.7) / 2, om0: H.rpm * Math.PI / 30, Atr: H.tr ? Math.PI * H.tr.R * H.tr.R : 0 };
+    const W = (s.emptyMass + s.payload + s.fuelCap * s.fuelDefault) * G0;
+    H._k.W = W;
+    // moment per radian of disc tilt about the CG (thrust x hub height + hub spring), for the flight control gains
+    const nR = H.rotors.length, T1 = W / nR;
+    H._k.Mlon = H.rotors.reduce((m, r) => m + T1 * r.pos[1] + H.Kb, 0);
+    H._k.Mlat = H._k.Mlon;
+    if (H.tandem) {   // pitch from differential collective: d(thrust)/d(blade pitch) x rotor separation
+      const k = H._k, dTdth = 1.225 * A * Math.pow(k.om0 * R, 2) * k.sa2 / 3 * 0.55;
+      H._k.Mdc = dTdth * H.rotors.reduce((m, r) => m + Math.abs(r.pos[2]), 0);
+      H._k.Myaw = T1 * H.rotors.reduce((m, r) => m + Math.abs(r.pos[2]), 0);
+    }
+    return s;
+  };
+
+  P._heliInit = function (opt) {
+    const s = this.spec, H = s.heli, k = H._k;
+    const run = this.eng.running;
+    this.rot = this.rot || {};
+    const r = this.rot;
+    r.om = run || (opt && (opt.speed > 15 || opt.hover)) ? k.om0 : 0; r.li = H.rotors.map(() => 0.04); r.blon = H.rotors.map(() => 0); r.blat = H.rotors.map(() => 0);
+    r.T = H.rotors.map(() => 0); r.Preq = 0; r.Q = 0; r.tr = 0; r.pt = 0.4; r.vrs = 0; r.rbs = 0; r.ge = 1; r.lowT = 0; r.mu = 0;
+    r.iLon = 0; r.iLat = 0; r.iYaw = 0; r.cb = 0; r.cbI = 0; r.collT = 0; r.lastColl = -1; r.hHold = null; r.vIF = 0; r.vIR = 0; r.apOn = false; r.hdgHold = this.euler.heading; r.thHold = this.euler.pitch; r.holdP = false; r.dc = 0; r.ty = 0;
+    this.eng.torque = 0; this.eng.power = run ? 0.3 * H.Pmax : 0; this.eng.n1 = run ? 0.7 : 0; this.eng.rpm = run && H.piston ? H.engRpm : 0;
+    if (opt && (opt.speed > 15 || opt.hover)) {   // airborne start: collective for level flight at this weight
+      const old = this.ctl.throttle; let lo = 0, hi = 1;
+      for (let i = 0; i < 22; i++) {
+        const mid = (lo + hi) / 2; this.ctl.throttle = mid;
+        const f = this._heliForces(0, true);
+        if (f.fy > this.mass * G0 * 1.01) hi = mid; else lo = mid;
+      }
+      this.ctl.throttle = (lo + hi) / 2; if (!isFinite(this.ctl.throttle)) this.ctl.throttle = old;
+    }
+  };
+
+  P.place = function (x, y, z, h, opt) {
+    if (this.spec.heli) SIM.heliPrep(this.spec);
+    const r = place0.call(this, x, y, z, h, opt);
+    if (this.spec.heli) { this.mass = this.spec.emptyMass + this.fuel + this.payload; this._heliInit(opt || {}); this.ctl.trim = 0; }
+    return r;
+  };
+
+  // ---- one main rotor: thrust, induced flow, power. Returns the force and hub-relative moments in body axes.
+  function rotorCalc(ac, i, vb, w, rho, om, th0, blon, blat, out) {
+    const s = ac.spec, H = s.heli, k = H._k, rr = H.rotors[i], hp = rr.pos, st = ac.rot, R = H.R;
+    // hub velocity through the air, body axes (body velocity + w x r)
+    const hx = vb.x + (w.y * hp[2] - w.z * hp[1]), hy = vb.y + (w.z * hp[0] - w.x * hp[2]), hz = vb.z + (w.x * hp[1] - w.y * hp[0]);
+    // disc axis: shaft (tilted forward by the built-in shaft tilt) tipped by the flapping angles (+blon = aft, +blat = right)
+    const lon = blon - (H.shaft || 0), nx = Math.sin(blat), nz = Math.sin(lon), ny = Math.sqrt(Math.max(0.2, 1 - nx * nx - nz * nz));
+    const Vc = hx * nx + hy * ny + hz * nz;                       // along the axis: + = air flowing down through the disc
+    const px = hx - nx * Vc, py = hy - ny * Vc, pz = hz - nz * Vc, Vf = Math.hypot(px, py, pz);
+    const OR = Math.max(om * R, 1), mu = Vf / OR, lc = Vc / OR;
+    let li = st.li[i], ct = 0, lam = 0, lh = 0, x = 0, wf = 0;
+    const th = th0 + (rr.dth || 0), tw = H.twist;
+    for (let it = 0; it < 6; it++) {
+      lam = lc + li;
+      ct = k.sa2 * (th * (1 / 3 + mu * mu / 2) + tw / 4 * (1 + mu * mu) - lam / 2);
+      const ctp = Math.max(Math.abs(ct), 2e-5);
+      lh = Math.sqrt(ctp / 2); x = lc / lh;
+      let la;   // induced inflow in axial flight: momentum theory, the vortex-ring curve, the windmill brake state
+      if (x >= 0) la = lh * (-x / 2 + Math.sqrt(x * x / 4 + 1));
+      else if (x <= -2) la = lh * (-x / 2 - Math.sqrt(x * x / 4 - 1));
+      else la = lh * (1 - 1.125 * x - 1.372 * x * x - 1.718 * x * x * x - 0.655 * x * x * x * x);
+      if (ct < 0) la = -la;                                           // negative thrust: the flow reverses
+      const lg = ct / (2 * Math.sqrt(mu * mu + lam * lam + 1e-6));      // Glauert, forward flight
+      wf = smooth(0.7 * lh, 1.8 * lh, mu);
+      const ln = la * (1 - wf) + lg * wf;
+      li += (ln - li) * 0.5;
+    }
+    li = clamp(li, -0.2, 0.3); st.li[i] = li;
+    // retreating-blade stall: the blade loading the rotor can carry falls with advance ratio
+    const ctsMax = (H.ctsMax || 0.13) * (1 - 0.9 * mu * mu);
+    let rbs = 0;
+    if (ct / k.sigma > ctsMax) { rbs = clamp((ct / k.sigma - ctsMax) / 0.03, 0, 1); ct = k.sigma * ctsMax + (ct - k.sigma * ctsMax) * 0.25; }
+    // vortex ring: steep, slow descent into your own downwash; thrust becomes rough and falls away
+    const live = smooth(0.3, 0.6, om / k.om0);
+    if (live < 1) rbs *= live;
+    const vrs = (1 - wf) * smooth(-0.25, -0.75, x) * smooth(-2.0, -1.25, x) * live;
+    // ground effect (Cheeseman-Bennett), fading with speed
+    const zh = Math.max(ac.agl + hp[1], 0.3), rz = R / (4 * Math.max(zh, 0.55 * R));
+    const ge = 1 + (1 / (1 - rz * rz) - 1) * (1 - smooth(4, 16, Vf));
+    const T0 = ct * rho * k.A * OR * OR;
+    const T = T0 * ge * (1 - 0.32 * vrs);
+    // power: induced (with a 15% non-ideal factor, less in ground effect) + climb + profile (rising with advance ratio)
+    const Pi = T0 * OR * (li * (li > 0 ? 1.15 : 1) / ge + lc), P0 = k.sigma * (H.cd0 || 0.011) / 8 * (1 + 4.65 * mu * mu) * rho * k.A * OR * OR * OR;
+    // in-plane drag of the blades (H-force) along the in-plane flow
+    const Hf = k.sigma * (H.cd0 || 0.011) / 4 * mu * rho * k.A * OR * OR, hk = Vf > 0.1 ? Hf / Vf : 0;
+    out.fx = T * nx - hk * px; out.fy = T * ny - hk * py; out.fz = T * nz - hk * pz;
+    out.T = T; out.P = Pi + P0; out.mu = mu; out.vrs = vrs; out.rbs = rbs; out.ge = ge; out.Vc = Vc;
+    return out;
+  }
+
+  P._heliForces = function (dt, dry) {
+    const s = this.spec, H = s.heli, k = H._k, ctl = this.ctl, q = this.q, p = this.p, v = this.v, w = this.w, r = this.rot;
+    const F = this._F || (this._F = { fx: 0, fy: 0, fz: 0, mx: 0, my: 0, mz: 0, gx: 0, gy: 0, gz: 0 });
+    const atm = SIM.isa(p.y, this.atm), rho = atm.rho, wv = this.wv, vb = this._vb;
+    Q.rotInv(q, v.x - wv.x, v.y - wv.y, v.z - wv.z, vb);
+    const V = Math.max(Math.hypot(vb.x, vb.y, vb.z), 0.01);
+    this.V = V; this.tas = V; this.mach = V / atm.a;
+    const qd = 0.5 * rho * V * V;
+    const alpha = V > 1 ? Math.atan2(-vb.y, -vb.z) : 0, beta = V > 1 ? Math.asin(clamp(vb.x / V, -1, 1)) : 0;
+    this.alpha = alpha; this.beta = beta; this.sigma = 0; this.stalled = false; this.stallWarn = false;
+    const om = r.om, omr = om / k.om0;
+    const coll = clamp(ctl.throttle + (r.cb || 0), 0, 1), th0 = H.coll[0] + (H.coll[1] - H.coll[0]) * coll;
+    let fx = 0, fy = 0, fz = 0, mx = 0, my = 0, mz = 0, Preq = 0, Qr = 0, vrs = 0, rbs = 0, ge = 1, mu = 0;
+    const o = this._ro || (this._ro = {});
+    for (let i = 0; i < H.rotors.length; i++) {
+      const rr = H.rotors[i], hp = rr.pos;
+      // the disc lags the fuselage's pitch and roll: the rotor's own damping
+      const lag = H.lag || 0.1;
+      const bl = r.blon[i] - lag * w.x, bt = r.blat[i] + lag * w.z;
+      const thi = th0 + (H.tandem ? (i === 0 ? r.dc : -r.dc) : 0);
+      rotorCalc(this, i, vb, w, rho, om, thi, bl, bt, o);
+      fx += o.fx; fy += o.fy; fz += o.fz;
+      // r x F, plus the hub spring (hingeless / offset-hinge rotors), plus the torque reaction (yaw)
+      mx += hp[1] * o.fz - hp[2] * o.fy + H.Kb * bl * omr * omr;
+      my += hp[2] * o.fx - hp[0] * o.fz - rr.dir * (o.P / Math.max(om, 1));
+      mz += hp[0] * o.fy - hp[1] * o.fx - H.Kb * bt * omr * omr;
+      Preq += o.P; vrs = Math.max(vrs, o.vrs); rbs = Math.max(rbs, o.rbs); ge = Math.max(ge, o.ge); mu = Math.max(mu, o.mu);
+      r.T[i] = o.T;
+      // retreating-blade stall rolls you towards the retreating side and pitches the nose up
+      if (o.rbs > 0) { mz += rr.dir * o.rbs * 0.25 * o.T * 0.6; mx += o.rbs * 0.1 * o.T * 0.6; }
+      // vortex ring: violent, random thrust pulses
+      if (o.vrs > 0.05) { const n = U.snoise(this.t * 4.1, i * 7.3, 0.4); fy += n * o.vrs * 0.12 * o.T; mz += U.snoise(this.t * 3.3, 2.1 + i, 1.7) * o.vrs * 0.05 * o.T * H.R; }
+    }
+    // tail rotor: torque balance, translating tendency, and yaw damping as the tail swings through its own wake
+    let Ptr = 0;
+    if (H.tr) {
+      const tr = H.tr, z = tr.arm, y = tr.y, dir = H.rotors[0].dir;
+      const vt = vb.x + (w.y * z - w.z * y);
+      const T0 = tr.Tmax * omr * omr * clamp(r.pt, -0.6, 1.1);
+      const vh = Math.sqrt(Math.abs(T0) / (2 * rho * k.Atr) + 1);
+      let Ft = dir * T0 - 2 * rho * k.Atr * vh * vt * 0.5;
+      // weathercocking fin area lies in the tail-rotor wake; the fin also lifts with sideslip
+      fx += Ft; my += z * Ft; mz += -y * Ft;
+      if (tr.cant) { const up = Math.abs(Ft) * Math.tan(tr.cant); fy += up; mx -= z * up; }   // canted tail rotor gives some lift
+      r.tr = Ft;
+      Ptr = Math.abs(T0) * vh * 1.2 + 0.02 * H.Pmax * omr * omr * omr;
+    }
+    // fuselage drag (frontal, side and vertical flat-plate areas)
+    const f = H.f, kd = 0.5 * rho * V;
+    fx -= kd * vb.x * f[0]; fy -= kd * vb.y * f[1]; fz -= kd * vb.z * f[2];
+    // stabiliser and fin: pitch stability and damping, weathervaning and yaw damping in forward flight
+    const Vt = Math.max(V, 8), aH = clamp(alpha + (H.stabInc != null ? H.stabInc : 0.08), -0.6, 0.6), bH = clamp(beta, -0.6, 0.6);   // the stabiliser is set to fly level in the cruise attitude
+    const fwd = smooth(6, 25, V);
+    mx += -qd * H.Sh * H.lh * 2.2 * (aH + w.x * H.lh / Vt) * fwd;
+    const finY = qd * H.Sv * 3.0 * (bH - (-w.y) * H.lv / Vt) * fwd;
+    fx -= finY; my += H.lv * -finY;
+    // aerodynamic damping of the rotating fuselage (small)
+    mx -= 0.02 * k.W * H.R * w.x; mz -= 0.02 * k.W * H.R * w.z; my -= 0.01 * k.W * H.R * w.y;
+    // turbulence
+    const turb = this.env.turbulence || 0;
+    if (turb > 0) { fy += turb * 0.03 * k.W * U.snoise(this.t * 1.3, 4.4, 0.2); mz += turb * 0.004 * k.W * H.R * U.snoise(this.t * 1.9, 1.3, 2.2); mx += turb * 0.003 * k.W * H.R * U.snoise(this.t * 1.6, 7.7, 0.9); }
+    r.Preq = Preq + Ptr; r.vrs = vrs; r.rbs = rbs; r.ge = ge; r.mu = mu;
+    this.stickShake = Math.max(rbs, vrs, smooth(0.92, 0.85, omr) * (this.onGround ? 0 : 1));
+    this.stallWarn = !this.onGround && (omr < 0.9 || rbs > 0.2 || vrs > 0.3);
+    this.stalled = !this.onGround && omr < 0.75;
+    // rotor speed: engine power against the rotors' power demand, through the rotor inertia
+    if (!dry && dt > 0) {
+      const Pe = this.eng.running ? this.eng.power : 0;
+      r.om = clamp(om + (Pe - r.Preq) / Math.max(om, 2) / H.Ir * dt, 0, k.om0 * 1.3);
+      if (!this.eng.running && this.onGround && ctl.throttle < 0.1) r.om = Math.max(0, r.om - (0.4 + 0.02 * r.om) * dt);   // rotor brake once down
+      // the rotor flaps to follow the cyclic within a few revolutions
+      const kf = Math.min(1, dt * om * 0.35);
+      for (let i = 0; i < H.rotors.length; i++) {
+        const fb = (H.kfb || 0.2) * r.mu * (1 + 0.5 * coll);   // flapback: the disc tilts aft as airspeed rises
+        r.blon[i] += (r.cLon + (H.tandem ? 0 : fb) - r.blon[i]) * kf;
+        r.blat[i] += (r.cLat + (H.tandem ? (i === 0 ? r.ty : -r.ty) : 0) - r.blat[i]) * kf;
+      }
+      // low rotor RPM: the blades stall and the rotor cannot be recovered
+      if (!this.onGround && omr < 0.62) { r.lowT += dt; if (r.lowT > 1.2 && !this.crashed) this._crash('Rotor stalled (low rotor RPM)'); } else r.lowT = 0;
+      if (omr > 1.18 && !this.crashed) this.emit('rotorOverspeed');
+    }
+    F.fx = fx; F.fy = fy; F.fz = fz; F.mx = mx; F.my = my; F.mz = mz;
+    F.gx = F.gy = F.gz = 0;
+    if (dry) return F;
+    this._gear(dt, F);
+    return F;
+  };
+
+  // turboshaft (or piston + governor): the governor holds rotor RPM by feeding the power the rotor asks for, up to what the
+  // engine can make at this air density; it cannot absorb power, so in a descent a freewheel lets the rotor overspeed
+  P._heliEngine = function (dt) {
+    const s = this.spec, H = s.heli, k = H._k, eng = this.eng, r = this.rot, sig = this.atm.rho / U.RHO0;
+    if (this.fail.leak > 0) this.fuel = Math.max(0, this.fuel - this.fail.leak * dt);
+    if (this.fuel <= 0) eng.running = false;
+    const Pav = eng.running ? H.Pmax * (H.piston ? clamp((sig - 0.12) / 0.88, 0.1, 1) : Math.pow(sig, 0.8)) * this.fail.thr : 0;
+    const err = (k.om0 - r.om) / k.om0;
+    const cmd = clamp(r.Preq + err * 14 * H.Pmax, 0, Pav);
+    eng.power += (cmd - eng.power) * Math.min(1, dt / (H.piston ? 0.25 : 0.6));
+    if (!eng.running) eng.power = 0;
+    eng.thrFrac = eng.power / H.Pmax; eng.thrust = 0;
+    eng.n1 = eng.running ? 0.62 + 0.4 * eng.power / H.Pmax : Math.max(0, eng.n1 - dt * 0.15);
+    eng.rpm = H.piston ? (eng.running ? H.engRpm * Math.max(0.35, r.om / k.om0) : 0) : (H.engRpm || 6000) * r.om / k.om0;
+    eng.torque = eng.power / Math.max(r.om, 1) / (H.Pmax / k.om0);   // fraction of the transmission's torque limit
+    eng.fuelFlow = eng.running ? (0.05 * H.Pmax + eng.power) * (H.piston ? 8.0e-8 : 9.4e-8) : 0;
+    this.fuel = Math.max(0, this.fuel - eng.fuelFlow * dt);
+    if (eng.torque > 1.08 && !this.onGround) this.overTorque = (this.overTorque || 0) + dt; else this.overTorque = 0;
+  };
+
+  // flight controls. Direct: cyclic tips the disc, pedals set tail-rotor pitch. With assist (an AFCS like modern
+  // helicopters): the cyclic commands pitch and roll rates and holds attitude when released, a hover hold stops the drift
+  // when you let go at low speed, pedals command yaw rate with heading hold, and the autopilot flies height, heading and speed.
+  P._heliLaws = function (dt) {
+    const s = this.spec, H = s.heli, k = H._k, c = this.ctl, r = this.rot, e = this.euler, w = this.w, ap = this.ap, I = s.inertia;
+    const airborne = !this.onGround && this.agl > 0.6;
+    const au = this.fail.auth;
+    const sp = clamp(c.pitch * au + this.fail.bias, -1, 1), sr = c.roll * au, sy = clamp(c.yaw * au + (this.fail.yaw || 0), -1, 1);
+    const qR = w.x, pR = -w.z, rR = -w.y, mt = H.maxTilt;
+    const omr = Math.max(0.3, r.om / k.om0), Tsum = r.T.reduce((a, b) => a + b, 0) || k.W;
+    const Mlon = Math.max(0.3 * k.Mlon, Tsum / H.rotors.length * H.rotors.reduce((m, x) => m + x.pos[1], 0) + H.Kb * H.rotors.length * omr * omr);
+    const dir = H.rotors[0].dir, Qr = r.Preq / Math.max(r.om, 2);
+    // ground speed in the heading frame (for the hover hold)
+    const ch = Math.cos(e.heading), sh = Math.sin(e.heading);
+    const uF = this.v.x * sh - this.v.z * ch, vR = this.v.x * ch + this.v.z * sh;
+    let lon, lat, ped, dc = 0, ty = 0;
+    if (!this.assist) {
+      lon = sp * mt; lat = sr * mt; ped = sy;
+      r.pt = 0.4 - dir * ped * 0.85;
+      if (H.tandem) { dc = sp * (H.dColl || 0.05); lon = sp * mt * 0.25; ty = ped * (H.yTilt || 0.08); }
+      r.holdP = false; r.iLon = r.iLat = r.iYaw = 0; r.thHold = e.pitch; r.hdgHold = e.heading;
+    } else {
+      // ---- targets: pitch / roll rate from the stick; attitude hold, hover hold or autopilot when the stick is free
+      let qCmd, pCmd;
+      const free = Math.abs(sp) < 0.04 && Math.abs(sr) < 0.04, slow = this.gs < 9 && !ap.on;
+      if (ap.on) {
+        const dpsi = U.wrapPI(ap.hdg * U.D2R - e.heading), hover = ap.spd < 6;
+        let thCmd, phCmd;
+        if (hover) { thCmd = clamp(0.035 * uF, -0.2, 0.2); phCmd = clamp(-0.035 * vR, -0.2, 0.2); }
+        else {
+          const tq = this.eng.torque || 0, spd = Math.min(ap.spd, s.speeds.vne * 0.97);
+          // no more speed than the power allows: past 98% torque the speed loop stops pushing the nose down
+          const er = tq > 0.98 && spd > this.ias ? Math.min(0, spd - this.ias) - (tq - 0.98) * 400 : spd - this.ias;
+          r.spdI = clamp((r.spdI || 0) + er * 0.004 * dt, -0.2, 0.2);
+          thCmd = clamp(-0.02 * er - r.spdI, -0.28, 0.18);
+          phCmd = ap.hdgOn ? clamp(1.2 * dpsi, -0.45, 0.45) : 0;
+        }
+        qCmd = clamp(2.0 * (thCmd - e.pitch), -0.4, 0.4); pCmd = clamp(2.2 * (phCmd - e.roll), -0.6, 0.6);
+        r.thHold = e.pitch;
+      } else if (free && slow && airborne) {
+        // hover hold: lean against the drift until the helicopter stops over the ground
+        r.vIF = clamp(r.vIF + 0.015 * uF * dt, -0.08, 0.08); r.vIR = clamp(r.vIR - 0.015 * vR * dt, -0.08, 0.08);   // trims out a steady drift (tail-rotor push, wind)
+        const thCmd = clamp(0.045 * uF + r.vIF, -0.18, 0.18), phCmd = clamp(-0.045 * vR + r.vIR, -0.18, 0.18);
+        qCmd = clamp(2.2 * (thCmd - e.pitch), -0.4, 0.4); pCmd = clamp(2.4 * (phCmd - e.roll), -0.5, 0.5);
+        r.thHold = e.pitch; r.holdP = true;
+      } else {
+        r.vIF *= Math.exp(-dt); r.vIR *= Math.exp(-dt);
+        if (Math.abs(sp) > 0.04) { qCmd = sp * 0.55; r.thHold = e.pitch; }
+        else qCmd = clamp(2.0 * (r.thHold - e.pitch), -0.3, 0.3);
+        if (Math.abs(sr) > 0.04) pCmd = sr * 1.1;
+        else pCmd = Math.abs(e.roll) < 1.3 ? clamp(-1.6 * e.roll, -0.5, 0.5) : 0;   // let go and the wings come level
+      }
+      // a coordinated turn splits the turn rate between body yaw (cos bank) and body pitch (sin bank)
+      const Om = this.V > 18 ? G0 * Math.tan(clamp(e.roll, -1.2, 1.2)) / this.V : 0;
+      if (!(free && slow && airborne && !ap.on)) qCmd += Om * Math.sin(e.roll);
+      // envelope protection (assist): pitch within about +/-26 degrees and bank within 50
+      // and the nose-down limit closes up approaching Vne, so a held forward stick cannot dive you past it
+      const vneK = clamp((s.speeds.vne * 1.02 - this.ias) / (0.22 * s.speeds.vne), -0.4, 1), dnLim = -0.45 * vneK;
+      if (!ap.on) { qCmd = clamp(qCmd, 2 * (dnLim - e.pitch), 2 * (0.45 - e.pitch)); pCmd = clamp(pCmd, 2 * (-0.87 - e.roll), 2 * (0.87 - e.roll)); }
+      // ---- inner loops: disc tilt for the wanted angular acceleration, with an integrator for the trim
+      const qdd = 3.2 * (qCmd - qR), pdd = 4.5 * (pCmd - pR);
+      if (airborne) { r.iLon = clamp(r.iLon + (qCmd - qR) * 0.9 * dt * I[0] / Mlon * 3.2, -mt, mt); r.iLat = clamp(r.iLat + (pCmd - pR) * 0.9 * dt * I[2] / Mlon * 4.5, -mt, mt); }
+      else { r.iLon *= Math.exp(-dt * 3); r.iLat *= Math.exp(-dt * 3); r.thHold = e.pitch; }
+      if (H.tandem) {
+        dc = clamp(I[0] * qdd / k.Mdc + r.iLon * Mlon / k.Mdc, -0.09, 0.09); lon = 0;
+        lat = clamp(I[2] * pdd / Mlon + r.iLat, -mt, mt);
+      } else {
+        lon = clamp(I[0] * qdd / Mlon + r.iLon, -mt, mt);
+        lat = clamp(I[2] * pdd / Mlon + r.iLat, -mt, mt);
+      }
+      if (!airborne) { lon = clamp(sp * mt * 0.5, -mt, mt); lat = clamp(sr * mt * 0.5, -mt, mt); if (H.tandem) dc = sp * 0.03; }
+      // ---- yaw: pedals command yaw rate; heading hold in the hover, turn coordination in forward flight
+      let rCmd;
+      if (Math.abs(sy) > 0.04 || !airborne) { rCmd = sy * (H.yawRate || 0.9); r.hdgHold = e.heading + rR * 0.15; }
+      else if (this.V > 20) { rCmd = clamp(Om * Math.cos(e.roll) + clamp(1.5 * this.beta, -0.3, 0.3) * smooth(20, 35, this.V), -0.6, 0.6); r.hdgHold = e.heading; }
+      else rCmd = clamp(1.6 * U.wrapPI(r.hdgHold - e.heading), -0.5, 0.5);
+      const mN = I[1] * 4 * (rCmd - rR);
+      r.iYaw = airborne ? clamp(r.iYaw + (rCmd - rR) * I[1] * 1.5 * dt, -0.6 * Math.abs(Qr) - 2000, 0.6 * Math.abs(Qr) + 2000) : r.iYaw * Math.exp(-dt * 3);
+      if (H.tr) {
+        // tail-rotor thrust that balances the main-rotor torque, plus the yaw demand (sign follows the rotor's direction)
+        r.pt = (Qr - dir * (mN + r.iYaw)) / (H.tr.arm * H.tr.Tmax * omr * omr);
+      } else ty = clamp((mN + r.iYaw) / Math.max(1, k.Myaw) * 1.0, -(H.yTilt || 0.08), H.yTilt || 0.08);
+    }
+    // actuators: rate limits
+    const rl = 1.6 * dt;
+    r.cLon = (r.cLon || 0) + clamp(lon - (r.cLon || 0), -rl, rl);
+    r.cLat = (r.cLat || 0) + clamp(lat - (r.cLat || 0), -rl, rl);
+    r.dc += clamp(dc - r.dc, -0.6 * dt, 0.6 * dt); r.ty += clamp(ty - r.ty, -rl, rl);
+    r.pt = clamp(r.pt, -0.6, 1.1);
+    // height hold: the autopilot, or (with assist) whenever you leave the collective alone for a moment near level flight.
+    // It trims an offset on top of your collective lever (PI on vertical speed), so the lever stays yours.
+    if (Math.abs(c.throttle - r.lastColl) > 1e-4) { r.collT = 0; r.lastColl = c.throttle; } else r.collT += dt;
+    const apAlt = ap.on && ap.altOn;
+    let hold = false;
+    if (apAlt) { r.hHold = ap.alt; hold = true; }
+    else if (this.assist && airborne && r.collT > 1.0 && (r.hHold != null || Math.abs(this.vs) < 2.5)) { if (r.hHold == null) r.hHold = this.p.y; hold = true; }
+    else r.hHold = null;
+    const lim = apAlt ? 0.45 : 0.18;
+    if (hold) {
+      const vsMax = apAlt ? ap.vsMax : 1.5, vsCmd = clamp((r.hHold - this.p.y) * 0.3, -vsMax, vsMax), er = vsCmd - this.vs;
+      // never pull the rotor RPM down or the torque past its limit to hold height
+      const omr = r.om / k.om0, over = Math.max(0, (this.eng.torque || 0) - 1.0) + Math.max(0, 0.97 - omr) * 3;
+      r.cbI = clamp(r.cbI + (over > 0 ? Math.min(0.025 * er, 0) - over * 0.3 : 0.025 * er) * dt, -lim, lim);
+      r.cb = clamp(r.cbI + 0.03 * er, -lim, lim);
+    } else { r.cbI *= Math.exp(-dt * (airborne ? 0.15 : 2)); r.cb = r.cbI; }
+    // the surface positions the HUD and cockpit read: stick deflection
+    this.surf.de = clamp(lon / mt, -1, 1); this.surf.da = clamp(lat / mt, -1, 1); this.surf.dr = clamp(sy, -1, 1);
+    this.steerCmd = sy;
+  };
+
+  // cockpit alerts for the HUD: [text, colour]
+  P.heliAlerts = function () {
+    const r = this.rot, H = this.spec.heli; if (!r || !H || this.crashed) return [];
+    const nr = r.om / H._k.om0, out = [], air = !this.onGround;
+    if (air && !this.eng.running) out.push(['ENGINE OUT: AUTOROTATE', '#ff4040']);
+    if ((air || this.ctl.throttle > 0.1) && nr < 0.9) out.push(['LOW ROTOR RPM', '#ff4040']);
+    if (nr > 1.1) out.push(['ROTOR OVERSPEED', '#ff8020']);
+    if ((this.eng.torque || 0) > 1.02) out.push(['OVERTORQUE', '#ffcc30']);
+    if (r.vrs > 0.3) out.push(['VORTEX RING STATE', '#ff4040']);
+    if (r.rbs > 0.2) out.push(['RETREATING BLADE STALL', '#ff8020']);
+    return out;
+  };
+  P._forces = function (dt, dry) { return this.spec.heli ? this._heliForces(dt, dry) : forces0.call(this, dt, dry); };
+  P.updateEngine = function (dt) { return this.spec.heli ? this._heliEngine(dt) : engine0.call(this, dt); };
+  P.controlLaws = function (dt) { return this.spec.heli ? this._heliLaws(dt) : laws0.call(this, dt); };
+  const autoTrim0 = P.autoTrim;
+  P.autoTrim = function () { return this.spec.heli ? 0 : autoTrim0.call(this); };
+})();
+
 // ---------- default environment (used by tests; the game supplies its own) ----------
 SIM.flatEnv = function (groundY) {
   groundY = groundY || 0;
@@ -1619,6 +1965,103 @@ SIM.flatEnv = function (groundY) {
 
   SIM.AIRCRAFT = A; SIM.jetFlaps = jetFlaps;
   SIM.AIRCRAFT_LIST = ['c172', 'c208', 'c337', 'cub', 'extra', 'b738', 'b747', 'concorde', 'f16', 'glider'].map((id) => A[id]);
+})();
+
+// ---------- heli_defs.js : helicopters (real rotor sizes, masses, power and speeds; SI units) ----------
+// heli: R rotor radius, nb blades, chord, rpm, twist, coll = blade pitch at bottom / top of the collective, Kb hub spring (N m/rad,
+// 0 for a teetering rotor), maxTilt cyclic range, Ir rotor inertia, Pmax power the transmission takes, rotors (hub position from
+// the CG, dir +1 = anticlockwise seen from above), tr tail rotor (arm, height, radius, max thrust), f flat-plate drag areas
+// [side, vertical, frontal] m², Sh/lh stabiliser area and arm, Sv/lv fin area and arm.
+(function () {
+  const A = SIM.AIRCRAFT, D = Math.PI / 180;
+  const common = {
+    kind: 'heli', fixedGear: true, restPitch: 0, S: 10, c: 1.5, wingDY: 0, washFrac: 0, thrustOffset: 0, takeoffTrim: 0, gearTime: 1, flapRate: 0.3,
+    stallRoll: 0, spoilerCL: 0, spoilerCD: 0, spoilerCm: 0, gearCD: 0, flaps: null,
+    aero: { CL0: 0.1, CLa: 1.5, aS: 0.5, aSn: -0.5, CD0: 0.05, k: 0.1, CDb: 0.5, CYb: -0.5, CYdr: 0.02, Cm0: 0, Cma: -0.2, Cmq: -5, Cmde: 0.4, Cmtrim: 0.4, Cmstall: 0,
+      Clb: -0.05, Clp: -0.3, Clr: 0.05, Clda: 0.1, Cldr: 0.01, Cnb: 0.05, Cnr: -0.1, Cnp: 0, Cndr: 0.05, Cnda: 0 },
+    fcs: { law: 'direct', vRef: 40, bwQ: 2, bwTh: 1, bwP: 2, bwR: 1, qMax: 0.5, nzCmdMax: 2.5, pMax: 1, pSched: 0, levelBank: 30, Kphi: 0.7, holdPitch: 0.8, attHold: true,
+      apBank: 0.45, apHdgK: 1.2, vMinAP: 0, apAoaOff: 0, surfRate: 3, Kalpha: 0, groundYawDamp: 0 },
+    ap: { vsMax: 5 }, units: { spd: 'kt' }, gLimit: [3.5, -0.5],
+  };
+  // skids: four sliding contact points; rotor tips and the tail rotor are hard points (a strike is a crash)
+  const skids = (x, y, zf, zr) => [[-x, zf], [x, zf], [-x, zr], [x, zr]].map(([px, pz], i) => ({ name: 'skid' + i, pos: [px, y, pz], k: 52000, c: 7000, travel: 0.18, brake: false, lat: 1.0, rollMul: 28 }));
+  const rotorPts = (R, y, zc, tailArm, tailY, tailR) => [
+    { name: 'Main rotor', pos: [-R * 0.97, y, zc] }, { name: 'Main rotor', pos: [R * 0.97, y, zc] }, { name: 'Main rotor', pos: [0, y, zc - R * 0.97] }, { name: 'Main rotor', pos: [0, y, zc + R * 0.97] }]
+    .concat(tailArm ? [{ name: 'Tail rotor', pos: [0, tailY - tailR, tailArm] }] : []);
+  function heli(o) {
+    const s = Object.assign({}, JSON.parse(JSON.stringify(common)), o);
+    s.b = 2 * s.heli.R;
+    A[s.id] = s; SIM.deriveSpec(s); SIM.heliPrep(s);
+    return s;
+  }
+
+  heli({
+    id: 'r44', name: 'Robinson R44 Raven II', cls: 'Light piston helicopter', model: 'heli_r44',
+    blurb: 'The four-seat piston helicopter most pilots learn on. A light two-blade rotor: smooth hands, small inputs, and watch the rotor RPM.',
+    emptyMass: 683, payload: 230, fuelCap: 133, fuelDefault: 0.7, inertia: [1600, 1500, 650],
+    engine: { type: 'piston', name: 'Lycoming IO-540 (245 hp)', P: 183000, rpmIdle: 1000, rpmMax: 2718, T0: 1, D: 1, Vopt: 50, etaMax: 0.8, pitch: 'fixed' },
+    heli: { R: 5.03, nb: 2, chord: 0.254, rpm: 400, twist: -6 * D, coll: [4.5 * D, 18 * D], Kb: 0, maxTilt: 11 * D, Ir: 520, kfb: 0.25, lag: 0.09,
+      Pmax: 183000, piston: true, engRpm: 2718, rotors: [{ pos: [0, 2.15, -0.05], dir: 1 }], tr: { arm: 6.1, y: 0.55, R: 0.74, Tmax: 1400 },
+      f: [3.2, 4.5, 0.65], Sh: 0.3, lh: 5.4, Sv: 0.45, lv: 5.9 },
+    gear: skids(1.08, -1.08, -1.25, 1.0),
+    hardpoints: rotorPts(5.03, 2.15, -0.05, 6.1, 0.55, 0.74).concat([{ name: 'Tail', pos: [0, 0.15, 5.8], soft: true }, { name: 'Nose', pos: [0, -0.5, -2.1] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 28, vne: 66.9, vfe: 66.9, vno: 56.6, vcruise: 56.6, vref: 15 },
+    crashSink: 3.2, hardSink: 1.6, eye: [0.33, 0.62, -1.05], chase: 13,
+    stats: ['Cruise 110 kt, hover to 8,000 ft', '245 hp piston, two-blade rotor', 'Light and lively on the cyclic', 'Seats four'],
+  });
+
+  heli({
+    id: 'h125', name: 'Airbus H125 (AS350 B3e)', cls: 'Light turbine helicopter', model: 'heli_h125',
+    blurb: 'The mountain workhorse: power to spare, high-altitude hover, sling loads and rescues. Its rotor turns clockwise, so the torque yaws you left.',
+    emptyMass: 1180, payload: 320, fuelCap: 426, fuelDefault: 0.6, inertia: [5200, 4600, 1700],
+    engine: { type: 'turboshaft', name: 'Safran Arriel 2D (952 shp)' },
+    heli: { R: 5.345, nb: 3, chord: 0.35, rpm: 386, twist: -12 * D, coll: [9 * D, 25 * D], Kb: 22000, maxTilt: 12 * D, Ir: 1100, kfb: 0.25, lag: 0.08,
+      Pmax: 630000, engRpm: 6000, rotors: [{ pos: [0, 2.0, -0.1], dir: -1 }], tr: { arm: 6.3, y: 0.9, R: 0.93, Tmax: 3600 },
+      f: [4.5, 7, 1.15], Sh: 0.75, lh: 5.7, Sv: 1.0, lv: 6.3 },
+    gear: skids(1.18, -1.32, -1.35, 1.15),
+    hardpoints: rotorPts(5.345, 2.0, -0.1, 6.3, 0.9, 0.93).concat([{ name: 'Tail', pos: [0, 0.2, 6.6], soft: true }, { name: 'Nose', pos: [0, -0.6, -2.6] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 28, vne: 79.7, vfe: 79.7, vno: 68.4, vcruise: 68.4, vref: 15 },
+    crashSink: 3.3, hardSink: 1.7, eye: [0.42, 0.55, -1.45], chase: 14,
+    stats: ['Cruise 133 kt, hover above 12,000 ft', '952 shp turboshaft', 'Three-blade Starflex rotor', 'Clockwise rotor: left torque'],
+  });
+
+  heli({
+    id: 'uh60', name: 'Sikorsky UH-60 Black Hawk', cls: 'Utility twin-turbine helicopter', model: 'heli_uh60',
+    blurb: 'A four-blade, twin-engine utility helicopter: heavy, stable and very fast for its size. The canted tail rotor lifts as well as steers.',
+    emptyMass: 5224, payload: 1400, fuelCap: 1100, fuelDefault: 0.7, inertia: [52000, 50000, 10600],
+    engine: { type: 'turboshaft', name: '2 x GE T700-701C (1,940 shp each)' },
+    heli: { R: 8.18, nb: 4, chord: 0.53, rpm: 258, twist: -18 * D, coll: [13.5 * D, 33 * D], Kb: 75000, maxTilt: 12 * D, Ir: 10500, kfb: 0.22, lag: 0.1, shaft: 3 * D,
+      Pmax: 2830000, engRpm: 20900, ctsMax: 0.14, rotors: [{ pos: [0, 2.4, -0.2], dir: 1 }], tr: { arm: 9.9, y: 1.6, R: 1.68, Tmax: 16000, cant: 20 * D },
+      f: [9, 18, 3.6], Sh: 4.2, lh: 9, Sv: 3.2, lv: 9.6 },
+    gear: [
+      { name: 'mainL', pos: [-1.4, -1.7, -1.1], k: 420000, c: 70000, travel: 0.3, brake: true, lat: 0.9 },
+      { name: 'mainR', pos: [1.4, -1.7, -1.1], k: 420000, c: 70000, travel: 0.3, brake: true, lat: 0.9 },
+      { name: 'tail', pos: [0, -1.25, 7.9], k: 160000, c: 30000, travel: 0.25, castor: true, lat: 0.5 }],
+    hardpoints: rotorPts(8.18, 2.4, -0.2, 9.9, 1.6, 1.68).concat([{ name: 'Nose', pos: [0, -1.0, -4.6] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 36, vne: 99, vfe: 99, vno: 77, vcruise: 77, vref: 18 },
+    crashSink: 4.0, hardSink: 2.0, eye: [0.55, 0.85, -3.55], chase: 20,
+    stats: ['Cruise 150 kt, 3,800 shp', 'Four-blade articulated rotor', 'Canted tail rotor', 'Crew of 2 plus 11'],
+  });
+
+  heli({
+    id: 'ch47', name: 'Boeing CH-47F Chinook', cls: 'Heavy tandem-rotor helicopter', model: 'heli_ch47',
+    blurb: 'Two big rotors turning opposite ways, so no tail rotor: it pitches by moving lift between the rotors and yaws by tilting them apart. Lifts 10 tonnes.',
+    emptyMass: 11148, payload: 4000, fuelCap: 3100, fuelDefault: 0.7, inertia: [300000, 290000, 45000],
+    engine: { type: 'turboshaft', name: '2 x Honeywell T55-714A (4,868 shp each)' },
+    heli: { R: 9.14, nb: 3, chord: 0.81, rpm: 225, twist: -12 * D, coll: [9 * D, 30 * D], Kb: 40000, maxTilt: 9 * D, Ir: 23000, kfb: 0.2, lag: 0.1,
+      Pmax: 5600000, engRpm: 15000, tandem: true, dColl: 4 * D, yTilt: 6 * D, stabInc: 0, yawRate: 0.45,
+      rotors: [{ pos: [0, 2.4, -6.1], dir: 1 }, { pos: [0, 3.3, 5.9], dir: -1 }], tr: null,
+      f: [18, 34, 6.5], Sh: 0, lh: 0, Sv: 6, lv: 6 },
+    gear: [
+      { name: 'fwdL', pos: [-1.6, -2.25, -4.1], k: 900000, c: 150000, travel: 0.3, brake: true, lat: 0.9 },
+      { name: 'fwdR', pos: [1.6, -2.25, -4.1], k: 900000, c: 150000, travel: 0.3, brake: true, lat: 0.9 },
+      { name: 'aftL', pos: [-1.6, -2.25, 3.4], k: 900000, c: 150000, travel: 0.3, brake: true, castor: true, lat: 0.6 },
+      { name: 'aftR', pos: [1.6, -2.25, 3.4], k: 900000, c: 150000, travel: 0.3, brake: true, castor: true, lat: 0.6 }],
+    hardpoints: rotorPts(9.14, 2.4, -6.1, 0, 0, 0).slice(0, 3).concat(rotorPts(9.14, 3.3, 5.9, 0, 0, 0).filter((h, i) => i !== 2)).concat([{ name: 'Nose', pos: [0, -1.6, -8.6] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 38, vne: 87.5, vfe: 87.5, vno: 82, vcruise: 82, vref: 18 },
+    crashSink: 4.0, hardSink: 2.0, eye: [0.6, 0.85, -7.9], chase: 30,
+    stats: ['Cruise 160 kt, 9,700 shp', 'Tandem rotors, no tail rotor', 'Lifts 10 tonnes', 'Crew of 3 plus 33'],
+  });
 })();
 
 // ---------- airliner_types.js : data for the Boeing / Airbus family (real dimensions, masses and thrust; SI units) ----------
@@ -5333,6 +5776,222 @@ SIM.Models = (function () {
   });
 })();
 
+// ---------- models_heli.js : helicopters (R44, H125, UH-60, CH-47). Rotors spin at the real rotor speed and tilt with the cyclic ----------
+// Body frame as everywhere: x right, y up, z back (forward = -z), origin at the CG.
+(function () {
+  const K = SIM.Kit, M = SIM.Models;
+  // a soft radial texture for the spinning-rotor disc: faint near the hub, a darker band where the blade tips run
+  function discTex() {
+    const c = K.canvas(256, 256), x = c.getContext('2d'), g = x.createRadialGradient(128, 128, 6, 128, 128, 128);
+    g.addColorStop(0, 'rgba(30,32,36,0.5)'); g.addColorStop(0.18, 'rgba(30,32,36,0.18)'); g.addColorStop(0.8, 'rgba(30,32,36,0.22)');
+    g.addColorStop(0.93, 'rgba(25,26,30,0.42)'); g.addColorStop(0.985, 'rgba(240,240,235,0.35)'); g.addColorStop(1, 'rgba(30,32,36,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 256, 256); return K.tex(c);
+  }
+  let DISC = null;
+  // main rotor: mast, hub, blades (with a tip stripe) and a blur disc. Returns { g, blades, blur, dir }.
+  function mainRotor(o) {
+    const g = new THREE.Group(), spin = new THREE.Group(); g.add(spin);
+    const bladeM = K.mat(o.bladeCol || 0x2a2c30, { r: 0.45, m: 0.2 }); bladeM.transparent = true;
+    const tipM = K.mat(o.tipCol || 0xe8e4d8, { r: 0.5 }); tipM.transparent = true;
+    const hubM = K.mat(0x3b3e44, { r: 0.35, m: 0.6 });
+    spin.add(K.lathe([[-0.18, 0.02], [-0.16, o.hub * 0.8], [0, o.hub], [0.1, o.hub * 0.75], [0.16, 0.03]], hubM, 16));
+    spin.children[0].rotation.x = -Math.PI / 2;
+    const blades = [];
+    for (let i = 0; i < o.nb; i++) {
+      const arm = new THREE.Group(); arm.rotation.y = i * Math.PI * 2 / o.nb; spin.add(arm);
+      const L = o.R - o.hub * 0.6, cone = o.cone != null ? o.cone : 0.03;
+      const b = new THREE.Mesh(new THREE.BoxGeometry(L, o.chord * 0.12, o.chord), bladeM); b.position.set(o.hub * 0.6 + L / 2, Math.sin(cone) * L / 2, 0); b.rotation.z = cone; arm.add(b);
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(L * 0.07, o.chord * 0.13, o.chord * 1.01), tipM); tip.position.set(o.R - L * 0.05, Math.sin(cone) * (L - L * 0.05), 0); tip.rotation.z = cone; arm.add(tip);
+      // blade grip / pitch horn
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(o.hub * 0.9, o.chord * 0.3, o.chord * 0.55), hubM); grip.position.set(o.hub * 0.75, 0, 0); arm.add(grip);
+      blades.push(b, tip);
+    }
+    DISC = DISC || discTex();
+    const blur = new THREE.Mesh(new THREE.CircleGeometry(o.R, 64), new THREE.MeshBasicMaterial({ map: DISC, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+    blur.rotation.x = -Math.PI / 2; blur.position.y = Math.sin(o.cone != null ? o.cone : 0.03) * o.R * 0.5; g.add(blur);
+    g.position.set(o.pos[0], o.pos[1], o.pos[2]);
+    return { g, spin, blades, blur, dir: o.dir, mats: [bladeM, tipM] };
+  }
+  // tail rotor (spins about the x axis), with its own blur disc
+  function tailRotor(o) {
+    const g = new THREE.Group(), spin = new THREE.Group(); g.add(spin);
+    const m = K.mat(o.col || 0x2c2e33, { r: 0.45, m: 0.2 }), tm = K.mat(0xd8392b, { r: 0.5 });
+    for (let i = 0; i < o.nb; i++) {
+      const arm = new THREE.Group(); arm.rotation.x = i * Math.PI * 2 / o.nb; spin.add(arm);
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.03, o.R * 0.92, o.R * 0.2), m); b.position.y = o.R * 0.5; arm.add(b);
+      const t = new THREE.Mesh(new THREE.BoxGeometry(0.035, o.R * 0.12, o.R * 0.21), tm); t.position.y = o.R * 0.92; arm.add(t);
+    }
+    spin.add(K.round([-0.08, 0, 0], [0.12, 0, 0], o.R * 0.12, o.R * 0.08, K.mat(0x3b3e44, { r: 0.35, m: 0.6 }), 10));
+    DISC = DISC || discTex();
+    const blur = new THREE.Mesh(new THREE.CircleGeometry(o.R, 32), new THREE.MeshBasicMaterial({ map: DISC, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+    blur.rotation.y = Math.PI / 2; g.add(blur);
+    g.position.set(o.pos[0], o.pos[1], o.pos[2]); if (o.cant) g.rotation.z = o.cant;
+    return { g, spin, blur, blades: spin.children.slice(0, o.nb) };
+  }
+  function skids(g, x, y, zf, zr, m, tube) {
+    [-1, 1].forEach((sd) => {
+      g.add(K.round([sd * x, y, zf - 0.35], [sd * x, y, zr + 0.25], 0.045, 0.045, m, 8));
+      g.add(K.round([sd * x, y, zf - 0.35], [sd * x, y + 0.22, zf - 0.75], 0.045, 0.04, m, 8));   // upturned toe
+      [zf, zr].forEach((z) => g.add(K.round([sd * x, y, z], [sd * x * 0.55, tube, z], 0.04, 0.045, m, 8)));
+    });
+    [zf, zr].forEach((z) => g.add(K.round([-x * 0.55, tube, z], [x * 0.55, tube, z], 0.045, 0.045, m, 8)));
+  }
+  function navLights(g, a, left, right, tail) {
+    const l = K.blink('#ff3030', 0.5); l.position.set(...left); g.add(l);
+    const r = K.blink('#30ff60', 0.5); r.position.set(...right); g.add(r);
+    const t = K.blink('#ff2020', 0.7); t.position.set(...tail); g.add(t); a.beacon = t;
+  }
+  // instrument-panel shroud seen from the pilot's seat (the cockpit view looks out through the real canopy)
+  function panel(g, pos, w) {
+    const c = K.canvas(512, 160), x = c.getContext('2d');
+    x.fillStyle = '#1b1d21'; x.fillRect(0, 0, 512, 160);
+    for (let i = 0; i < 6; i++) { const cx = 50 + i * 82, cy = 80; x.fillStyle = '#0b0c0e'; x.beginPath(); x.arc(cx, cy, 34, 0, 7); x.fill(); x.strokeStyle = '#d8d8d0'; x.lineWidth = 2;
+      for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; x.beginPath(); x.moveTo(cx + Math.cos(a) * 26, cy + Math.sin(a) * 26); x.lineTo(cx + Math.cos(a) * 31, cy + Math.sin(a) * 31); x.stroke(); }
+      x.strokeStyle = i === 2 ? '#ffd23a' : '#f2f2ea'; x.lineWidth = 3; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + 22 * Math.cos(-1 + i), cy + 22 * Math.sin(-1 + i)); x.stroke(); }
+    const m = new THREE.MeshStandardMaterial({ map: K.tex(c), roughness: 0.8 });
+    const p = new THREE.Mesh(new THREE.BoxGeometry(w, 0.32, 0.08), m); p.position.set(pos[0], pos[1], pos[2]); p.rotation.x = -0.35; g.add(p);
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(w * 1.05, 0.03, 0.3), K.mat(0x15171a, { r: 0.9 })); hood.position.set(pos[0], pos[1] + 0.18, pos[2] + 0.04); g.add(hood);
+  }
+  // fuselage with a canopy: the body shell is cut away where the glass is (th: angle from the top, 0 = top)
+  function cabin(g, st, body, glass, z0, z1, th, o) {
+    o = o || {}; const step = o.step || 0.12, segs = o.segs || 32;
+    body.side = THREE.DoubleSide; glass.side = THREE.DoubleSide;   // seen from the pilot's seat too
+    g.add(K.fuselage(st, body, { z1: z0, step, segs }));
+    g.add(K.fuselage(st, body, { z0, z1, th0: th, th1: Math.PI * 2 - th, step, segs: Math.round(segs * (1 - th / Math.PI)) }));
+    g.add(K.fuselage(st, body, { z0: z1, step, segs }));
+    g.add(K.fuselage(st, glass, { z0, z1, th0: -th, th1: th, step: step * 0.7, segs: Math.round(segs * th / Math.PI) + 2 }));
+  }
+  // a seated pilot: helmet with a dark visor, shoulders, arms forward to the controls
+  function pilot(g, x, y, z, suit) {
+    const sm = K.mat(suit || 0x34405a, { r: 0.8 }), hm = K.mat(0xe9e9e4, { r: 0.35 }), vm = K.mat(0x14181e, { r: 0.1, m: 0.5 });
+    const t = K.ellipsoid(0.2, 0.28, 0.15, sm, 12); t.position.set(x, y, z); g.add(t);
+    const h = K.ellipsoid(0.12, 0.13, 0.135, hm, 14); h.position.set(x, y + 0.4, z - 0.02); g.add(h);
+    const v = K.ellipsoid(0.1, 0.06, 0.06, vm, 10); v.position.set(x, y + 0.41, z - 0.12); g.add(v);
+    const arms = [-1, 1].map((sd) => K.round([x + sd * 0.19, y + 0.15, z], [x + sd * 0.12, y - 0.05, z - 0.4], 0.05, 0.04, sm, 6)); arms.forEach((m) => g.add(m));
+    return [t, h, v].concat(arms);
+  }
+  function finish(g, a, rotors, tr) { a.rotors = rotors; a.tailRotor = tr; rotors.forEach((r) => g.add(r.g)); if (tr) g.add(tr.g); return { group: g, anim: a }; }
+
+  // ===================================================================== Robinson R44: bubble cabin, tall mast, thin boom
+  M.reg('r44', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0xf2f1ec, { r: 0.3, m: 0.1 }), stripe = K.mat(0x1f4e9a, { r: 0.35 }), dark = K.mat(0x2a2c30, { r: 0.6 }), metal = K.mat(0xb9bcc0, { r: 0.3, m: 0.7 });
+    const glass = K.mat(0x9cc2d8, { r: 0.05, m: 0.1, tr: 0.32, ei: 1.0 });
+    const st = [{ z: -2.25, w: 0.05, t: -0.05, b: -0.15, n: 2 }, { z: -2.0, w: 0.55, t: 0.45, b: -0.55, n: 2.2 }, { z: -1.4, w: 0.72, t: 0.82, b: -0.66, n: 2.5 },
+      { z: -0.6, w: 0.74, t: 0.86, b: -0.66, n: 2.6 }, { z: 0.15, w: 0.68, t: 0.8, b: -0.6, n: 2.6 }, { z: 0.7, w: 0.42, t: 0.55, b: -0.3, n: 2.2 }, { z: 1.25, w: 0.16, t: 0.32, b: 0.05, n: 2 }];
+    cabin(g, st, body, glass, -2.12, -0.25, 1.75);
+    a.eyePilot = pilot(g, 0.33, 0.05, -0.95); pilot(g, -0.33, 0.05, -0.95, 0x5a3a2a);
+    // door frames and a blue cheat line
+    g.add(K.fuselage(st, stripe, { z0: -2.05, z1: 0.6, th0: 1.95, th1: 2.15, off: 0.015, step: 0.12, segs: 2 }));
+    g.add(K.fuselage(st, stripe, { z0: -2.05, z1: 0.6, th0: -2.15, th1: -1.95, off: 0.015, step: 0.12, segs: 2 }));
+    [-0.95, -0.25].forEach((z) => [-1, 1].forEach((sd) => g.add(K.strut([sd * 0.73, -0.55, z], [sd * 0.76, 0.75, z], 0.03, 0.05, body))));
+    // engine bay, mast fairing and the tail cone / boom
+    const bay = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9), dark); bay.position.set(0, 0.15, 0.85); g.add(bay);
+    { const mf = K.lathe([[-0.5, 0.06], [-0.3, 0.32], [0.3, 0.3], [0.7, 0.12]], body, 16); mf.position.set(0, 1.2, 0.35); g.add(mf); }
+    g.add(K.round([0, 0.86, -0.05], [0, 2.05, -0.05], 0.09, 0.07, metal, 10));   // mast
+    g.add(K.round([0, 0.35, 1.2], [0, 0.55, 6.0], 0.22, 0.07, body, 14));
+    g.add(K.strut([0, 0.55, 5.6], [0, 1.45, 6.25], 0.04, 0.42, body));   // upper fin
+    g.add(K.strut([0, 0.55, 5.7], [0, -0.15, 6.05], 0.04, 0.3, body));   // lower fin
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.04, 0.32), body); hs.position.set(0, 0.6, 5.55); g.add(hs);
+    g.add(K.round([0, -0.15, 6.0], [0, -0.42, 6.18], 0.02, 0.02, metal, 6));    // tail guard
+    skids(g, 1.08, -1.08, -1.25, 1.0, metal, -0.6);
+    navLights(g, a, [-0.75, 0.1, -0.6], [0.75, 0.1, -0.6], [0, 1.47, 6.28]);
+    panel(g, [0, spec.eye[1] - 0.5, spec.eye[2] - 0.92], 1.1);
+    return finish(g, a, [mainRotor({ R: 5.03, nb: 2, chord: 0.254, hub: 0.18, pos: [0, 2.15, -0.05], dir: 1, cone: 0.035 })],
+      tailRotor({ R: 0.74, nb: 2, pos: [-0.12, 0.55, 6.1] }));
+  });
+
+  // ===================================================================== Airbus H125: long cabin, engine hump, Starflex head, endplate stabiliser
+  M.reg('h125', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0xc8262c, { r: 0.28, m: 0.12 }), white = K.mat(0xf3f1ea, { r: 0.3 }), dark = K.mat(0x26282c, { r: 0.6 }), metal = K.mat(0xb0b3b8, { r: 0.3, m: 0.7 });
+    const glass = K.mat(0x7fa6bd, { r: 0.05, m: 0.1, tr: 0.38, ei: 1.0 });
+    const st = [{ z: -2.75, w: 0.06, t: -0.25, b: -0.4, n: 2 }, { z: -2.45, w: 0.62, t: 0.35, b: -0.78, n: 2.2 }, { z: -1.8, w: 0.88, t: 0.82, b: -0.86, n: 2.6 },
+      { z: -0.4, w: 0.9, t: 0.9, b: -0.86, n: 2.8 }, { z: 0.8, w: 0.86, t: 0.88, b: -0.82, n: 2.8 }, { z: 1.4, w: 0.55, t: 0.75, b: -0.3, n: 2.4 }, { z: 1.95, w: 0.25, t: 0.55, b: 0.1, n: 2 }];
+    cabin(g, st, body, glass, -2.62, -1.2, 2.3);
+    a.eyePilot = pilot(g, 0.42, -0.02, -1.35);
+    [-1, 1].forEach((sd) => g.add(K.fuselage(st, glass, { z0: -1.0, z1: 0.35, th0: sd > 0 ? 0.75 : -1.75, th1: sd > 0 ? 1.75 : -0.75, off: 0.012, step: 0.1, segs: 6 })));
+    g.add(K.fuselage(st, white, { z0: -2.4, z1: 1.3, th0: 2.35, th1: 2.75, off: 0.012, step: 0.12, segs: 4 }));
+    g.add(K.fuselage(st, white, { z0: -2.4, z1: 1.3, th0: -2.75, th1: -2.35, off: 0.012, step: 0.12, segs: 4 }));
+    // engine and transmission cowling on top, exhaust pipe
+    const cw = [{ z: -0.7, w: 0.05, t: 0.9, b: 0.85, n: 2 }, { z: -0.4, w: 0.5, t: 1.35, b: 0.85, n: 2.4 }, { z: 0.9, w: 0.55, t: 1.42, b: 0.85, n: 2.6 }, { z: 1.9, w: 0.32, t: 1.15, b: 0.7, n: 2.2 }, { z: 2.3, w: 0.08, t: 0.95, b: 0.75, n: 2 }];
+    g.add(K.fuselage(cw, body, { step: 0.1, segs: 24 }));
+    g.add(K.round([0, 1.0, 2.2], [0, 1.05, 2.55], 0.17, 0.2, dark, 12));
+    g.add(K.round([0, 1.35, -0.1], [0, 1.85, -0.1], 0.12, 0.1, metal, 10));   // mast
+    g.add(K.round([0, 0.45, 1.8], [0, 0.85, 6.4], 0.26, 0.1, body, 14));       // tail boom
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.05, 0.42), body); hs.position.set(0, 0.75, 5.55); g.add(hs);
+    [-1, 1].forEach((sd) => g.add(K.strut([sd * 1.05, 0.45, 5.55], [sd * 1.05, 1.15, 5.65], 0.04, 0.42, white)));   // endplates
+    g.add(K.strut([0, 0.85, 6.1], [0, 2.05, 6.75], 0.05, 0.55, body));   // upper fin
+    g.add(K.strut([0, 0.8, 6.2], [0, -0.05, 6.55], 0.05, 0.38, body));   // ventral fin
+    skids(g, 1.18, -1.32, -1.35, 1.15, metal, -0.82);
+    navLights(g, a, [-1.12, 0.75, 5.55], [1.12, 0.75, 5.55], [0, 1.45, 0.4]);
+    panel(g, [0, spec.eye[1] - 0.5, spec.eye[2] - 0.98], 1.4);
+    return finish(g, a, [mainRotor({ R: 5.345, nb: 3, chord: 0.35, hub: 0.32, pos: [0, 2.0, -0.1], dir: -1, cone: 0.035, bladeCol: 0x2e3034 })],
+      tailRotor({ R: 0.93, nb: 2, pos: [-0.18, 0.95, 6.35] }));
+  });
+
+  // ===================================================================== Sikorsky UH-60: long low cabin, engines either side of the transmission, canted tail rotor
+  M.reg('uh60', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0x3d4630, { r: 0.75, m: 0.05 }), dark = K.mat(0x23261f, { r: 0.8 }), metal = K.mat(0x8c8f93, { r: 0.4, m: 0.6 });
+    const glass = K.mat(0x55707e, { r: 0.05, m: 0.2, tr: 0.45, ei: 1.0 }), tire = K.mat(0x1a1a1a, { r: 0.9 });
+    const st = [{ z: -4.75, w: 0.1, t: -0.35, b: -0.55, n: 2 }, { z: -4.45, w: 0.75, t: 0.2, b: -1.05, n: 2.3 }, { z: -3.6, w: 1.05, t: 0.9, b: -1.12, n: 2.7 },
+      { z: -2.2, w: 1.15, t: 1.0, b: -1.12, n: 3.2 }, { z: 1.4, w: 1.15, t: 1.0, b: -1.1, n: 3.2 }, { z: 2.6, w: 0.75, t: 0.85, b: -0.4, n: 2.6 }, { z: 3.6, w: 0.45, t: 0.7, b: 0.05, n: 2.2 }];
+    cabin(g, st, body, glass, -4.35, -3.05, 2.2, { step: 0.15 });
+    a.eyePilot = pilot(g, 0.55, 0.25, -3.45, 0x4a5236); pilot(g, -0.55, 0.25, -3.45, 0x4a5236);
+    [-1, 1].forEach((sd) => { // cabin door windows
+      g.add(K.fuselage(st, glass, { z0: -2.6, z1: -1.9, th0: sd > 0 ? 0.65 : -1.35, th1: sd > 0 ? 1.35 : -0.65, off: 0.012, step: 0.1, segs: 4 }));
+      g.add(K.fuselage(st, glass, { z0: -1.2, z1: 0.6, th0: sd > 0 ? 0.65 : -1.35, th1: sd > 0 ? 1.35 : -0.65, off: 0.012, step: 0.1, segs: 4 }));
+    });
+    // transmission fairing and the two engines
+    const tf = [{ z: -2.6, w: 0.1, t: 1.0, b: 0.95, n: 2 }, { z: -2.1, w: 0.8, t: 1.75, b: 0.95, n: 2.6 }, { z: 0.6, w: 0.85, t: 1.85, b: 0.95, n: 2.8 }, { z: 1.6, w: 0.5, t: 1.5, b: 0.9, n: 2.4 }, { z: 2.3, w: 0.1, t: 1.05, b: 0.95, n: 2 }];
+    g.add(K.fuselage(tf, body, { step: 0.12, segs: 24 }));
+    [-1, 1].forEach((sd) => { const e = K.lathe([[-1.0, 0.05], [-0.95, 0.32], [0.6, 0.36], [1.3, 0.22]], body, 16); e.position.set(sd * 0.95, 1.55, 0.1); g.add(e);
+      const ex = K.round([sd * 1.0, 1.6, 1.3], [sd * 1.25, 1.75, 1.75], 0.18, 0.2, dark, 10); g.add(ex); });
+    g.add(K.round([0, 1.7, -0.2], [0, 2.3, -0.2], 0.18, 0.15, metal, 10));
+    g.add(K.round([0, 0.2, 3.4], [0, 0.65, 8.6], 0.42, 0.24, body, 16));          // tail cone
+    g.add(K.strut([0, 0.55, 8.4], [0, 2.4, 9.85], 0.18, 0.95, body));            // tail pylon
+    const sb = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.08, 0.95), body); sb.position.set(0, 0.6, 8.95); g.add(sb);   // stabilator
+    // gear: two mains on struts, a tail wheel
+    [-1, 1].forEach((sd) => { g.add(K.strut([sd * 1.05, -0.8, -1.3], [sd * 1.4, -1.35, -1.1], 0.1, 0.12, metal)); const w = K.wheel(0.36, 0.22, tire, metal); w.position.set(sd * 1.42, -1.34, -1.1); g.add(w); });
+    g.add(K.strut([0, 0.05, 7.6], [0, -1.0, 7.9], 0.07, 0.07, metal)); { const w = K.wheel(0.25, 0.14, tire, metal); w.position.set(0, -1.0, 7.9); g.add(w); }
+    navLights(g, a, [-2.2, 0.62, 8.95], [2.2, 0.62, 8.95], [0, 2.4, 9.9]);
+    panel(g, [0, spec.eye[1] - 0.52, spec.eye[2] - 1.0], 1.9);
+    return finish(g, a, [mainRotor({ R: 8.18, nb: 4, chord: 0.53, hub: 0.45, pos: [0, 2.4, -0.2], dir: 1, cone: 0.04 })],
+      tailRotor({ R: 1.68, nb: 4, pos: [0.2, 1.6, 9.9], cant: -0.35 }));
+  });
+
+  // ===================================================================== Boeing CH-47: long square fuselage, two pylons, side fuel sponsons, aft engines
+  M.reg('ch47', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0x4a5038, { r: 0.75, m: 0.05 }), dark = K.mat(0x26291f, { r: 0.8 }), metal = K.mat(0x8c8f93, { r: 0.4, m: 0.6 });
+    const glass = K.mat(0x55707e, { r: 0.05, m: 0.2, tr: 0.45, ei: 1.0 }), tire = K.mat(0x1a1a1a, { r: 0.9 });
+    const st = [{ z: -8.75, w: 0.1, t: -0.6, b: -0.9, n: 2 }, { z: -8.4, w: 1.15, t: 0.4, b: -1.75, n: 2.6 }, { z: -7.3, w: 1.72, t: 1.15, b: -1.95, n: 3.6 },
+      { z: -5.5, w: 1.85, t: 1.3, b: -1.95, n: 4.5 }, { z: 6.4, w: 1.85, t: 1.3, b: -1.95, n: 4.5 }, { z: 7.6, w: 1.6, t: 1.15, b: -0.9, n: 3.6 }, { z: 8.3, w: 1.0, t: 0.9, b: -0.2, n: 3 }];
+    cabin(g, st, body, glass, -8.3, -7.0, 2.1, { step: 0.2, segs: 36 });
+    a.eyePilot = pilot(g, 0.6, 0.25, -7.75, 0x4a5236); pilot(g, -0.6, 0.25, -7.75, 0x4a5236);
+    for (let i = 0; i < 6; i++) [-1, 1].forEach((sd) => { const w = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.42, 0.42), glass); w.position.set(sd * 1.865, 0.35, -5 + i * 1.6); g.add(w); });
+    // side fuel sponsons
+    [-1, 1].forEach((sd) => { const sp = [{ z: -4.2, w: 0.05, t: -0.9, b: -1.3, n: 2 }, { z: -3.6, w: 0.42, t: -0.55, b: -1.75, n: 2.4 }, { z: 3.2, w: 0.42, t: -0.55, b: -1.75, n: 2.4 }, { z: 3.8, w: 0.05, t: -0.9, b: -1.3, n: 2 }];
+      const m = K.fuselage(sp, body, { step: 0.2, segs: 16 }); m.position.x = sd * 1.95; g.add(m); });
+    // forward pylon and the tall aft pylon
+    const fp = [{ z: -7.6, w: 0.1, t: 1.25, b: 1.1, n: 2 }, { z: -7.0, w: 0.65, t: 2.0, b: 1.1, n: 2.6 }, { z: -5.2, w: 0.6, t: 2.1, b: 1.1, n: 2.6 }, { z: -4.4, w: 0.1, t: 1.4, b: 1.1, n: 2 }];
+    g.add(K.fuselage(fp, body, { step: 0.12, segs: 20 }));
+    g.add(K.strut([0, 1.2, 4.6], [0, 3.0, 6.4], 0.9, 3.2, body));
+    g.add(K.strut([0, 1.2, 6.7], [0, 2.9, 7.0], 0.9, 1.0, body));
+    g.add(K.round([0, 2.0, -6.1], [0, 2.3, -6.1], 0.25, 0.2, metal, 10)); g.add(K.round([0, 3.0, 5.9], [0, 3.2, 5.9], 0.25, 0.2, metal, 10));
+    g.add(K.round([0, 1.32, -5.4], [0, 1.32, 5.0], 0.32, 0.32, body, 12));      // drive-shaft tunnel along the roof
+    [-1, 1].forEach((sd) => { const e = K.lathe([[-1.6, 0.12], [-1.45, 0.48], [0.8, 0.52], [1.5, 0.34]], body, 16); e.position.set(sd * 2.05, 1.65, 5.0); g.add(e);
+      g.add(K.round([sd * 2.05, 1.65, 6.45], [sd * 2.05, 1.65, 6.85], 0.3, 0.32, dark, 12)); g.add(K.strut([sd * 1.8, 1.4, 4.8], [sd * 2.05, 1.65, 4.8], 0.2, 0.6, body)); });
+    // four wheels
+    [[-4.1, 0.45], [3.4, 0.4]].forEach(([z, r]) => [-1, 1].forEach((sd) => { g.add(K.strut([sd * 1.5, -1.8, z], [sd * 1.6, -2.25 + r, z], 0.14, 0.14, metal));
+      [-0.18, 0.18].forEach((dz) => { const w = K.wheel(r, 0.24, tire, metal); w.position.set(sd * 1.62, -2.25 + r, z + dz * 2); g.add(w); }); }));
+    navLights(g, a, [-1.9, 0.6, -6.5], [1.9, 0.6, -6.5], [0, 3.05, 6.8]);
+    panel(g, [0, spec.eye[1] - 0.52, spec.eye[2] - 1.0], 2.4);
+    return finish(g, a, [mainRotor({ R: 9.14, nb: 3, chord: 0.81, hub: 0.55, pos: [0, 2.4, -6.1], dir: 1, cone: 0.04 }), mainRotor({ R: 9.14, nb: 3, chord: 0.81, hub: 0.55, pos: [0, 3.3, 5.9], dir: -1, cone: 0.04 })], null);
+  });
+})();
+
 // ---------- models_airliners.js : parametric Boeing / Airbus builder (fuselage, swept wing, nacelles, tail, gear, liveries) ----------
 (function () {
   const K = SIM.Kit, M = SIM.Models, D = Math.PI / 180;
@@ -6571,6 +7230,7 @@ function build(C, spec) {
     bn58: 3500, pa34: 2500, c310: 3000, da42: 3000, kg350: 7000, bn2: 2800, dhc6: 6500,
     t38: 2500, a10: 4000, f5: 3500, f4: 6000, f18: 9000, f15: 12000, f14: 11000, f22: 20000, f35: 24000,
     para: 800,
+    r44: 1500, h125: 3500, uh60: 9000, ch47: 14000,
   };
   FREE.forEach((id) => { PRICE[id] = 0; });
   const GROUPS = [
@@ -6585,6 +7245,7 @@ function build(C, spec) {
     { id: 'dehavilland', name: 'de Havilland', ids: ['dhc2', 'dhc3', 'dhc6', 'comet4', 'trident'] },
     { id: 'supersonic', name: 'Supersonic', ids: ['concorde', 'xb1', 'tu144', 'overture', 'sr71', 'xb70'] },
     { id: 'fighter', name: 'Fighters', ids: ['t38', 'f86', 'f5', 'a10', 'mig21', 'f4', 'f104', 'f16', 'mig29', 'f18', 'f14', 'f15', 'f22', 'f35'] },
+    { id: 'heli', name: 'Helicopters', ids: ['r44', 'h125', 'uh60', 'ch47'] },
   ];
   SIM.FLEET = { PRICE, GROUPS, FREE };
   SIM.fleetRefresh = function () {
@@ -7334,7 +7995,7 @@ SIM.Cockpit = (function () {
     this.st = { t: 0, vsS: 0, varioS: 0, turn: 0, iasTrend: 0, heat: 0.1, hobbs: 1234.5, hdgMag: 0, n1e: [0, 0, 0, 0], ap: {}, ndRange: 20 };
     this.defPitch = -0.08; this.held = null; this.mfdPages = {}; this.nightK = 1;
     this.cls = spec.fighter ? 'fighter' : spec.glider ? 'glider' : spec.airliner ? 'airliner' : 'ga';
-    if (spec.para) { this.ok = false; return; }
+    if (spec.para || spec.heli) { this.ok = false; return; }
     try {
       if (this.cls === 'fighter') buildFighter(this, spec);
       else if (this.cls === 'glider') buildGlider(this, spec);
@@ -8171,6 +8832,18 @@ SIM.Entity = (function () {
       a.prop2.children.forEach((c) => { if (c !== a.propBlur2) c.visible = !fast2 || (Math.floor(this.t * 20) % 2 === 1 && rpm2 < 900); });
       if (a.propBlur2) { a.propBlur2.visible = fast2; a.propBlur2.material.opacity = Math.min(0.32, (rpm2 - 300) / 2500); }
     }
+    // helicopter rotors: spin at the real rotor speed, fade into a blur disc as they wind up, and tilt with the flapping
+    if (a.rotors) {
+      const R = ac.rot, H = s.heli, om = R ? R.om : 0, omr = H ? om / H._k.om0 : 0;
+      this.rotorAng = (this.rotorAng || 0) + om * dt;
+      const bop = 1 - 0.72 * U.clamp((omr - 0.15) / 0.45, 0, 1), dop = 0.6 * U.clamp((omr - 0.12) / 0.45, 0, 1);
+      a.rotors.forEach((rt, i) => {
+        rt.spin.rotation.y = rt.dir * this.rotorAng; rt.mats.forEach((m) => { m.opacity = bop; }); rt.blur.material.opacity = dop; rt.blur.visible = dop > 0.01;
+        if (R && R.blon) { rt.g.rotation.x = U.clamp(R.blon[i] - (H.lag || 0.1) * ac.w.x, -0.3, 0.3); rt.g.rotation.z = -U.clamp(R.blat[i] + (H.lag || 0.1) * ac.w.z, -0.3, 0.3); }
+      });
+      if (a.tailRotor) { const tr = a.tailRotor; tr.spin.rotation.x = this.rotorAng * 5.3; tr.blur.material.opacity = 0.5 * U.clamp((omr - 0.1) / 0.3, 0, 1); tr.blades.forEach((b) => { b.visible = omr < 0.35 || (Math.floor(this.t * 30) % 3 === 0); }); }
+      if (a.beacon) a.beacon.visible = Math.floor(this.t * 1.3) % 2 === 0;
+    }
     if (this.plumes && this.plumes.length) {
       const nn = ac.eng.running ? ac.eng.n1 : 0, op = Math.pow(Math.max(0, nn - 0.25) / 0.75, 1.4) * 0.2;
       this.plumes.forEach((m, i) => { m.material.opacity = op * (0.85 + 0.15 * Math.sin(this.t * 31 + i * 2)); m.material.map.offset.y -= dt * (0.5 + nn * 3.5); m.visible = op > 0.004; });
@@ -8368,7 +9041,9 @@ SIM.Entity = (function () {
       { const bf = ac.spoilPos * U.clamp(ac.ias / 130, 0, 1) * (ac.onGround ? 0.5 : 1);   // airbrake buffet
         if (bf > 0.02) { const jx = (Math.random() - 0.5) * 0.012 * bf * this.camDist, jy = (Math.random() - 0.5) * 0.012 * bf * this.camDist; camera.position.x += jx; camera.position.y += jy; } }
     }
-    this.group.visible = this.camMode !== 'cockpit';
+    // helicopters have no separate 3D cockpit: you sit in the real cabin, minus your own body
+    this.group.visible = this.camMode !== 'cockpit' || !!s.heli;
+    if (this.anim && this.anim.eyePilot) this.anim.eyePilot.forEach((m) => { m.visible = this.camMode !== 'cockpit'; });
   };
 
   P.dispose = function () { this.world3d.scene.remove(this.group); if (this.cockpit) { this.cockpit.dispose(); this.cockpit = null; } };
@@ -9060,7 +9735,8 @@ SIM.HUD = (function () {
     // caution banners
     let warnY = touch ? cy + r + 62 : 70, any = false;
     const warn = (text, color) => { ctx.fillStyle = color; ctx.font = 'bold 15px Consolas,monospace'; ctx.textAlign = 'center'; ctx.fillText(text, W / 2, warnY); warnY += 22; any = true; };
-    if (ac.stallWarn || ac.stalled) warn('STALL', '#ff4040');
+    if ((ac.stallWarn || ac.stalled) && !s.heli) warn('STALL', '#ff4040');
+    if (s.heli && ac.heliAlerts) ac.heliAlerts().forEach((w) => warn(w[0], w[1]));
     if (ac.overspeed) warn('OVERSPEED', '#ff8020');
     if (ac.gearWarn) warn('GEAR', '#ffcc30');
     if (ac.flapOver) warn('FLAP SPEED', '#ff8020');
@@ -9098,6 +9774,11 @@ SIM.HUD = (function () {
     ctx.fillStyle = 'rgba(8,14,20,0.55)'; ctx.fillRect(x, y, w, h);
     ctx.font = '12px Consolas,monospace'; ctx.fillStyle = '#cfe';
     let str = '';
+    if (s.heli && ac.rot) {   // rotor RPM, torque, collective, and the holds the flight control system is running
+      const R = ac.rot, nr = R.om / s.heli._k.om0;
+      str = 'NR ' + fmt(nr * 100, 0) + '%  TQ ' + fmt((ac.eng.torque || 0) * 100, 0) + '%  COLL ' + fmt(U.clamp(ac.ctl.throttle + (R.cb || 0), 0, 1) * 100, 0) + '%' + (R.hHold != null ? '  HT HOLD' : '') + (R.holdP && ac.gs < 9 && !ac.onGround ? '  HOVER' : '');
+      ctx.fillText(str, x + 10, y + 20); return;
+    }
     if (s.engine.type === 'piston') str = 'RPM ' + fmt(ac.eng.rpm, 0) + '  THR ' + fmt(ac.ctl.throttle * 100, 0) + '%';
     else if (s.engine.type === 'jet') str = 'N1 ' + fmt(ac.eng.n1 * 100, 0) + '%' + (ac.eng.ab > 0.02 ? ' AB' : '') + '  M' + fmt(ac.mach, 2);
     else str = 'VARIO ' + (ac.vs >= 0 ? '+' : '') + fmt(ac.vs, 1) + ' m/s';
@@ -9129,7 +9810,8 @@ SIM.HUD = (function () {
     ctx.fillText('IAS ' + fmt(ac.ias * U.KT, 0) + 'kt   ALT ' + fmt(ac.p.y * U.FT, 0) + 'ft', 18, H - 38);
     ctx.fillText('VS ' + fmt(ac.vs * U.FPM, 0) + 'fpm   HDG ' + fmt(U.wrap360(ac.euler.heading * U.R2D), 0), 18, H - 22);
     }
-    if (ac.stallWarn) { ctx.fillStyle = '#ff4040'; ctx.font = 'bold 15px Consolas,monospace'; ctx.textAlign = 'center'; ctx.fillText('STALL', W / 2, 60); ctx.textAlign = 'left'; }
+    const hw = s.heli && ac.heliAlerts ? ac.heliAlerts() : null, wt = hw ? (hw[0] || [])[0] : (ac.stallWarn ? 'STALL' : null);
+    if (wt) { ctx.fillStyle = '#ff4040'; ctx.font = 'bold 15px Consolas,monospace'; ctx.textAlign = 'center'; ctx.fillText(wt, W / 2, 60); ctx.textAlign = 'left'; }
     if (ac.crashed) { ctx.fillStyle = '#ff3030'; ctx.font = 'bold 15px Consolas,monospace'; ctx.textAlign = 'center'; ctx.fillText('CRASHED — ' + ac.crashReason.toUpperCase(), W / 2, 60); ctx.textAlign = 'left'; }
     if (this.msg && this.msgT > 0) { ctx.fillStyle = '#fff'; ctx.font = 'bold 14px Consolas,monospace'; ctx.textAlign = 'center'; ctx.fillText(this.msg, W / 2, H - 90); ctx.textAlign = 'left'; }
   };
@@ -10888,6 +11570,130 @@ SIM.Challenges = (function () {
   const byId = {}; defs.forEach((d) => { byId[d.id] = d; });
   return { list: defs, byId, make: { flight, gate, landing } };
 })();
+// ---------- heli_challenges.js : helicopter missions (hover, helipad, pinnacle, autorotation) ----------
+(function () {
+  const U = SIM.U, C = SIM.Challenges, HELIS = ['r44', 'h125', 'uh60', 'ch47'];
+  const fmtT = (t) => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  // a painted helipad: white disc with a yellow ring and a big H, on a low plinth so it never sinks into the ground
+  function padMarker(THREE, x, y, z, r, hdg) {
+    const c = document.createElement('canvas'); c.width = c.height = 256; const k = c.getContext('2d');
+    k.fillStyle = '#2b2e33'; k.beginPath(); k.arc(128, 128, 127, 0, 7); k.fill();
+    k.strokeStyle = '#f2d23a'; k.lineWidth = 12; k.beginPath(); k.arc(128, 128, 104, 0, 7); k.stroke();
+    k.fillStyle = '#f4f4f0'; k.fillRect(78, 62, 26, 132); k.fillRect(152, 62, 26, 132); k.fillRect(78, 116, 100, 24);
+    const grp = new THREE.Group();
+    const top = new THREE.Mesh(new THREE.CircleGeometry(r, 48), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), polygonOffset: true, polygonOffsetFactor: -4 }));
+    top.rotation.x = -Math.PI / 2; top.rotation.z = -hdg; top.position.y = 0.12; grp.add(top);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.02, r * 1.06, 2.4, 40), new THREE.MeshBasicMaterial({ color: 0x55585e })); base.position.y = -1.1; grp.add(base);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, l = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ color: 0x40ff70 })); l.position.set(Math.cos(a) * r * 1.03, 0.25, Math.sin(a) * r * 1.03); grp.add(l); }
+    grp.position.set(x, y, z); return grp;
+  }
+  // a hover target: a floating ring and a post down to the ground
+  function hoverMarker(THREE, x, y, z, h) {
+    const grp = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0xff9a2a, transparent: true, opacity: 0.85 });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(6, 0.25, 8, 40), m); ring.rotation.x = Math.PI / 2; ring.position.y = h; grp.add(ring);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, h, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); post.position.y = h / 2; grp.add(post);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(6, 40), new THREE.MeshBasicMaterial({ color: 0xff9a2a, transparent: true, opacity: 0.35, polygonOffset: true, polygonOffsetFactor: -4 })); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.1; grp.add(disc);
+    grp.position.set(x, y, z); return grp;
+  }
+  // the flattest high spot within a few km of the airfield (for the pinnacle landing)
+  function findPinnacle(T, R, rad) {
+    let best = null;
+    for (let i = -14; i <= 14; i++) for (let j = -14; j <= 14; j++) {
+      const x = R.x + i * rad / 14, z = R.z + j * rad / 14, h = T.heightAt(x, z);
+      if (Math.hypot(i, j) < 4) continue;
+      const sl = Math.max(Math.abs(T.heightAt(x + 12, z) - T.heightAt(x - 12, z)), Math.abs(T.heightAt(x, z + 12) - T.heightAt(x, z - 12))) / 24;
+      const sc = h - R.y - sl * 900;
+      if (sl < 0.12 && (!best || sc > best.sc)) best = { x, z, y: h, sc };
+    }
+    return best || { x: R.x + R.rx * 900, z: R.z + R.rz * 900, y: T.heightAt(R.x + R.rx * 900, R.z + R.rz * 900) };
+  }
+
+  function mission(o) {
+    return {
+      id: o.id, kind: 'heli', title: o.title, blurb: o.blurb, diff: o.diff, aircraft: o.aircraft || HELIS, airport: o.airport,
+      rwy: o.rwy || 0, end: o.end || 0, weather: o.weather, tod: o.tod, brief: o.brief,
+      init(g) {
+        const R = g.rwy(o.airport, o.rwy || 0, o.end || 0), T = g.terrain, ac = g.ac;
+        let px, pz, py;
+        if (o.mode === 'pinnacle') { const p = findPinnacle(T, R, 3200); px = p.x; pz = p.z; py = p.y; }
+        else if (o.mode === 'auto') { px = R.x + R.fx * R.len * 0.3; pz = R.z + R.fz * R.len * 0.3; py = R.y; }
+        else { px = R.x + R.fx * (o.along || 600) + R.rx * (o.lat || 0); pz = R.z + R.fz * (o.along || 600) + R.rz * (o.lat || 0); py = T.heightAt(px, pz); }
+        if (o.mode === 'hover') g.addMarker(hoverMarker(g.THREE, px, py, pz, o.hoverH || 8));
+        else if (o.mode !== 'auto') g.addMarker(padMarker(g.THREE, px, py, pz, o.padR || 11, R.hdg * U.D2R));
+        if (o.mode === 'auto') {
+          const d = 1400, sx = R.x - R.fx * d, sz = R.z - R.fz * d;
+          g.placeAir(sx, Math.max(R.y, T.heightAt(sx, sz)) + (o.altAGL || 480), sz, R.hdg, { speed: 33, engineOut: true });
+          g.hud.flash('ENGINE FAILURE: lower the collective now!', 'info');
+        } else g.placeGround(R, 30);
+        g.assist();
+        return { R, px, py, pz, t: 0, done: false, lifted: false, hoverT: 0, devSum: 0, devN: 0, settle: 0, maxNr: 1, minNr: 1 };
+      },
+      update(g, dt, st) {
+        if (st.done) return;
+        const ac = g.ac, s = g.spec, H = s.heli; st.t += dt;
+        if (ac.crashed) return this._end(g, st, ac.crashReason || 'Crashed');
+        const dx = ac.p.x - st.px, dz = ac.p.z - st.pz, d = Math.hypot(dx, dz), agl = ac.p.y - st.py - (H ? 0 : 0);
+        if (!ac.onGround) st.lifted = true;
+        if (H && ac.rot) { const nr = ac.rot.om / H._k.om0; if (!ac.onGround) { st.maxNr = Math.max(st.maxNr, nr); st.minNr = Math.min(st.minNr, nr); } }
+        if (o.mode === 'hover') {
+          const hh = o.hoverH || 8, h = ac.p.y - g.terrain.heightAt(ac.p.x, ac.p.z) + (s.gear ? s.gear[0].pos[1] : 0);
+          g.setNav({ label: 'Hover', x: st.px, z: st.pz, y: st.py + hh });
+          const inBox = d < 6 && Math.abs(h - hh) < 3 && !ac.onGround;
+          if (inBox) { st.hoverT += dt; st.devSum += d + Math.abs(h - hh); st.devN++; }
+          g.setObjective(st.hoverT < 0.1 ? 'Lift off and hover in the ring, skids ' + hh + ' m up (' + Math.round(d) + ' m away)' : 'Hold it in the ring: ' + Math.max(0, 20 - st.hoverT).toFixed(0) + ' s to go' + (inBox ? '' : '  (back in the ring!)'), fmtT(st.t));
+          if (st.hoverT >= 20) return this._end(g, st, null);
+        } else {
+          g.setNav({ label: o.mode === 'auto' ? 'Runway' : 'Helipad', x: st.px, z: st.pz, y: st.py + 25 });
+          g.setObjective(o.mode === 'auto' ? 'Autorotate: keep rotor RPM 90-110%, flare, cushion onto the runway' : (st.lifted ? 'Land on the H (' + Math.round(d) + ' m)' : 'Lift off and fly to the helipad'), fmtT(st.t));
+          if (st.lifted && ac.onGround && ac.gs < 1.2) {
+            st.settle += dt;
+            if (st.settle > 1.5) {
+              if (o.mode === 'auto') {
+                const R = st.R, ax = ac.p.x - R.x, az = ac.p.z - R.z, along = ax * R.fx + az * R.fz, lat = ax * R.rx + az * R.rz;
+                if (along < 0 || along > R.len || Math.abs(lat) > R.w * 0.5 + 6) return this._end(g, st, 'Landed off the runway');
+              } else if (d > (o.padR || 11)) return this._end(g, st, 'Missed the helipad by ' + Math.round(d - (o.padR || 11)) + ' m');
+              return this._end(g, st, null);
+            }
+          } else st.settle = 0;
+        }
+        if (st.t > (o.limit || 360)) return this._end(g, st, 'Out of time');
+      },
+      _end(g, st, fail) {
+        st.done = true;
+        if (fail) return g.finish({ success: false, score: 0, headline: o.mode === 'hover' ? 'Hover not held' : 'Mission failed', lines: [['Cause', fail]] });
+        const ac = g.ac, lines = [];
+        let score = 100;
+        if (o.mode === 'hover') {
+          const dev = st.devN ? st.devSum / st.devN : 6, l1 = U.clamp((dev - 1.2) * 9, 0, 45), l2 = U.clamp((st.t - 60) / 90 * 15, 0, 15);
+          score -= l1 + l2; lines.push(['Average error', dev.toFixed(1) + ' m', -l1]); lines.push(['Time', fmtT(st.t), -l2]);
+        } else {
+          const sink = ac.lastSink || 0, d = Math.hypot(ac.p.x - st.px, ac.p.z - st.pz);
+          const ls = U.clamp((sink - 0.6) * 22, 0, 40); score -= ls; lines.push(['Touchdown', sink.toFixed(2) + ' m/s sink', -ls]);
+          if (o.mode !== 'auto') { const ld = U.clamp((d - 1.5) * 4, 0, 35); score -= ld; lines.push(['From the centre', d.toFixed(1) + ' m', -ld]); }
+          else { const lr = U.clamp((Math.max(st.maxNr - 1.1, 0) + Math.max(0.9 - st.minNr, 0)) * 120, 0, 30); score -= lr; lines.push(['Rotor RPM', Math.round(st.minNr * 100) + '-' + Math.round(st.maxNr * 100) + '%', -lr]); }
+          const lt = U.clamp((st.t - (o.par || 120)) / 120 * 15, 0, 15); score -= lt; lines.push(['Time', fmtT(st.t), -lt]);
+        }
+        score = Math.max(0, Math.round(score));
+        return g.finish({ success: true, score, headline: o.mode === 'hover' ? 'Rock-steady hover' : o.mode === 'auto' ? 'Autorotation landing' : 'On the pad', lines });
+      },
+    };
+  }
+  const W0 = (r, sp, tu, ov, hz) => ({ rel: r, spd: sp, turb: tu, overcast: ov, haze: hz || 0.1 });
+  const add = (d) => { C.list.push(d); C.byId[d.id] = d; };
+  add(mission({ id: 'heli-hover', mode: 'hover', title: 'Hover Practice', diff: 1, airport: 'KHAF', along: 160, hoverH: 8, tod: 10, par: 60,
+    blurb: 'Lift off, move forward to the orange ring and hold a steady hover 8 m up for 20 seconds.',
+    weather: W0(0, 2, 0.05, 0.1), brief: 'Raise the collective (Shift) slowly until the skids lift. Small cyclic inputs, then let go: with assist on the helicopter holds the hover and the height.' }));
+  add(mission({ id: 'heli-pad', mode: 'pad', title: 'Helipad Hop', diff: 1, airport: 'KSFO', along: 700, lat: 260, tod: 15, par: 90,
+    blurb: 'A short hop from the runway to a helipad beside it. Come to a hover over the H and settle on gently.',
+    weather: W0(20, 4, 0.1, 0.2), brief: 'Lift into a hover, nose forward to gain speed, then slow down early and come to a hover over the pad. Lower the collective slowly to touch down.' }));
+  add(mission({ id: 'heli-pinnacle', mode: 'pinnacle', title: 'Mountain Pinnacle', diff: 3, airport: 'KEGE', tod: 9, par: 240, limit: 600,
+    blurb: 'Land on a pad on a ridge top above Eagle. Thin air, a breeze over the crest, and little power to spare.',
+    weather: W0(30, 6, 0.3, 0.2), brief: 'At this height the engine makes less power: watch the torque. Approach into the wind, keep some speed until close, and do not let the rotor RPM sag.' }));
+  add(mission({ id: 'heli-auto', mode: 'auto', title: 'Engine Failure: Autorotation', diff: 3, airport: 'KJAC', tod: 11, par: 90, altAGL: 480,
+    blurb: 'Your engine quits on approach. Lower the collective at once, glide down on the spinning rotor, flare and cushion onto the runway.',
+    weather: W0(0, 3, 0.1, 0.15), brief: 'Collective down to keep the rotor RPM up, about 65 kt. At 30 m pull the nose up to flare, level off near the ground and raise the collective to cushion the touchdown.' }));
+})();
+
 
 // ---------- trips.js : multi-leg trips (bush hops and long-range routes) with saved progress ----------
 // A trip is a list of stops. Each leg is a normal flight challenge: take off, fly to the next field, land. You stop at each
@@ -11255,6 +12061,7 @@ SIM.Audio = (function () {
   function profile(spec) {
     const id = spec.id, e = spec.engine || {};
     if (spec.glider || e.type === 'none') return { kind: 'none' };
+    if (spec.heli) return { kind: 'heli', n: /^2 x/.test(e.name || '') ? 2 : 1, piston: !!spec.heli.piston, whine: spec.heli.Pmax > 2e6 ? [700, 1900] : [1300, 3300] };
     const n = parseInt((/^(\d+) x/.exec(e.name || '') || [0, 1])[1], 10) || 1;
     if (e.type === 'piston') {
       if (id === 'c208' || id === 'kg350' || id === 'dhc6' || id === 'pc12' || id === 'tbm9' || id === 'pc6' || id === 'pc6f' || id === 'draco' || id === 'kodiak') return { kind: 'turboprop', n, blades: id === 'draco' ? 5 : id === 'kodiak' ? 4 : 3, whine: [1300, 3100], rpmMax: e.rpmMax };
@@ -11300,6 +12107,15 @@ SIM.Audio = (function () {
         whF = p.whine[0] + (p.whine[1] - p.whine[0]) * k; bladeF = Math.max(10, rpm / 60 * p.blades);
         wh = 0.016 + 0.028 * k; wh2 = 0.35; roar = 0.07 + 0.12 * thr; roarF = 350 + 900 * k; hiss = 0.02 + 0.04 * k; jr = 0.1 + 0.08 * thr;
         blade = 0.06 + 0.07 * thr; bladeN = 0.14 * (0.5 + thr); exF = 30; exF = bladeF; ex = 0; rum = 0.08;
+      }
+    } else if (run && p.kind === 'heli') {
+      const R = ac.rot, H = spec.heli, omr = R ? R.om / H._k.om0 : 0, load = clamp(ac.eng.torque || 0, 0, 1.2);
+      if (omr > 0.04) {
+        // blade slap: one thump per blade pass, harder under load and in the vortex ring
+        bladeF = Math.max(3, omr * H.rpm / 60 * H.nb); blade = (0.05 + 0.08 * load + 0.08 * (R.vrs || 0)) * Math.min(1, omr * 1.4); bladeN = 0.22 + 0.22 * load + 0.2 * (R.vrs || 0);
+        rumF = 55 + 45 * omr; rum = 0.06 + 0.06 * load;
+        if (p.piston) { const rpm = ac.eng.rpm || 0; if (ac.eng.running && rpm > 150) { exF = Math.max(14, rpm / 60 * 3); ex = (0.06 + 0.08 * load) * Math.sqrt(sig); rum += 0.08; intk = 0.02 + 0.03 * load; jit = 1.6; } }
+        else if (ac.eng.running || (ac.eng.n1 || 0) > 0.1) { const ng = clamp(ac.eng.n1 || 0, 0, 1.05); whF = p.whine[0] + (p.whine[1] - p.whine[0]) * ng; wh = 0.012 + 0.026 * ng; wh2 = 0.4; roar = 0.04 + 0.1 * load; roarF = 300 + 600 * ng; hiss = 0.02 + 0.03 * ng; jr = 0.1 + 0.1 * load; }
       }
     } else if (run && p.kind === 'jet') {
       const n1 = clamp(ac.eng.n1 || 0, 0, 1.05), run1 = ac.eng.running !== false && n1 > 0.05, thrAb = ac.eng.ab || 0;
@@ -12235,11 +13051,11 @@ SIM.Game = (function () {
   // ---------------- challenges ----------------
   function stars(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
   const CF = Object.assign({ q: '', kind: 'all', diff: 'all', cls: 'all', st: 'all' }, SIM.store.get('chf', {}) || {});
-  const KINDS = [['all', 'All'], ['landing', 'Landing'], ['special', 'Emergency'], ['takeoff', 'Take-off'], ['flight', 'Flight plans'], ['gate', 'Gate to gate'], ['touchgo', 'Touch and go'], ['race', 'Races'], ['aerobatic', 'Aerobatics'], ['airdrop', 'Airdrops'], ['soaring', 'Soaring']];
-  const CLASSES = [['all', 'Any aircraft'], ['light', 'Light'], ['airliner', 'Airliner'], ['supersonic', 'Supersonic'], ['fighter', 'Fighter'], ['glider', 'Glider'], ['water', 'Floatplane']];
+  const KINDS = [['all', 'All'], ['landing', 'Landing'], ['special', 'Emergency'], ['takeoff', 'Take-off'], ['flight', 'Flight plans'], ['gate', 'Gate to gate'], ['touchgo', 'Touch and go'], ['race', 'Races'], ['aerobatic', 'Aerobatics'], ['airdrop', 'Airdrops'], ['soaring', 'Soaring'], ['heli', 'Helicopter']];
+  const CLASSES = [['all', 'Any aircraft'], ['light', 'Light'], ['airliner', 'Airliner'], ['supersonic', 'Supersonic'], ['fighter', 'Fighter'], ['glider', 'Glider'], ['water', 'Floatplane'], ['heli', 'Helicopter']];
   const DIFFS = [['all', 'Any'], ['1', 'Easy'], ['2', 'Medium'], ['3', 'Hard']];
   const STS = [['all', 'All'], ['new', 'Not played'], ['open', 'Under 3 stars'], ['done', 'Mastered']];
-  function clsOf(id) { const s = SIM.AIRCRAFT[id]; if (!s) return 'light'; return s.floats ? 'water' : s.supersonic ? 'supersonic' : s.glider ? 'glider' : s.fighter ? 'fighter' : s.airliner ? 'airliner' : 'light'; }
+  function clsOf(id) { const s = SIM.AIRCRAFT[id]; if (!s) return 'light'; return s.heli ? 'heli' : s.floats ? 'water' : s.supersonic ? 'supersonic' : s.glider ? 'glider' : s.fighter ? 'fighter' : s.airliner ? 'airliner' : 'light'; }
   function chalMatch(d) {
     if (CF.q && (d.title + ' ' + d.blurb + ' ' + d.airport + ' ' + d.kind).toLowerCase().indexOf(CF.q.toLowerCase()) < 0) return false;
     if (CF.kind !== 'all' && (CF.kind === 'special' ? !d.special : d.kind !== CF.kind)) return false;
