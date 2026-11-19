@@ -1,13 +1,14 @@
 // Erika access gate: a game only starts once this browser holds a valid access code for THAT game.
-// window.ERIKA_GAME = 'air' (flight, the default) or 'race' (Erika Racing); codes are made for one game.
+// window.ERIKA_GAME = 'air' (flight, the default), 'race' (Erika Racing) or 'boat' (Erika Boats); codes are made for one game.
 // Two kinds of code: a 35-character code that the first person to enter it owns (anyone else is turned away),
 // and a one-time 10-digit code that unlocks a single visit and is then spent.
 // window.ERIKA_GATE_DEFER = true: the gate waits until window.__gateStart() is called (the game choice comes first).
 (function () {
   let release;
   window.__gateReady = new Promise((r) => { release = r; });
-  const GAME = window.ERIKA_GAME === 'race' ? 'race' : 'air';
-  const NAME = GAME === 'race' ? 'Erika Racing' : 'Erika Air', OTHER = GAME === 'race' ? 'Erika Air' : 'Erika Racing';
+  const GAMES = { air: { name: 'Erika Air', word: 'Air', verb: 'fly' }, race: { name: 'Erika Racing', word: 'Racing', verb: 'race', accent: '#3cc4ff', ink: '#04121d' },
+    boat: { name: 'Erika Boats', word: 'Boats', verb: 'race boats', accent: '#2fd4c4', ink: '#022320' } };
+  const GAME = GAMES[window.ERIKA_GAME] ? window.ERIKA_GAME : 'air', G = GAMES[GAME], NAME = G.name;
 
   const KEY = GAME === 'air' ? 'erika.access.v1' : 'erika.access.' + GAME + '.v1';
   const store = {
@@ -31,11 +32,11 @@
     #gate .msg{min-height:1.4em;font-size:14px}
     #gate .msg.bad{color:var(--bad,#ff5e5e)} #gate .msg.ok{color:var(--ok,#46d98a)}
     #gate .foot{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--dim,#8ea3b4)}
-    #gate .foot a{color:var(--dim,#8ea3b4)}` + (GAME === 'race' ? '#gate{--accent:#3cc4ff;--accent-ink:#04121d}' : '');
+    #gate .foot a{color:var(--dim,#8ea3b4)}` + (G.accent ? '#gate{--accent:' + G.accent + ';--accent-ink:' + G.ink + '}' : '');
   const html = `
     <form class="card" id="gateForm" autocomplete="off">
-      <h1>Erika <b>${GAME === 'race' ? 'Racing' : 'Air'}</b></h1>
-      <p>Enter your ${NAME} access code to ${GAME === 'race' ? 'race' : 'fly'}. Codes work for one game and one person only.</p>
+      <h1>Erika <b>${G.word}</b></h1>
+      <p>Enter your ${NAME} access code to ${G.verb}. Codes work for one game and one person only.</p>
       <label for="gateCode">Access code</label>
       <input id="gateCode" name="code" spellcheck="false" autocapitalize="off" maxlength="64" placeholder="35-character code, or 10-digit one-time code" required>
       <button id="gateGo" type="submit">Unlock</button>
@@ -103,7 +104,7 @@
     let snap = await ref.get();
     if (!snap.exists) return { ok: false, why: 'That code is not valid. Check it and try again.' };
     let c = snap.data();
-    if ((c.game || 'air') !== GAME) return { ok: false, why: 'That is an ' + OTHER + ' code. It only works in ' + OTHER + '.' };
+    if ((c.game || 'air') !== GAME) { const o = (GAMES[c.game] || GAMES.air).name; return { ok: false, why: 'That is an ' + o + ' code. It only works in ' + o + '.' }; }
     if (c.revoked) return { ok: false, why: 'This code has been turned off by the admin.' };
     if (c.once && c.claimedBy) { if (c.claimedBy !== uid) reportShared(hash); return { ok: false, why: 'This one-time code has already been used.' }; }
     if (c.claimedBy === uid) return { ok: true, hash };

@@ -76,7 +76,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
     <div><div class="lbl">Race</div><div class="seg" id="segLaps"><button type="button" data-v="2">2 laps</button><button type="button" data-v="3">3 laps</button><button type="button" data-v="5">5 laps</button></div></div>
     <div><div class="lbl">Rivals</div><div class="seg" id="segAi"><button type="button" data-v="0.92">Easy</button><button type="button" data-v="0.97">Medium</button><button type="button" data-v="1.01">Hard</button></div></div>
     <div class="keys"><b>↑ / W</b><span>Throttle</span><b>↓ / S</b><span>Back off / reverse</span><b>← → / A D</b><span>Steer</span><b>C · R · Esc</b><span>Camera · back on course · pause</span></div>
-    <div class="foot"><button class="btn main" id="btnGo" type="button">Start</button><span id="bestLine" style="color:var(--dim)"></span><a href="./" title="Back to the game choice">← Fly, race or boats</a></div>
+    <div class="foot"><button class="btn main" id="btnGo" type="button">Start</button><span id="bestLine" style="color:var(--dim)"></span><a href="./" title="Back to the game choice">← All games</a></div>
   </div>
   <div class="card" id="results" hidden><h1>Results</h1><table id="resTable"></table><div class="foot"><button class="btn main" id="btnAgain" type="button">Race again</button><button class="btn" id="btnMenu" type="button">Menu</button></div></div>
 </section>
@@ -156,9 +156,9 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 
 // ---------------------------------------------------------------- boats
 B.TYPES = {
-  cat: { name: 'Offshore Cat', blurb: 'Twin-hull, 2 x 1,100 hp: fastest, wide in the turns', mass: 5200, power: 1.55e6, top: 64, turnR: 34, grip: 1.6, slide: .5, len: 12, beam: 3.4, col: ['#0f2a44', '#2fd4c4'], hum: 48 },
-  hydro: { name: 'Hydroplane', blurb: 'Rides on three points, 900 hp: quick but twitchy', mass: 1500, power: .67e6, top: 60, turnR: 26, grip: 1.25, slide: .8, len: 8.5, beam: 3.0, col: ['#f2f4f7', '#e63b2e'], hum: 70 },
-  rib: { name: 'Race RIB', blurb: 'Rigid inflatable, 2 x 300 hp: slower but turns on a coin', mass: 1700, power: .45e6, top: 44, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
+  cat: { acc: 4.2, name: 'Offshore Cat', blurb: 'Twin-hull, 2 x 1,100 hp: fastest, wide in the turns', mass: 5200, power: 1.55e6, top: 64, turnR: 34, grip: 1.6, slide: .5, len: 12, beam: 3.4, col: ['#0f2a44', '#2fd4c4'], hum: 48 },
+  hydro: { acc: 5.2, name: 'Hydroplane', blurb: 'Rides on three points, 900 hp: quick but twitchy', mass: 1500, power: .67e6, top: 60, turnR: 26, grip: 1.25, slide: .8, len: 8.5, beam: 3.0, col: ['#f2f4f7', '#e63b2e'], hum: 70 },
+  rib: { acc: 4.6, name: 'Race RIB', blurb: 'Rigid inflatable, 2 x 300 hp: slower but turns on a coin', mass: 1700, power: .45e6, top: 44, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
 };
 B.Boat = function (type) { this.T = B.TYPES[type]; this.type = type; this.reset(0, 0, 0); };
 B.Boat.prototype.reset = function (x, z, h) {
@@ -172,7 +172,7 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   this.thr += clamp(thrIn - this.thr, -1.5 * dt, 2 * dt);
   const uAbs = Math.abs(this.u), wet = this.air ? 0 : 1;
   // propulsion: power over speed, with a static-thrust cap; reverse is weak
-  let F = this.thr * Math.min(T.power / Math.max(uAbs, 6), T.power / 6) * .82 * wet - back * T.power / 18 * wet * (this.u > -4 ? 1 : 0);
+  let F = this.thr * Math.min(T.power * .82 / Math.max(uAbs, 1), T.mass * T.acc) * wet - back * T.power / 18 * wet * (this.u > -4 ? 1 : 0);
   // drag: quadratic (set so top speed = T.top) + the "hump" a hull climbs over before it planes (~9-15 knots)
   const cd = T.power * .82 / Math.pow(T.top, 3), hump = T.mass * 2.2 * Math.exp(-Math.pow((uAbs - 7.5) / 3.2, 2));
   F -= Math.sign(this.u) * (cd * this.u * this.u + hump * (1 - this.plane * .6) + (this.air ? 0 : T.mass * .015));
@@ -189,10 +189,10 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   this.x += (this.u * f[0] + this.v * s[0]) * dt; this.z += (this.u * f[1] + this.v * s[1]) * dt;
   // vertical: ride the waves; fast over a steep crest and you take off
   const w = B.waveAt(this.x, this.z, t, calm), wAhead = B.waveAt(this.x + f[0] * 3, this.z + f[1] * 3, t, calm);
-  const climb = (wAhead - w) / 3 * this.u;   // vertical speed the hull is pushed up at
+  const hl = T.len * .45, climb = (B.waveAt(this.x + f[0] * hl, this.z + f[1] * hl, t, calm) - B.waveAt(this.x - f[0] * hl, this.z - f[1] * hl, t, calm)) / (2 * hl) * this.u;   // the hull rides over waves shorter than itself
   if (!this.air) {
     this.vy = climb; this.y = w + this.plane * .25;
-    if (climb > 3.2 && uAbs > 18) { this.air = true; this.vy = climb * .85; }
+    if (climb > 2.9 && uAbs > 22) { this.air = true; this.vy = climb * .7; }
   } else {
     this.vy -= g * dt; this.y += this.vy * dt;
     if (this.y <= w) { this.landing = -this.vy; this.air = false; this.y = w; if (this.landing > 3) { this.u *= .9; this.splash = Math.min(1, this.landing / 8); } }
@@ -259,7 +259,7 @@ B.World.prototype.water = function (calm) {
   });
   this.waterMesh = new THREE.Mesh(geo, this.waterMat); this.waterMesh.frustumCulled = false; this.root.add(this.waterMesh);
   // far ocean beyond the wave mesh
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(20000, 20000).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: S.water[0] })); far.position.y = -.6; this.root.add(far);
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(20000, 20000).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: S.water[0] })); far.position.y = -2.6; this.root.add(far);   // below the deepest trough
 };
 B.World.prototype.build = function (c) {
   this.root.clear(); this.sky(c.sky); this.water(c.calm);
@@ -293,7 +293,7 @@ B.World.prototype.build = function (c) {
       const body = new THREE.Mesh(bGeo, mats[sd < 0 ? 0 : 1]); body.position.y = .9; g.add(body);
       const tp = new THREE.Mesh(cap, mats[sd < 0 ? 0 : 1]); tp.position.y = 2.8; g.add(tp);
       const bd = new THREE.Mesh(band, white); bd.position.y = 1.5; g.add(bd);
-      g.position.set(x, 0, z); R.add(g); this.buoys.push({ g, x, z, gate: n });
+      g.position.set(x, 0, z); R.add(g); this.buoys.push({ g, x, z, x0: x, z0: z, gate: n });
     }
     if (n === 0) {   // start / finish gantry on two pontoons
       const gt = new THREE.Group(); gt.position.set(p.x, 0, p.z); gt.rotation.y = -p.h; R.add(gt);
@@ -306,44 +306,113 @@ B.World.prototype.build = function (c) {
   });
   this.boats = [];
 };
-B.World.prototype.makeBoat = function (type, cols) {
+// a lofted planing hull (bow at +x, starboard at +z, waterline near y 0): a deep-V bottom with hard chines, a low coloured
+// band above the chine, flared topsides, a forefoot that sweeps up into a raked stem and a sheer that rises towards the bow
+// o: { L, B, D: keel depth at the transom, dead: deadrise (rad), rise: sheer rise at the bow, fine: where the bow starts to narrow (0..1) }
+B.hull = function (o, mats) {
+  const S = 18, R = [];
+  for (let i = 0; i <= S; i++) {
+    const t = i / S, x = -o.L / 2 + t * o.L, n = clamp((t - o.fine) / (1 - o.fine), 0, 1);
+    const hw = o.B / 2 * Math.pow(Math.max(0, 1 - n * n), .6), sheer = o.rise * Math.pow(t, 2.2) + .55;
+    const keel = -o.D + (o.D * .85 + o.rise * .45) * Math.pow(n, 1.5), cw = hw * .84;
+    const chine = Math.min(sheer - .08, keel + cw * Math.tan(o.dead)), band = lerp(chine, sheer, .3);
+    R.push([[x, sheer, -hw], [x, band, -hw * .93], [x, chine, -cw], [x, keel, 0], [x, chine, cw], [x, band, hw * .93], [x, sheer, hw]]);
+  }
+  const G = [[], [], [], []], tri = (g, a, b, c) => G[g].push(...a, ...b, ...c);   // groups: 0 bottom, 1 topsides, 2 band, 3 deck
+  const segG = [1, 2, 0, 0, 2, 1];
+  for (let i = 0; i < S; i++) {
+    const a = R[i], b = R[i + 1];
+    for (let k = 0; k < 6; k++) { tri(segG[k], a[k], b[k], b[k + 1]); tri(segG[k], a[k], b[k + 1], a[k + 1]); }
+    tri(3, a[6], b[6], b[0]); tri(3, a[6], b[0], a[0]);
+  }
+  const T = R[0]; for (let k = 0; k < 6; k++) tri(1, T[3], T[k], T[k + 1]);   // transom
+  tri(1, T[3], T[6], T[0]);
+  const pos = [], ge = new THREE.BufferGeometry(); let at = 0;
+  G.forEach((arr, gi) => { pos.push(...arr); ge.addGroup(at, arr.length / 3, gi); at += arr.length / 3; });
+  ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.computeVertexNormals();
+  const m = new THREE.Mesh(ge, mats); m.userData.rings = R; return m;
+};
+B.World.prototype.makeBoat = function (type, cols, num) {
   const T = B.TYPES[type], g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-  const hullM = new THREE.MeshStandardMaterial({ color: new THREE.Color(cols[0]), roughness: .35, metalness: .1 }), accM = new THREE.MeshStandardMaterial({ color: new THREE.Color(cols[1]), roughness: .4 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x15191d, roughness: .6 }), glass = new THREE.MeshStandardMaterial({ color: 0x0b1620, roughness: .1, metalness: .6, transparent: true, opacity: .85 });
+  const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .4, side: THREE.DoubleSide }, o || {}));
+  const hc = new THREE.Color(cols[0]), ac = new THREE.Color(cols[1]);
+  const hullM = M(hc, { roughness: .28, metalness: .15 }), accM = M(ac, { roughness: .35 }), bottomM = M(hc.clone().multiplyScalar(.45), { roughness: .5 });
+  const dark = M(0x16191d, { roughness: .55 }), metal = M(0x9aa3ab, { roughness: .3, metalness: .8 }), deckM = M(0x2a2f35, { roughness: .9 });
+  const glass = M(0x0d1b26, { roughness: .05, metalness: .7, transparent: true, opacity: .8 });
+  const mats = [bottomM, hullM, accM, hullM];
+  const add = (geo, mat, x, y, z, parent) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); (parent || body).add(m); return m; };
   const L = T.len, Bm = T.beam;
-  // hull: a deep-V shape lofted from bow (x+) to transom (x-)
-  const hull = (w, len, z0, deep) => {
-    const st = [[-len / 2, 1, .55], [-len * .2, 1, .6], [len * .15, .92, .55], [len * .35, .62, .45], [len / 2, .05, .3]], pos = [], idx = [];
-    const ring = (x, wf, hf) => { const hw = w / 2 * wf, d = deep * hf; return [[x, .55, -hw], [x, .05 - d * .2, -hw * .9], [x, -d, 0], [x, .05 - d * .2, hw * .9], [x, .55, hw]]; };
-    st.forEach(([x, wf, hf]) => ring(x, wf, hf).forEach((p) => pos.push(p[0], p[1], p[2] + z0)));
-    for (let i = 0; i < st.length - 1; i++) for (let k = 0; k < 4; k++) { const a = i * 5 + k, b2 = a + 5; idx.push(a, b2, a + 1, a + 1, b2, b2 + 1); }
-    idx.push(0, 1, 2, 0, 2, 3, 0, 3, 4);   // transom
-    const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.setIndex(idx); ge.computeVertexNormals();
-    return new THREE.Mesh(ge, new THREE.MeshStandardMaterial({ color: hullM.color, roughness: .35, side: THREE.DoubleSide }));
+  // racing number on a white roundel, one on each side
+  const numTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'); x.fillStyle = '#f4f4f2'; x.beginPath(); x.arc(64, 64, 60, 0, 7); x.fill();
+    x.fillStyle = '#111'; x.font = '700 76px "Barlow Condensed", Arial Narrow, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num || 1), 64, 70); return new THREE.CanvasTexture(cv); })();
+  const numbers = (x, y, z, s) => { for (const sd of [-1, 1]) { const p = add(new THREE.PlaneGeometry(s, s), new THREE.MeshStandardMaterial({ map: numTex, transparent: true, roughness: .6 }), x, y, sd * z); p.rotation.y = sd > 0 ? 0 : Math.PI; } };
+  // outboard engine hung on the transom: cowling, coloured band, leg, anti-cavitation plate, gearcase and propeller
+  const outboard = (x, z, s) => {
+    const o = new THREE.Group(); o.position.set(x, .35, z); o.scale.setScalar(s || 1); body.add(o);
+    const cowl = add(new THREE.SphereGeometry(.5, 16, 12), dark, -.38, .62, 0, o); cowl.scale.set(.95, 1.2, .62);
+    add(new THREE.BoxGeometry(.9, .14, .62), accM, -.36, .22, 0, o);
+    add(new THREE.BoxGeometry(.34, 1.15, .13), dark, -.3, -.42, 0, o);
+    add(new THREE.BoxGeometry(.62, .04, .36), dark, -.36, -.62, 0, o);
+    const gear = add(new THREE.SphereGeometry(.12, 10, 8), dark, -.28, -.95, 0, o); gear.scale.set(2.6, 1, 1);
+    const prop = add(new THREE.CylinderGeometry(.24, .24, .05, 3), metal, -.62, -.95, 0, o); prop.rotation.z = Math.PI / 2; o.userData.prop = prop;
+    (g.userData.props = g.userData.props || []).push(prop);
+  };
+  // driver: suit, shoulders and a helmet with a dark visor, facing the bow
+  const driver = (x, y, z) => {
+    add(new THREE.CylinderGeometry(.2, .24, .6, 10), M(0x1b2530), x, y, z);
+    const h = add(new THREE.SphereGeometry(.17, 14, 10), accM, x + .02, y + .45, z);
+    const v = add(new THREE.SphereGeometry(.172, 14, 8, -Math.PI / 2.4, Math.PI / 1.2, Math.PI / 3, Math.PI / 4), M(0x0a0f14, { roughness: .1, metalness: .6 }), x + .02, y + .45, z); v.rotation.y = -Math.PI / 2; return h;
   };
   if (type === 'cat') {
-    for (const sd of [-1, 1]) body.add(hull(Bm * .32, L, sd * Bm * .34, .5));
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(L * .8, .35, Bm * .9), hullM); deck.position.set(-L * .05, .75, 0); body.add(deck);
-    const canopy = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), glass); canopy.scale.set(1.8, .7, 1.0); canopy.position.set(-L * .05, .9, 0); body.add(canopy);
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(L * .78, .08, Bm * .92), accM); stripe.position.set(-L * .05, .58, 0); body.add(stripe);
-    for (const sd of [-1, 1]) { const eng = new THREE.Mesh(new THREE.BoxGeometry(.9, 1.1, .55), dark); eng.position.set(-L / 2 - .3, .5, sd * .6); body.add(eng); }
+    // two slim sponsons joined by a wide, pointed tunnel deck; enclosed canopy; twin big outboards and a small rear wing
+    for (const sd of [-1, 1]) { const h = B.hull({ L, B: Bm * .3, D: .55, dead: .42, rise: .35, fine: .42 }, mats); h.position.z = sd * Bm * .35; body.add(h); }
+    const deck = B.hull({ L: L * .94, B: Bm * .98, D: -.05, dead: .08, rise: .3, fine: .32 }, [hullM, hullM, accM, hullM]); deck.position.set(-L * .03, .12, 0); body.add(deck);
+    const can = add(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), glass, -L * .02, .76, 0); can.scale.set(L * .2, .62, Bm * .24);
+    const frame = add(new THREE.TorusGeometry(1, .05, 6, 24, Math.PI), accM, -L * .02, .76, 0); frame.scale.set(L * .2, .62, 1);
+    add(new THREE.BoxGeometry(L * .22, .32, Bm * .3), hullM, -L * .28, .85, 0);                          // engine hatch
+    for (const sd of [-1, 1]) { add(new THREE.BoxGeometry(.6, .25, .32), dark, -L * .2, .98, sd * Bm * .1); }   // air intakes
+    for (const sd of [-1, 1]) { const fin = add(new THREE.BoxGeometry(.9, .55, .06), accM, -L / 2 + 1.2, 1.18, sd * Bm * .3); fin.rotation.z = -.35; outboard(-L / 2, sd * Bm * .35, 1.15); }
+    add(new THREE.BoxGeometry(.7, .05, Bm * .7), accM, -L / 2 + 1.05, 1.45, 0);
+    numbers(L * .12, .5, Bm * .35 + Bm * .15 + .02, 1.1);
+    driver(-L * .02, .55, -.45); driver(-L * .02, .55, .45);
   } else if (type === 'hydro') {
-    body.add(hull(Bm * .9, L, 0, .25));
-    for (const sd of [-1, 1]) { const spon = new THREE.Mesh(new THREE.BoxGeometry(L * .35, .45, .5), hullM); spon.position.set(L * .25, .25, sd * Bm * .42); body.add(spon); }
-    const cock = new THREE.Mesh(new THREE.BoxGeometry(1.6, .5, 1.1), dark); cock.position.set(L * .05, .85, 0); body.add(cock);
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(.9, .08, Bm * 1.05), accM); wing.position.set(-L / 2 + .4, 1.6, 0); body.add(wing);
-    for (const sd of [-1, 1]) { const fin = new THREE.Mesh(new THREE.BoxGeometry(.8, 1.0, .08), accM); fin.position.set(-L / 2 + .4, 1.1, sd * Bm * .5); body.add(fin); }
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(L * .9, .1, Bm * .92), accM); stripe.position.set(0, .5, 0); body.add(stripe);
-    const eng = new THREE.Mesh(new THREE.BoxGeometry(1.2, .7, .8), dark); eng.position.set(-L * .28, .85, 0); body.add(eng);
+    // three-point hydroplane: twin forward sponsons (pickle fork), a narrow tail hull, capsule cockpit,
+    // turbine cowling with an intake, and a tall rear wing on twin fins
+    const tail = B.hull({ L, B: Bm * .5, D: .22, dead: .18, rise: .12, fine: .6 }, mats); tail.position.y = .05; body.add(tail);
+    for (const sd of [-1, 1]) { const s = B.hull({ L: L * .58, B: Bm * .24, D: .35, dead: .3, rise: .22, fine: .35 }, mats); s.position.set(L * .21, 0, sd * Bm * .38); body.add(s); }
+    const wingDeck = add(new THREE.BoxGeometry(L * .42, .1, Bm * .82), hullM, L * .16, .66, 0);
+    add(new THREE.BoxGeometry(L * .4, .03, Bm * .84), accM, L * .16, .72, 0);
+    const cap = add(new THREE.SphereGeometry(1, 20, 12), glass, L * .2, .85, 0); cap.scale.set(1.05, .42, .5);
+    const cowl = add(new THREE.SphereGeometry(1, 20, 12), hullM, -L * .1, .85, 0); cowl.scale.set(L * .26, .45, .55);
+    add(new THREE.CylinderGeometry(.28, .32, .5, 12), dark, -L * .02, 1.25, 0);                          // turbine air intake
+    add(new THREE.BoxGeometry(L * .5, .06, .58), accM, -L * .12, 1.0, 0);
+    for (const sd of [-1, 1]) { const fin = add(new THREE.BoxGeometry(.9, .85, .06), accM, -L / 2 + .55, 1.05, sd * .55); fin.rotation.z = -.3; }
+    add(new THREE.BoxGeometry(.8, .06, Bm * .75), hullM, -L / 2 + .45, 1.48, 0);
+    const rud = add(new THREE.BoxGeometry(.35, .7, .05), metal, -L / 2 + .1, -.15, 0);
+    const prop = add(new THREE.CylinderGeometry(.3, .3, .05, 3), metal, -L / 2 - .15, -.15, 0); prop.rotation.z = Math.PI / 2; g.userData.props = [prop];
+    numbers(-L * .28, .62, Bm * .25 + .02, .8);
+    driver(L * .2, .55, 0).visible = true;
   } else {
-    body.add(hull(Bm * .8, L, 0, .45));
-    const tube = new THREE.Mesh(new THREE.TorusGeometry(1, .28, 10, 28), accM); tube.scale.set(L * .52, Bm * .44, 1); tube.rotation.x = Math.PI / 2; tube.position.y = .62; body.add(tube);
-    const con = new THREE.Mesh(new THREE.BoxGeometry(.9, .9, .9), hullM); con.position.set(.4, 1.0, 0); body.add(con);
-    const scr = new THREE.Mesh(new THREE.BoxGeometry(.05, .45, .9), glass); scr.position.set(.85, 1.55, 0); scr.rotation.z = -.4; body.add(scr);
-    for (const sd of [-1, 1]) { const eng = new THREE.Mesh(new THREE.BoxGeometry(.6, 1.2, .45), dark); eng.position.set(-L / 2 - .2, .45, sd * .45); body.add(eng); }
+    // race RIB: deep-V GRP hull, an inflatable collar round the sides and bow, centre console with windscreen,
+    // jockey seats with grab bars and twin outboards
+    const h = B.hull({ L, B: Bm * .78, D: .6, dead: .42, rise: .5, fine: .48 }, [bottomM, M(0xe9ecef, { roughness: .3 }), accM, deckM]); body.add(h);
+    const R = h.userData.rings, pts = [];
+    for (let i = 0; i < R.length - 1; i++) pts.push(new THREE.Vector3(R[i][0][0], R[i][0][1] + .08, R[i][0][2] - .2));
+    pts.push(new THREE.Vector3(L / 2 + .15, R[R.length - 1][0][1] + .05, 0));
+    for (let i = R.length - 2; i >= 0; i--) pts.push(new THREE.Vector3(R[i][6][0], R[i][6][1] + .08, R[i][6][2] + .2));
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, .3, 12, false), M(ac.clone().lerp(new THREE.Color(0x30353b), .35), { roughness: .75 })); body.add(tube);
+    for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.3, 12, 10), tube.material, pts[0].x, pts[0].y, sd * Math.abs(pts[0].z));
+    add(new THREE.BoxGeometry(.9, .8, .95), M(0xe9ecef, { roughness: .3 }), .5, .95, 0);                          // console
+    const ws = add(new THREE.BoxGeometry(.04, .42, 1.0), glass, .98, 1.5, 0); ws.rotation.z = -.55;
+    add(new THREE.BoxGeometry(.5, .06, .6), dark, .62, 1.38, 0);                                                     // dash
+    for (const sd of [-1, 1]) {
+      add(new THREE.BoxGeometry(.75, .6, .42), dark, -.5, .85, sd * .32);                                            // jockey seats
+      const bar = add(new THREE.TorusGeometry(.32, .03, 6, 12, Math.PI), metal, -.25, 1.15, sd * .32); bar.rotation.y = Math.PI / 2;
+      outboard(-L / 2 + .02, sd * .42, .85);
+    }
+    numbers(.5, 1.05, .48, .6);
+    driver(-.45, 1.2, -.32); driver(-.45, 1.2, .32);
   }
-  // driver(s): helmets above the deck
-  const helm = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), accM); helm.position.set(type === 'rib' ? -.1 : -L * .02, type === 'rib' ? 1.75 : 1.2, 0); body.add(helm);
   g.userData.body = body; this.root.add(g); return g;
 };
 
@@ -435,9 +504,9 @@ B.Game = function () {
   };
   P.load = function (key) {
     this.course = B.buildCourse(key); this.world.build(this.course); this.wake = new B.Wake(this.world.root);
-    this.player = new B.Boat(this.cfg.boat); this.pMesh = this.world.makeBoat(this.cfg.boat, B.TYPES[this.cfg.boat].col);
+    this.player = new B.Boat(this.cfg.boat); this.pMesh = this.world.makeBoat(this.cfg.boat, B.TYPES[this.cfg.boat].col, 7);
     const cols = [['#c62828', '#f4f4f2'], ['#1d4fd6', '#ffd400'], ['#2bb673', '#10161c'], ['#f4f4f2', '#7b3fe4'], ['#ff7a1a', '#1d2a3a']], names = ['Marlow', 'Ostrova', 'Tanaka', 'Delacroix', 'Okonkwo'];
-    this.ai = cols.map((col, k) => ({ boat: new B.Boat(this.cfg.boat), mesh: this.world.makeBoat(this.cfg.boat, col), name: names[k], col: col[0], s: 0, lap: 0, v: 0, o: 0, done: null, missed: 0 }));
+    this.ai = cols.map((col, k) => ({ boat: new B.Boat(this.cfg.boat), mesh: this.world.makeBoat(this.cfg.boat, col, [11, 24, 3, 88, 41][k]), name: names[k], col: col[0], s: 0, lap: 0, v: 0, o: 0, done: null, missed: 0 }));
     this.profile = this._profile(); this._mini = null; this._grid();
   };
   // AI speed along the course: turning radius and power limited
@@ -470,7 +539,7 @@ B.Game = function () {
     // islands: you run aground and stop hard
     for (const I of c.islands) { const dx = b.x - I.x, dz = b.z - I.z, d = Math.hypot(dx, dz), R = I.r * 1.02 + 2; if (d < R) { b.x = I.x + dx / d * R; b.z = I.z + dz / d * R; b.u *= .3; b.v = 0; this.flash('Aground!', 1.2, 'R to get back on course'); } }
     // buoys: a knock and a slowdown
-    for (const y of this.world.buoys) { const dx = b.x - y.x, dz = b.z - y.z, d = Math.hypot(dx, dz); if (d < 2.6) { b.x = y.x + dx / d * 2.6; b.z = y.z + dz / d * 2.6; b.u *= .75; } }
+    for (const y of this.world.buoys) { const dx = b.x - y.x, dz = b.z - y.z, d = Math.hypot(dx, dz); if (d < 2.6 && d > .01) { y.x -= dx / d * (2.6 - d); y.z -= dz / d * (2.6 - d); b.u *= Math.exp(-dt * 1.5); } }   // you shove the buoy aside
     const L = B.locate(c, b.x, b.z, this.pIdx); this.pIdx = L.i; this.pS = L.i * c.ds;
     // gates in order: crossing a gate line inside the buoys counts it; passing it outside is a miss (+5 s)
     const gi = c.gates[this.nextGate % c.gates.length], prev = this.prevI;
@@ -527,7 +596,7 @@ B.Game = function () {
       if (A.v > 4) { A._wk = (A._wk || 0) + dt; if (A._wk > .09) { A._wk = 0; this.wake.emit(b.x - f[0] * b.T.len * .45, b.y, b.z - f[1] * b.T.len * .45, 2.5 + A.v * .04, Math.min(.7, A.v / 45)); } }
     }
     // you bump rivals: push apart
-    for (const A of this.ai) { const b = A.boat, dx = pl.x - b.x, dz = pl.z - b.z, d = Math.hypot(dx, dz), R = (pl.T.beam + b.T.beam) * .9; if (d < R && d > .01) { pl.x += dx / d * (R - d); pl.z += dz / d * (R - d); pl.u *= .92; A.v *= .95; } }
+    for (const A of this.ai) { const b = A.boat, dx = pl.x - b.x, dz = pl.z - b.z, d = Math.hypot(dx, dz), R = (pl.T.beam + b.T.beam) * .9; if (d < R && d > .01) { pl.x += dx / d * (R - d); pl.z += dz / d * (R - d); pl.u *= Math.exp(-dt * 2.5); A.v *= Math.exp(-dt * 1.2); A.o += (A.o >= B.locate(this.course, pl.x, pl.z, this.pIdx).d ? 1 : -1) * 8 * dt; } }
   };
   P.resetToCourse = function () { const b = this.player, q = B.at(this.course, (this.pIdx || 0) * this.course.ds); b.reset(q.x, q.z, q.h); this.flash('Back on course', 1); };
 
@@ -552,7 +621,7 @@ B.Game = function () {
   P._render = function (dt) {
     const W = this.world, b = this.player, cam = W.cam, c = this.course;
     this._place(this.pMesh, b); this.ai.forEach((A) => this._place(A.mesh, A.boat));
-    W.buoys.forEach((y) => { y.g.position.y = B.waveAt(y.x, y.z, this.clock, c.calm) - .4; y.g.rotation.z = Math.sin(this.clock * 1.3 + y.x) * .08; });
+    W.buoys.forEach((y) => { const k = Math.min(1, dt * .4); y.x += (y.x0 - y.x) * k; y.z += (y.z0 - y.z) * k; y.g.position.x = y.x; y.g.position.z = y.z; y.g.position.y = B.waveAt(y.x, y.z, this.clock, c.calm) - .4; y.g.rotation.z = Math.sin(this.clock * 1.3 + y.x) * .08; });
     W.waterMat.uniforms.t.value = this.clock;
     const f = [Math.cos(b.h), Math.sin(b.h)];
     if (this.preview) { const a = this.clock * .12; cam.position.set(b.x + Math.cos(a) * 26, 7, b.z + Math.sin(a) * 26); cam.lookAt(b.x, 1.5, b.z); cam.fov = 50; }
@@ -581,7 +650,7 @@ B.Game = function () {
     // arrow to the next gate, relative to the boat's heading
     const gi = c.gates[this.nextGate % c.gates.length], g = c.P[gi], ang = Math.atan2(g.z - b.z, g.x - b.x) - b.h;
     $('gateArrow').querySelector('svg').style.transform = `rotate(${ang * 180 / Math.PI + 90}deg)`;
-    $('gateTxt').textContent = (this.nextGate % c.gates.length === 0 ? 'FINISH LINE' : 'GATE ' + (this.nextGate % c.gates.length) + ' / ' + (c.gates.length - 1)) + ' · ' + Math.round(Math.hypot(g.x - b.x, g.z - b.z)) + ' m';
+    $('gateTxt').textContent = (this.nextGate % c.gates.length === 0 ? (this.lap === 0 ? 'START LINE' : 'FINISH LINE') : 'GATE ' + (this.nextGate % c.gates.length) + ' / ' + (c.gates.length - 1)) + ' · ' + Math.round(Math.hypot(g.x - b.x, g.z - b.z)) + ' m';
     this._twT = (this._twT || 0) - dt;
     if (this._twT <= 0) { this._twT = .3; const rows = this.standings(), tw = $('tower'); tw.innerHTML = '<div class="hd">Race</div>' + rows.map((r, i) => `<div class="row${r.me ? ' me' : ''}"><span>${i + 1}</span><i style="background:${r.col}"></i><span>${r.name}</span><span class="g">${i ? '+' + Math.round(r.gap) + ' m' : ''}</span></div>`).join(''); }
     this._map();

@@ -38,7 +38,7 @@
 #chooser .card b { font: 700 32px/1 var(--f-display); letter-spacing: 0.06em; text-transform: uppercase; }
 #chooser .card span { color: var(--dim); line-height: 1.5; }
 #chooser .card em { margin-top: auto; font: 600 13px var(--f-body); font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; }
-#chooser .fly { --c: #ffb52e; } #chooser .race { --c: #3cc4ff; }
+#chooser .fly { --c: #ffb52e; } #chooser .race { --c: #3cc4ff; } #chooser .boat { --c: #2fd4c4; }
 #chooser .card svg, #chooser .card em, #chooser .card b i { color: var(--c); font-style: normal; }
 #chooser .card:hover, #chooser .card:focus-visible { transform: translateY(-3px); border-color: var(--c); box-shadow: 0 10px 34px rgba(0,0,0,0.45), 0 0 0 1px var(--c); outline: none; }
 @media (prefers-reduced-motion: reduce) { #chooser .card { transition: none; } #chooser .card:hover { transform: none; } }
@@ -273,7 +273,7 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 
   <section id="menu">
     <div class="sheet">
-      <div class="brand"><h1>Erika <b>Air</b></h1><span id="brandSub">aircraft &middot; airfields &middot; 6-DOF physics</span><a class="racelink" href="gp.html" title="Erika Racing: circuit racing in a second game">Racing &rsaquo;</a><div class="wallet" id="wallet" title="Earn credits by completing challenges"></div></div>
+      <div class="brand"><h1>Erika <b>Air</b></h1><span id="brandSub">aircraft &middot; airfields &middot; 6-DOF physics</span><a class="racelink" href="gp.html" title="Erika Racing: circuit racing in a second game">Racing &rsaquo;</a><a class="racelink" href="boat.html" title="Erika Boats: powerboat racing">Boats &rsaquo;</a><div class="wallet" id="wallet" title="Earn credits by completing challenges"></div></div>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="free" aria-selected="true">Free flight</button>
         <button class="tab" role="tab" data-tab="chal" aria-selected="false">Challenges</button>
@@ -12620,11 +12620,13 @@ SIM.Game = (function () {
     return new Promise((resolve) => {
       if (/[?&]fly\b/.test(location.search)) { resolve(); return; }
       const el = document.createElement('div'); el.id = 'chooser';
-      el.innerHTML = '<div class="wrap" role="dialog" aria-labelledby="chooseH"><h1 id="chooseH">Fly or race?</h1><p class="sub">Pick a game, then enter the access code for that game. Each game has its own codes.</p><div class="cards">'
+      el.innerHTML = '<div class="wrap" role="dialog" aria-labelledby="chooseH"><h1 id="chooseH">Pick a game</h1><p class="sub">Then enter the access code for that game. Each game has its own codes.</p><div class="cards">'
         + '<button type="button" class="card fly" data-g="fly"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>'
         + '<b>Erika <i>Air</i></b><span>Flight simulator: airliners, light aircraft, gliders and fighters. Free flight, challenges and multi-leg trips.</span><em>Fly &rsaquo;</em></button>'
         + '<a class="card race" href="gp.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15l2-5c.4-1 1.2-1.5 2.2-1.5h9.6c1 0 1.8.5 2.2 1.5l2 5v3h-2.5M3 18v-3m0 3h2.5"/><circle cx="7.5" cy="18" r="2"/><circle cx="16.5" cy="18" r="2"/><path d="M9.5 18h5M6 12h12"/></svg>'
         + '<b>Erika <i>Racing</i></b><span>Circuit racing: GT3, F1 and road cars on world circuits. Career, championships and online races.</span><em>Race &rsaquo;</em></a>'
+        + '<a class="card boat" href="boat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h15.5l2.5-3H8.5L6 9H4z"/><path d="M9 11V8.5h5L15.5 11"/><path d="M2 18c1.7 0 1.7-1 3.3-1s1.7 1 3.4 1 1.6-1 3.3-1 1.7 1 3.3 1 1.7-1 3.4-1 1.6 1 3.3 1"/></svg>'
+        + '<b>Erika <i>Boats</i></b><span>Powerboat racing round buoy courses between islands: planing hulls, waves and rival boats.</span><em>Boats &rsaquo;</em></a>'
         + '</div></div>';
       document.body.appendChild(el);
       el.querySelector('[data-g="fly"]').addEventListener('click', () => { el.remove(); resolve(); });
