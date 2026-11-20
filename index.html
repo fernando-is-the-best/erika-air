@@ -12524,7 +12524,7 @@ SIM.Game = (function () {
     const w3 = this.world3d;
     // dispose previous
     if (this.challenge && this.challenge.cleanup) { try { this.challenge.cleanup(this, this.cst); } catch (e) { /* ignore */ } }
-    this.challenge = null; this.cst = null; this.clearMarkers();
+    this.challenge = null; this.cst = null; this.clearMarkers(); this.hudInfo.nav = this.hudInfo.guide = null; this.hud.msgT = 0;   // no stale nav arrow, ILS needles or message from the last flight
     if (this.tow) { this.tow.dispose(); this.tow = null; }
     if (this.ent) { this.ent.dispose(); this.ent = null; }
     for (const m of w3.chunks.values()) { w3.terrainGroup.remove(m); m.geometry.dispose(); }
