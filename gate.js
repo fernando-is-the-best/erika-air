@@ -127,7 +127,9 @@
     if (!adapter || !codeHash || repT) return;
     repT = setTimeout(() => {
       repT = null; if (adapter.ready && !adapter.ready()) return;
-      const st = { credits: Math.round(adapter.credits() || 0), owned: adapter.ownedIds().slice(0, 250), applied: getApplied().slice(-60) }, key = JSON.stringify(st);
+      // applied: every grant still on the code that this browser has applied (the desk lists the rest as waiting), so
+      // older grants don't show up as "waiting" again once there are many
+      const live = ctl.grants || {}, st = { credits: Math.round(adapter.credits() || 0), owned: adapter.ownedIds().slice(0, 250), applied: getApplied().filter((g) => live[g]).slice(-300) }, key = JSON.stringify(st);
       if (key === lastRep) return; lastRep = key;
       st.at = firebase.firestore.FieldValue.serverTimestamp();
       db.collection('codes').doc(codeHash).update({ status: st }).catch(() => { lastRep = ''; });
