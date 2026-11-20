@@ -80,7 +80,60 @@
       const key = String(name).replace(/[.~*/\[\]`]/g, ' ').slice(0, 60);
       db.collection('codes').doc(codeHash).update(new firebase.firestore.FieldPath('fleet', key), firebase.firestore.FieldValue.increment(1)).catch(() => {});
     },
+    // the game hands over its wallet (credits and what it owns) so the admin's grants can be applied to it
+    attach(a) { adapter = a; syncControl(); },
+    blocked(id) { return (ctl.blocked || []).indexOf(id) >= 0; },
+    sync() { syncControl(); },
   };
+
+  // ---- admin control. On this code the admin desk keeps 'grants' (one-off changes: credits added, taken away or set,
+  // items given or taken) and 'blocked' (items this player may not have or buy). Each grant is applied once in this browser,
+  // and the game reports its wallet back ('status') so the desk can show what the player has.
+  let ctl = { grants: {}, blocked: [] }, adapter = null, lastRep = '', repT = null;
+  const appliedKey = () => 'erika.applied.' + GAME + '.' + (codeHash || '').slice(0, 16);
+  const getApplied = () => { try { return JSON.parse(localStorage.getItem(appliedKey()) || '[]'); } catch (e) { return []; } };
+  const setApplied = (a) => { try { localStorage.setItem(appliedKey(), JSON.stringify(a.slice(-400))); } catch (e) { /* storage unavailable */ } };
+  function toast(text) {
+    let t = document.getElementById('erikaToast');
+    if (!t) {
+      const st = document.createElement('style');
+      st.textContent = '#erikaToast{position:fixed;z-index:950;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));padding:12px 18px;border-radius:12px;'
+        + 'background:rgba(13,22,32,.94);border:1px solid rgba(255,181,46,.6);color:#e8f0f6;font:500 15px/1.4 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:opacity .4s}#erikaToast b{color:#ffb52e}';
+      document.head.appendChild(st);
+      t = document.createElement('div'); t.id = 'erikaToast'; t.setAttribute('role', 'status'); document.body.appendChild(t);
+    }
+    t.innerHTML = '<b>From the admin</b><br>'; t.appendChild(document.createTextNode(text)); t.style.opacity = '1';
+    clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 7000);
+  }
+  function syncControl() {
+    if (!adapter || !codeHash || (adapter.ready && !adapter.ready())) return;
+    const done = getApplied(), msgs = [], name = (id) => (adapter.name ? adapter.name(id) : id) || id;
+    let changed = false;
+    Object.entries(ctl.grants || {}).filter(([gid, g]) => g && done.indexOf(gid) < 0).sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).forEach(([gid, g]) => {
+      if (typeof g.set === 'number') { adapter.setCredits(Math.max(0, Math.round(g.set))); msgs.push('your credits are now ' + Math.round(g.set).toLocaleString()); }
+      if (typeof g.credits === 'number' && g.credits) { adapter.setCredits(Math.max(0, Math.round(adapter.credits() + g.credits))); msgs.push((g.credits > 0 ? '+' : '\u2212') + Math.abs(g.credits).toLocaleString() + ' credits'); }
+      (g.give || []).forEach((id) => { adapter.give(id); msgs.push('you now have the ' + name(id)); });
+      (g.take || []).forEach((id) => { adapter.take(id); msgs.push('the ' + name(id) + ' was taken away'); });
+      done.push(gid); changed = true;
+    });
+    // blocked items are taken away and stay unavailable
+    (ctl.blocked || []).forEach((id) => { if (adapter.ownedIds().indexOf(id) >= 0) { adapter.take(id); changed = true; } });
+    if (changed) { setApplied(done); if (adapter.save) adapter.save(); if (adapter.refresh) adapter.refresh(); }
+    if (msgs.length) toast(msgs.join(' \u00B7 '));
+    report();
+  }
+  // tell the desk what this player has (only when it changes, at most every 15 s)
+  function report() {
+    if (!adapter || !codeHash || repT) return;
+    repT = setTimeout(() => {
+      repT = null; if (adapter.ready && !adapter.ready()) return;
+      const st = { credits: Math.round(adapter.credits() || 0), owned: adapter.ownedIds().slice(0, 250), applied: getApplied().slice(-60) }, key = JSON.stringify(st);
+      if (key === lastRep) return; lastRep = key;
+      st.at = firebase.firestore.FieldValue.serverTimestamp();
+      db.collection('codes').doc(codeHash).update({ status: st }).catch(() => { lastRep = ''; });
+    }, lastRep ? 15000 : 2000);
+  }
+  setInterval(() => syncControl(), 5000);   // picks up a save being opened, credits earned, and so on
 
   function unlock(hash, once) {
     if (!once) store.set(hash);   // a one-time code is good for this visit only
@@ -92,7 +145,9 @@
     // if the admin turns the code off or hands it to someone else, lock the game again
     unwatch = db.collection('codes').doc(hash).onSnapshot((d) => {
       const c = d.exists ? d.data() : null;
-      if (!c || c.revoked || c.claimedBy !== uid) { store.set(null); location.reload(); }
+      if (!c || c.revoked || c.claimedBy !== uid) { store.set(null); location.reload(); return; }
+      ctl = { grants: c.grants || {}, blocked: Array.isArray(c.blocked) ? c.blocked : [] };
+      syncControl();
     }, () => {});
   }
 

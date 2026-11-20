@@ -5783,7 +5783,8 @@ const Career = {
   get p() { if (!this._p) this._p = Object.assign({ credits: 5000, lic: [], cars: ['road'], best: {}, champ: {}, wins: 0, races: 0, earned: 0 }, load('cargame.v2.career') || {}); return this._p; },
   save() { store('cargame.v2.career', this.p); },
   has(lic) { return !lic || this.p.lic.includes(lic); },
-  owns(car) { return this.p.cars.includes(car); },
+  blocked(car) { return !!(window.ErikaAccess && ErikaAccess.blocked && ErikaAccess.blocked(car)); },   // the admin has taken this one away
+  owns(car) { return !this.blocked(car) && this.p.cars.includes(car); },
   sel(cls) { const v = (this.p.sel || {})[cls]; return v && this.owns(v) ? v : cls; },
   locked(e) { return !this.has(e.needs) ? `Needs ${e.needs} licence` : !this.owns(e.car) ? `Buy the ${CAR_SPECS[e.car].name} first` : e.variant && !this.owns(e.variant) ? `Needs the ${variantOf(e.car, e.variant).name}` : null; },
   cfg(base) { const c = Menu.choice; return Object.assign({ difficulty: 'medium', opponents: 11, startPos: 'back', gfx: c.gfx, tod: 'noon', weather: 'clear', limits: c.limits || 'lenient' }, base); },
@@ -6704,7 +6705,7 @@ const Menu = {
     else if (k === 'ctest') Career.startTest(CAREER.tests.find(t => t.id === v));
     else if (k === 'cev') Career.startEvent(CAREER.events.find(e => e.id === v));
     else if (k === 'cbuy') { const P = Career.p, [cls, id] = v.includes('=') ? v.split('=') : [v, v], price = id === cls ? CAREER.price[cls] : variantOf(cls, id).price;
-      if (P.credits >= price && !P.cars.includes(id)) { P.credits -= price; P.cars.push(id); (P.sel || (P.sel = {}))[cls] = id; Career.save(); banner(`🔑 ${variantOf(cls, id).name} bought!`); } this.renderCareer(); this.highlight(); }
+      if (P.credits >= price && !P.cars.includes(id) && !Career.blocked(id)) { P.credits -= price; P.cars.push(id); (P.sel || (P.sel = {}))[cls] = id; Career.save(); banner(`🔑 ${variantOf(cls, id).name} bought!`); } this.renderCareer(); this.highlight(); }
     else if (k === 'csel') { const [cls, id] = v.split('='); (Career.p.sel || (Career.p.sel = {}))[cls] = id; Career.save(); this.renderCareer(); this.highlight(); }
     else if (k === 'board') this.show('board');
     else if (k === 'race') this.show('race');
@@ -7023,9 +7024,9 @@ const Menu = {
     }
     html += `</div><p class="sub" id="cf-garage" style="margin:14px 0 6px">Garage & dealer</p><div class="worlds">`;
     for (const k of ['road', 'gt', 'f1']) for (const V of VARIANTS[k]) {
-      const id = V.id, own = Career.owns(id), price = id === k ? CAREER.price[k] : V.price, needBase = id !== k && !Career.owns(k), afford = P.credits >= price && !needBase;
+      const id = V.id, own = Career.owns(id), price = id === k ? CAREER.price[k] : V.price, locked = Career.blocked(id), needBase = id !== k && !Career.owns(k), afford = P.credits >= price && !needBase && !locked;
       const S = tunedSpec(k, TUNE_DEF, id), using = own && Career.sel(k) === id;
-      const status = own ? (using ? '<b>driving this one</b>' : 'in your garage — click to drive it') : needBase ? `buy the ${VARIANTS[k][0].name} first` : `${fmtC(price)} credits${afford ? ' — click to buy' : ''}`;
+      const status = own ? (using ? '<b>driving this one</b>' : 'in your garage — click to drive it') : locked ? 'not available (locked by the admin)' : needBase ? `buy the ${VARIANTS[k][0].name} first` : `${fmtC(price)} credits${afford ? ' — click to buy' : ''}`;
       html += this.card('world' + (!own && !afford ? ' locked' : ''), `<h3>${using ? '🏁 ' : own ? '✅ ' : ''}${V.name}</h3><p>${S.engineName} · ${S.hp} hp · ${Math.round(S.mass)} kg · ${V.desc}<br>${status}</p>`, own ? (using ? 'noop' : 'csel:' + k + '=' + id) : afford ? 'cbuy:' + k + '=' + id : 'noop');
     }
     html += `</div><p class="sub" style="margin:14px 0 6px">Your records vs the real ones</p><table class="records"><tr><th>Track</th><th>Road</th><th>GT3</th><th>F1</th><th>Real lap record</th></tr>`;
@@ -8581,6 +8582,18 @@ function tick(now) {
   Input.endFrame();
 }
 Saves.migrate();
+// the admin desk can give or take credits and cars (applied through the access code, to the save that is open; see gate.js)
+if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
+  ready: () => Saves.active >= 0,
+  credits: () => Career.p.credits,
+  setCredits: (n) => { Career.p.credits = n; },
+  ownedIds: () => Career.p.cars.slice(),
+  give: (id) => { const P = Career.p; if (!P.cars.includes(id)) P.cars.push(id); },
+  take: (id) => { const P = Career.p; P.cars = P.cars.filter((x) => x !== id); if (P.sel) for (const k in P.sel) if (P.sel[k] === id) delete P.sel[k]; },
+  name: (id) => { for (const k in VARIANTS) { const v = VARIANTS[k].find((x) => x.id === id); if (v) return v.name; } return id; },
+  save: () => Career.save(),
+  refresh: () => { if (!game.world && Menu.screen && Menu.screen !== 'title' && Menu.screen !== 'saves') Menu.show(Menu.screen); },
+});
 Menu.show('title');
 requestAnimationFrame(frame);
 setTimeout(() => { try { MenuScene.start(); } catch (e) { console.error('menu backdrop', e); } }, 60);

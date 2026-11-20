@@ -12414,11 +12414,12 @@ SIM.Shop = {
   _w() { const w = SIM.store.get('wallet', null); return w && Array.isArray(w.owned) ? w : { credits: this.START, owned: [] }; },
   credits() { return this._w().credits; },
   price(id) { return this.PRICE[id] != null ? this.PRICE[id] : 0; },
-  owned(id) { return this.price(id) === 0 || this._w().owned.indexOf(id) >= 0; },
+  blocked(id) { return !!(window.ErikaAccess && ErikaAccess.blocked && ErikaAccess.blocked(id)); },   // the admin has taken this one away
+  owned(id) { return !this.blocked(id) && (this.price(id) === 0 || this._w().owned.indexOf(id) >= 0); },
   add(n) { const w = this._w(); w.credits += Math.round(n); SIM.store.set('wallet', w); return w.credits; },
   buy(id) {
     const w = this._w(), p = this.price(id);
-    if (this.owned(id) || w.credits < p || !SIM.Career.gate(id).ok) return false;
+    if (this.owned(id) || this.blocked(id) || w.credits < p || !SIM.Career.gate(id).ok) return false;
     w.credits -= p; w.owned.push(id); SIM.store.set('wallet', w); return true;
   },
   // credits for a finished challenge: more for harder ones, a big bonus for each new star, reduced for repeats
@@ -13421,6 +13422,16 @@ SIM.Game = (function () {
     bindTouch();
     $('brandSub').textContent = SIM.AIRCRAFT_LIST.length + ' aircraft \u00B7 ' + Object.keys(SIM.AIRPORTS).length + ' airfields \u00B7 trips \u00B7 6-DOF physics';
     buildFilter(); buildHangar(); buildAirports(); buildChallenges(); buildTrips();
+    // the admin desk can give or take credits and aircraft (applied through the access code; see gate.js)
+    if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
+      credits: () => Shop.credits(),
+      setCredits: (n) => { const w = Shop._w(); w.credits = n; SIM.store.set('wallet', w); },
+      ownedIds: () => Shop._w().owned.slice(),
+      give: (id) => { if (!SIM.AIRCRAFT[id]) return; const w = Shop._w(); if (w.owned.indexOf(id) < 0) w.owned.push(id); SIM.store.set('wallet', w); },
+      take: (id) => { const w = Shop._w(); w.owned = w.owned.filter((x) => x !== id); SIM.store.set('wallet', w); },
+      name: (id) => (SIM.AIRCRAFT[id] ? SIM.AIRCRAFT[id].name : id),
+      refresh: () => { try { paintWallet(); buildHangar(); buildChallenges(); } catch (e) { /* menu not built yet */ } },
+    });
     window.addEventListener('resize', () => game.resize());
     if (window.ResizeObserver) new ResizeObserver(() => game.resize()).observe(stage);
     game.showPreview(sel.airport, sel.aircraft, SIM.TIMES[sel.time], sel.wx);

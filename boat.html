@@ -753,14 +753,15 @@ B.Career = (function () {
   C.wallet = () => { const w = store.get('wallet', null); return w && Array.isArray(w.owned) ? w : { credits: C.START, owned: [] }; };
   C.credits = () => C.wallet().credits;
   C.add = (n) => { const w = C.wallet(); w.credits += Math.round(n); store.set('wallet', w); };
-  C.owned = (id) => B.TYPES[id] && (B.TYPES[id].price === 0 || C.wallet().owned.indexOf(id) >= 0);
+  C.blocked = (id) => !!(window.ErikaAccess && ErikaAccess.blocked && ErikaAccess.blocked(id));   // the admin has taken this one away
+  C.owned = (id) => B.TYPES[id] && !C.blocked(id) && (B.TYPES[id].price === 0 || C.wallet().owned.indexOf(id) >= 0);
   C.lic = () => { const d = store.get('licence', null) || {}; return { pts: d.pts || 0, races: d.races || 0, wins: d.wins || 0, events: d.events || {} }; };
   C.rank = (pts) => {
     const p = pts == null ? C.lic().pts : pts; let i = 0; B.RANKS.forEach((r, k) => { if (p >= r[1]) i = k; });
     const nx = B.RANKS[i + 1]; return { index: i, name: B.RANKS[i][0], pts: p, floor: B.RANKS[i][1], next: nx ? nx[0] : null, nextPts: nx ? nx[1] : null };
   };
   C.canBuy = (id) => C.rank().index >= B.TYPES[id].rank;
-  C.buy = (id) => { const w = C.wallet(), T = B.TYPES[id]; if (C.owned(id) || !C.canBuy(id) || w.credits < T.price) return false; w.credits -= T.price; w.owned.push(id); store.set('wallet', w); return true; };
+  C.buy = (id) => { const w = C.wallet(), T = B.TYPES[id]; if (C.owned(id) || C.blocked(id) || !C.canBuy(id) || w.credits < T.price) return false; w.credits -= T.price; w.owned.push(id); store.set('wallet', w); return true; };
   C.levels = (id) => Object.assign({ engine: 0, prop: 0, hull: 0 }, (store.get('upg', {}) || {})[id] || {});
   C.upCost = (id, tier) => r50(Math.max(300, B.TYPES[id].price * .12) * [1, 2.2, 4.2][tier]);
   C.buyUp = (id, kind) => {
@@ -818,6 +819,21 @@ B.Game = function () {
   this._ui(); this._resize(); addEventListener('resize', () => this._resize());
   this._show(this.tab === 'garage' ? this.gSel : this.cfg.boat); this.preview = true;
   this._loop = this._loop.bind(this); this.last = null; requestAnimationFrame(this._loop);
+  // the admin desk can give or take credits and boats (applied through the access code; see gate.js)
+  const Cr = B.Career;
+  if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
+    credits: () => Cr.credits(),
+    setCredits: (n) => { const w = Cr.wallet(); w.credits = n; store.set('wallet', w); },
+    ownedIds: () => Cr.wallet().owned.slice(),
+    give: (id) => { if (!B.TYPES[id]) return; const w = Cr.wallet(); if (w.owned.indexOf(id) < 0) w.owned.push(id); store.set('wallet', w); },
+    take: (id) => { const w = Cr.wallet(); w.owned = w.owned.filter((x) => x !== id); store.set('wallet', w); },
+    name: (id) => (B.TYPES[id] ? B.TYPES[id].name : id),
+    refresh: () => {
+      if (!Cr.owned(this.cfg.boat)) { this.cfg.boat = Object.keys(B.TYPES).find((k) => Cr.owned(k)) || 'rib'; store.set('cfg', this.cfg); }
+      if (!Cr.owned(this.gSel) && !B.TYPES[this.gSel]) this.gSel = this.cfg.boat;
+      if (this.mode === 'menu') { this._paint(); this._show(this.tab === 'garage' ? this.gSel : this.cfg.boat); }
+    },
+  });
 };
 (function () {
   const P = B.Game.prototype, Cr = B.Career, fmt = B.fmtCr, kn = (ms) => Math.round(ms * 1.944);

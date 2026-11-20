@@ -38,6 +38,19 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fleet'])
         && request.resource.data.fleet is map
         && request.resource.data.fleet.size() <= 300
+      ) || (
+        // the code's owner reports what they have (credits, items bought or given, grants applied) for the admin desk.
+        // Grants and blocked items are written only by the admin (the first rule above).
+        request.auth != null
+        && resource.data.claimedBy == request.auth.uid
+        && resource.data.revoked != true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status is map
+        && request.resource.data.status.keys().hasOnly(['credits', 'owned', 'applied', 'at'])
+        && request.resource.data.status.credits is int
+        && request.resource.data.status.owned is list && request.resource.data.status.owned.size() <= 250
+        && request.resource.data.status.applied is list && request.resource.data.status.applied.size() <= 60
+        && request.resource.data.status.at == request.time
       );
     }
 
