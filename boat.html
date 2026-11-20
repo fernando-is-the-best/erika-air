@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Erika Boats</title>
-<meta name="description" content="Powerboat racing round buoy courses: ten boats, eight courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
+<meta name="description" content="Powerboat racing round buoy courses: fifteen boats, thirteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -182,9 +182,35 @@ B.COURSES = {
     pts: [[0, 0], [900, -80], [1800, 0], [2300, 300], [2250, 800], [1800, 1100], [1100, 1050], [500, 1250], [-100, 1150], [-450, 750], [-400, 300]] },
   archipelago: { name: 'Archipelago Marathon', blurb: '6.1 km threading a wooded archipelago at dawn', calm: .8, sky: 'dawn', land: 'green',
     pts: [[0, 0], [500, -60], [900, 80], [1100, 380], [900, 600], [1000, 900], [800, 1180], [480, 1120], [360, 860], [100, 780], [-160, 980], [-480, 900], [-560, 600], [-360, 380], [-480, 160], [-280, 20]] },
+  // hug: islands are packed along both sides of the lane (canyon walls, city blocks) instead of scattered.
+  // poly + corner: a course drawn as straight canals with corners rounded to that radius (see B.roundPoly)
+  canyon: { name: 'Red Canyon River', blurb: '5.6 km of snaking river between towering sandstone walls', calm: .3, sky: 'desert', land: 'mesa', hug: true, wind: 1.2,
+    pts: [[0, 0], [300, -90], [600, 40], [900, -70], [1200, 60], [1500, -80], [1800, 40], [2040, 200], [2020, 430], [1800, 540], [1500, 450], [1200, 600], [900, 470], [600, 610], [300, 480], [0, 580], [-230, 430], [-250, 180], [-160, 40]] },
+  canal: { name: 'City Canals by Night', blurb: '4.2 km street circuit on the water: right-angle corners under the city lights', calm: .18, sky: 'dusk', land: 'city', hug: true,
+    corner: 70, poly: [[200, 0], [640, 0], [640, 320], [380, 320], [380, 600], [700, 600], [700, 860], [-160, 860], [-160, 560], [100, 560], [100, 300], [-220, 300], [-220, 0]] },
+  atoll: { name: 'Atoll Sprint', blurb: '3.8 km of flat-out sweepers over turquoise shallows and sandy cays', calm: .5, sky: 'tropic', land: 'sand',
+    pts: [[0, 0], [500, -100], [1000, -60], [1300, 120], [1250, 360], [950, 420], [700, 380], [480, 470], [260, 640], [0, 640], [-180, 480], [-200, 220]] },
+  mist: { name: 'Misty Lake', blurb: '4.0 km on a glassy mountain lake in the fog: the next buoy appears late', calm: .15, sky: 'mist', land: 'green',
+    pts: [[0, 0], [400, -120], [800, -60], [1000, 160], [860, 400], [1040, 620], [960, 860], [640, 900], [480, 700], [200, 760], [-60, 620], [-40, 380], [-220, 200], [-180, 40]] },
+  coast: { name: 'Riviera Endurance', blurb: '7.4 km coastal loop past rocky capes in a Mediterranean swell', calm: 1.05, sky: 'med', land: 'rock',
+    pts: [[0, 0], [800, -200], [1600, -150], [2200, 100], [2400, 600], [2000, 900], [1500, 800], [1100, 1100], [600, 1300], [0, 1200], [-500, 900], [-600, 400], [-350, 100]] },
+};
+// a corner polyline to spline points: each corner becomes a circular arc of radius r (start, middle and end of the arc), and long
+// straights get extra points so the spline's points stay evenly spaced (uneven spacing makes it overshoot into kinks)
+B.roundPoly = function (poly, r) {
+  const n = poly.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const p = poly[(i - 1 + n) % n], c = poly[i], q = poly[(i + 1) % n], a = Math.hypot(p[0] - c[0], p[1] - c[1]), b = Math.hypot(q[0] - c[0], q[1] - c[1]);
+    const u = [(p[0] - c[0]) / a, (p[1] - c[1]) / a], v = [(q[0] - c[0]) / b, (q[1] - c[1]) / b], th = Math.acos(clamp(u[0] * v[0] + u[1] * v[1], -1, 1));
+    if (th > 3.1) { out.push(c); continue; }   // no corner here
+    const bl = Math.hypot(u[0] + v[0], u[1] + v[1]), m = r / Math.cos(th / 2) - r * Math.tan(th / 2);
+    out.push([c[0] + u[0] * r, c[1] + u[1] * r], [c[0] + (u[0] + v[0]) / bl * m, c[1] + (u[1] + v[1]) / bl * m], [c[0] + v[0] * r, c[1] + v[1] * r]);
+  }
+  const res = []; out.forEach((a, i) => { const b = out[(i + 1) % out.length], k = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 140); for (let j = 0; j < k; j++) res.push([lerp(a[0], b[0], j / k), lerp(a[1], b[1], j / k)]); });
+  return res;
 };
 B.buildCourse = function (key) {
-  const C = B.COURSES[key], cp = C.pts, n = cp.length, P = [];
+  const C = B.COURSES[key], cp = C.pts || (C.pts = B.roundPoly(C.poly, C.corner)), n = cp.length, P = [];
   const cat = (a, b, c, d, t) => { const t2 = t * t, t3 = t2 * t; return 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3); };
   for (let i = 0; i < n; i++) for (let k = 0; k < 40; k++) { const t = k / 40, a = cp[(i - 1 + n) % n], b = cp[i], c = cp[(i + 1) % n], d = cp[(i + 2) % n]; P.push({ x: cat(a[0], b[0], c[0], d[0], t), z: cat(a[1], b[1], c[1], d[1], t) }); }
   // resample every 4 m
@@ -204,11 +230,17 @@ B.buildCourse = function (key) {
   const near = (x, z) => { let m = 1e9; for (let i = 0; i < N; i += 3) m = Math.min(m, Math.hypot(S[i].x - x, S[i].z - z)); return m; };
   // a big island in the middle of the loop, then smaller ones around
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const land = C.land || 'palm', rocky = land === 'rock' || land === 'ice' || land === 'mesa';
   for (let tries = 0; tries < 400 && islands.length < 16; tries++) {
-    const first = islands.length === 0, x = first ? cx : lerp(x0 - 500, x1 + 500, r()), z = first ? cz : lerp(z0 - 500, z1 + 500, r());
-    const d = near(x, z), rad = first ? Math.min(d - 70, 220) : Math.min(d - 60, 40 + r() * 140);
-    if (rad < 30 || islands.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + rad + 20)) continue;
-    const land = C.land || 'palm'; islands.push({ x, z, r: rad, h: rad * (land === 'rock' || land === 'ice' ? .55 + r() * .3 : land === 'green' ? .25 + r() * .2 : .16 + r() * .12), rocky: land === 'rock' || land === 'ice' });
+    const first = islands.length === 0; let x, z, want = 0;
+    if (first) { x = cx; z = cz; }
+    else if (C.hug) { const p = S[Math.floor(r() * N)], sd = r() < .5 ? -1 : 1; want = 50 + r() * 110; const off = 62 + want + r() * 25; x = p.x + p.rx * sd * off; z = p.z + p.rz * sd * off; }   // just off the lane
+    else { x = lerp(x0 - 500, x1 + 500, r()); z = lerp(z0 - 500, z1 + 500, r()); }
+    const d = near(x, z), rad = first ? Math.min(d - 70, 220) : Math.min(d - 60, C.hug ? want : 40 + r() * 140);
+    if (rad < 30 || islands.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + rad + (C.hug ? 8 : 20))) continue;
+    const h = land === 'mesa' ? Math.min(140, rad * (.5 + r() * .35) + 25) : land === 'city' ? 2.5 : land === 'sand' ? 2 + rad * (.03 + r() * .03)
+      : rad * (rocky ? .55 + r() * .3 : land === 'green' ? .25 + r() * .2 : .16 + r() * .12);
+    islands.push({ x, z, r: rad, h, rocky });
   }
   return { key, name: C.name, calm: C.calm, wind: C.wind != null ? C.wind : (key.length * 1.37) % 6.283, sky: C.sky, land: C.land || 'palm', P: S, N, L, ds, gates, islands, laneW: 46 };
 };
@@ -223,13 +255,20 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 // ---------------------------------------------------------------- boats
 // top: top speed (m/s), acc: launch acceleration cap (m/s2), lat: cornering limit (m/s2), turnR: tightest turn at low speed (m).
 // price in credits and the licence rank needed to buy (index into B.RANKS); the Race RIB is free.
+// Optional: hump (how hard the hull ploughs before planing, 1 = normal), ride (how hard waves throw it, 1 = normal), bank (how far it
+// leans into turns), airProp (an air propeller: still pushes when airborne), foil (speed in m/s where it lifts onto hydrofoils).
 B.TYPES = {
   rib: { name: 'Race RIB', cls: 'Club', model: 'rib', price: 0, rank: 0, blurb: 'Rigid inflatable, 2 x 300 hp: forgiving and turns on a coin', mass: 1700, power: .45e6, top: 44, acc: 4.8, lat: 26, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
+  pwc: { name: 'Race Jet Ski', cls: 'Club', model: 'pwc', price: 900, rank: 0, blurb: 'A 310 hp racing jet ski ridden standing: turns inside anything and bucks over every wave', mass: 420, power: .23e6, top: 36, acc: 7.2, lat: 34, turnR: 6, grip: 3.0, slide: .45, len: 3.4, beam: 1.2, col: ['#1fbf5f', '#10161c'], hum: 135, hump: .5, ride: 1.1, bank: 1.6 },
+  runabout: { name: 'Mahogany Runabout', cls: 'Club', model: 'runabout', price: 1200, rank: 0, blurb: 'A varnished 1960s classic with twin V8s: graceful and heavy, slow to turn and to stop', mass: 2600, power: .4e6, top: 33, acc: 3.6, lat: 19, turnR: 20, grip: 2.2, slide: .35, len: 8.4, beam: 2.6, col: ['#efe3c8', '#1d4fd6'], hum: 58, ride: .9 },
   jet: { name: 'Jet Sprinter', cls: 'Club', model: 'jet', price: 1800, rank: 0, blurb: 'Supercharged V8 jet boat: savage acceleration and tiny turns', mass: 1100, power: .55e6, top: 47, acc: 6.6, lat: 30, turnR: 11, grip: 2.6, slide: .35, len: 5.6, beam: 2.2, col: ['#f2c418', '#1a1d22'], hum: 84 },
   vee: { name: 'Offshore Vee', cls: 'Regional', model: 'vee', price: 3500, rank: 1, blurb: 'Deep-V monohull, 2 x 750 hp: stable and quick in big seas', mass: 4200, power: 1.1e6, top: 52, acc: 4.6, lat: 22, turnR: 24, grip: 2.0, slide: .4, len: 11, beam: 2.9, col: ['#f4f4f2', '#1d4fd6'], hum: 56 },
+  airboat: { name: 'Swamp Airboat', cls: 'Regional', model: 'airboat', airProp: true, price: 4200, rank: 1, blurb: 'An aircraft propeller on a flat aluminium hull: skates over the water and slides through every turn', mass: 950, power: .42e6, top: 38, acc: 5.2, lat: 16, turnR: 12, grip: .9, slide: 1.0, len: 5.6, beam: 2.4, col: ['#a7b0b8', '#ff5a1f'], hum: 72, hump: .3, ride: 1.1 },
   f2: { name: 'Formula 2 Tunnel', cls: 'National', model: 'tunnel', price: 6000, rank: 2, blurb: 'Light tunnel hull with a 200 hp outboard: quick and razor sharp', mass: 520, power: .16e6, top: 54, acc: 7, lat: 36, turnR: 12, grip: 2.8, slide: .3, len: 5.2, beam: 2.0, col: ['#e63b2e', '#f4f4f2'], hum: 110 },
   hydro: { name: 'GP Hydroplane', cls: 'National', model: 'hydro', price: 9000, rank: 2, blurb: 'Rides on three points, 900 hp: fast but twitchy', mass: 1500, power: .67e6, top: 64, acc: 5.4, lat: 28, turnR: 26, grip: 1.25, slide: .8, len: 8.5, beam: 3.0, col: ['#f2f4f7', '#e63b2e'], hum: 70 },
+  foil: { name: 'Foiling Speedboat', cls: 'International', model: 'foil', foil: 22, price: 11000, rank: 3, blurb: 'Lifts clear of the water on carbon foils at 45 knots: the drag falls away and it flies over the chop', mass: 1500, power: .62e6, top: 60, acc: 5.0, lat: 30, turnR: 22, grip: 2.7, slide: .22, len: 8.2, beam: 2.5, col: ['#f4f4f2', '#ff3d7f'], hum: 98, ride: .3, bank: 1.5 },
   cat: { name: 'Offshore Cat', cls: 'International', model: 'cat', price: 13000, rank: 3, blurb: 'Twin hulls, 2 x 1,100 hp: brutal on the straights, wide in the turns', mass: 5200, power: 1.55e6, top: 68, acc: 4.4, lat: 22, turnR: 34, grip: 1.6, slide: .5, len: 12, beam: 3.4, col: ['#0f2a44', '#2fd4c4'], hum: 48 },
+  c2: { name: 'Class 2 Offshore V', cls: 'Pro', model: 'vee', open: true, price: 16000, rank: 4, blurb: 'Stepped deep-V, 2 x 750 hp on stern drives: slices through big seas where the cats take off', mass: 4600, power: 1.25e6, top: 62, acc: 4.9, lat: 25, turnR: 26, grip: 2.2, slide: .38, len: 12.5, beam: 3.0, col: ['#10161c', '#ff8a1a'], hum: 52, ride: .7 },
   f1: { name: 'Formula 1 Tunnel', cls: 'Pro', model: 'tunnel', price: 20000, rank: 4, blurb: '400 hp on 600 kg: 0 to 100 mph in four seconds, corners like a jet', mass: 600, power: .3e6, top: 72, acc: 9, lat: 44, turnR: 12, grip: 3.0, slide: .3, len: 6.0, beam: 2.1, col: ['#10161c', '#ffd400'], hum: 120 },
   super: { name: 'Class 1 Supercat', cls: 'Pro', model: 'cat', price: 30000, rank: 5, blurb: 'Fourteen metres and 2 x 1,400 hp: 155 knots in a straight line', mass: 5600, power: 2.1e6, top: 80, acc: 5.2, lat: 27, turnR: 38, grip: 1.7, slide: .5, len: 13.5, beam: 3.8, col: ['#c62828', '#f4f4f2'], hum: 44 },
   unl: { name: 'Unlimited Hydroplane', cls: 'World Series', model: 'hydro', turbine: true, price: 45000, rank: 6, blurb: 'A 3,000 hp helicopter turbine: 180 knots and a huge rooster tail', mass: 3000, power: 2.3e6, top: 92, acc: 6.5, lat: 32, turnR: 34, grip: 1.4, slide: .7, len: 9.5, beam: 4.2, col: ['#f4f4f2', '#7b3fe4'], hum: 150 },
@@ -244,7 +283,7 @@ B.spec = function (type, lv) {
 };
 B.Boat = function (type, lv) { this.T = B.spec(type, lv); this.type = type; this.reset(0, 0, 0); };
 B.Boat.prototype.reset = function (x, z, h) {
-  Object.assign(this, { x, z, h, y: 0, vy: 0, u: 0, v: 0, r: 0, thr: 0, steer: 0, pitch: 0, roll: 0, air: false, plane: 0, speed: 0, splash: 0, idx: null });
+  Object.assign(this, { x, z, h, y: 0, vy: 0, u: 0, v: 0, r: 0, thr: 0, steer: 0, pitch: 0, roll: 0, air: false, plane: 0, foilUp: 0, speed: 0, splash: 0, idx: null });
 };
 // thrust (power-limited), displacement-hull drag hump before planing, quadratic drag, keel grip, rudder yaw
 B.Boat.prototype.step = function (dt, inp, t, calm) {
@@ -254,14 +293,18 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   this.thr += clamp(thrIn - this.thr, -1.5 * dt, 2 * dt);
   const uAbs = Math.abs(this.u), wet = this.air ? 0 : 1;
   // propulsion: power over speed, with a static-thrust cap; reverse is weak
-  let F = this.thr * Math.min(T.power * .82 / Math.max(uAbs, 1), T.mass * T.acc) * wet - back * T.power / 18 * wet * (this.u > -4 ? 1 : 0);
+  const push = T.airProp ? (this.air ? .35 : 1) : wet;   // an airboat's propeller still pushes in the air (less: no water to grip)
+  let F = this.thr * Math.min(T.power * .82 / Math.max(uAbs, 1), T.mass * T.acc) * push - back * T.power / 18 * push * (this.u > -4 ? 1 : 0);
+  // hydrofoils: lift the hull out between foil and foil + 6 m/s; until then the foils and the hull both drag
+  if (T.foil) this.foilUp += (clamp((uAbs - T.foil) / 6, 0, 1) - this.foilUp) * Math.min(1, dt * 1.2);
+  const fx = T.foil ? 1 + 1.2 * (1 - this.foilUp) : 1;
   // drag: quadratic (set so top speed = T.top) + the "hump" a hull climbs over before it planes (~9-15 knots)
-  const cd = Math.min(T.power * .82 / T.top, T.mass * T.acc) / (T.top * T.top), hump = T.mass * 2.2 * Math.exp(-Math.pow((uAbs - 7.5) / 3.2, 2));
-  F -= Math.sign(this.u) * (cd * this.u * this.u * (this.air ? .2 : 1) + (this.air ? 0 : hump * (1 - this.plane * .6) + T.mass * .015));   // in the air only air drag
+  const cd = Math.min(T.power * .82 / T.top, T.mass * T.acc) / (T.top * T.top), hump = T.mass * 2.2 * (T.hump || 1) * Math.exp(-Math.pow((uAbs - 7.5) / 3.2, 2));
+  F -= Math.sign(this.u) * (cd * this.u * this.u * (this.air ? .2 : fx) + (this.air ? 0 : hump * (1 - this.plane * .6) + T.mass * .015));   // in the air only air drag
   this.u += F / T.mass * dt;
   this.plane += (clamp((uAbs - 9) / 7, 0, 1) - this.plane) * Math.min(1, dt * 1.5);   // 0 ploughing .. 1 up on the plane
   // turning: the rudder / drives give a yaw rate up to v / turning radius; planing hulls slide out (sideways speed v)
-  const turnR = Math.max(T.turnR, uAbs * uAbs / T.lat), rTarget = this.steer * (uAbs / turnR) * (this.u >= 0 ? 1 : -1) * clamp(uAbs / 5, .25, 1) * (this.air ? .1 : 1);
+  const turnR = Math.max(T.turnR, uAbs * uAbs / T.lat), rTarget = this.steer * (uAbs / turnR) * (this.u >= 0 ? 1 : -1) * clamp(uAbs / 5, .25, 1) * (this.air ? (T.airProp ? .5 : .1) : 1);   // air rudders still steer
   this.r += (rTarget - this.r) * Math.min(1, dt * 2.6);
   this.v += (-this.u * this.r * T.slide * .35) * dt;                  // centrifugal push out of the turn
   this.v -= this.v * Math.min(1, dt * T.grip * (1 + (1 - this.plane) * 1.5) * wet);   // keel / chines bite back
@@ -271,9 +314,10 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   this.x += (this.u * f[0] + this.v * s[0]) * dt; this.z += (this.u * f[1] + this.v * s[1]) * dt;
   // vertical: ride the waves; fast over a steep crest and you take off
   const w = B.waveAt(this.x, this.z, t, calm), wAhead = B.waveAt(this.x + f[0] * 3, this.z + f[1] * 3, t, calm);
-  const hl = T.len * .45, climb = (B.waveAt(this.x + f[0] * hl, this.z + f[1] * hl, t, calm) - B.waveAt(this.x - f[0] * hl, this.z - f[1] * hl, t, calm)) / (2 * hl) * this.u;   // the hull rides over waves shorter than itself
+  const hl = T.len * .45, climb = (B.waveAt(this.x + f[0] * hl, this.z + f[1] * hl, t, calm) - B.waveAt(this.x - f[0] * hl, this.z - f[1] * hl, t, calm)) / (2 * hl) * this.u * (T.ride || 1);   // the hull rides over waves shorter than itself
+  const lift = this.foilUp;   // on foils the hull flies 1.3 m up and only follows the swell, not the chop
   if (!this.air) {
-    this.vy = climb; this.y = w + this.plane * .25;
+    this.vy = climb; this.y = w * (1 - lift * .6) + this.plane * .25 + lift * 1.3;
     if (climb > 3.6 + uAbs * .1 && uAbs > 22) { this.air = true; this.vy = climb * .45; }
   } else {
     this.vy -= g * dt; this.y += this.vy * dt;
@@ -281,9 +325,9 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   }
   // attitude: bow up when accelerating and when ploughing, follows the wave slope, banks into turns
   const slope = Math.atan2(wAhead - w, 3), wSide = B.waveAt(this.x + s[0] * 1.5, this.z + s[1] * 1.5, t, calm) - w;
-  const pitchT = slope + (1 - this.plane) * clamp(uAbs / 9, 0, 1) * .12 + this.thr * .03 + (this.air ? .08 : 0);
+  const pitchT = slope * (1 - lift * .6) + (1 - this.plane) * clamp(uAbs / 9, 0, 1) * .12 + this.thr * .03 + (this.air ? .08 : 0), bank = T.bank || 1;
   this.pitch += (pitchT - this.pitch) * Math.min(1, dt * (this.air ? 1 : 4));
-  this.roll += (clamp(this.r * uAbs * .022, -.32, .32) + Math.atan2(wSide, 1.5) * .6 - this.roll) * Math.min(1, dt * 3);
+  this.roll += (clamp(this.r * uAbs * .022 * bank, -.32 * bank, .32 * bank) + Math.atan2(wSide, 1.5) * .6 * (1 - lift * .6) - this.roll) * Math.min(1, dt * 3);
   this.speed = Math.hypot(this.u, this.v);
 };
 
@@ -322,8 +366,12 @@ B.SKIES = { day: { top: '#3f86d6', hor: '#cfe7f5', sun: [600, 900, -400], sc: 0x
   tropic: { top: '#2a8fe0', hor: '#d8f1fb', sun: [500, 1000, 300], sc: 0xfff6e6, water: ['#06506a', '#25c8c0'] },
   ice: { top: '#7aa6c8', hor: '#e6eef3', sun: [-600, 500, -900], sc: 0xf2f6ff, water: ['#103748', '#3e9aa8'] },
   storm: { top: '#3c4650', hor: '#8e979e', sun: [200, 600, -900], sc: 0xc8cfd4, water: ['#0d2631', '#2f6e70'], near: 500, far: 3800 },
-  dawn: { top: '#4a5f8c', hor: '#f6c7a0', sun: [1400, 220, 300], sc: 0xffc89a, water: ['#122f45', '#3b8a8c'] } };
-B.SHALLOW = { palm: '#2fc8bd', green: '#3f8a76', rock: '#2f6a6a', ice: '#5fb3c2' };
+  dawn: { top: '#4a5f8c', hor: '#f6c7a0', sun: [1400, 220, 300], sc: 0xffc89a, water: ['#122f45', '#3b8a8c'] },
+  desert: { top: '#2f6fc0', hor: '#f0d6b0', sun: [700, 800, 500], sc: 0xfff0d8, water: ['#173a32', '#3f8a66'] },              // green river water
+  dusk: { top: '#141a40', hor: '#b47f86', sun: [-1400, 110, 500], sc: 0xff9466, water: ['#0b2030', '#2a6274'], near: 700, far: 5200 },
+  mist: { top: '#8d9aa3', hor: '#d3d9dc', sun: [-400, 600, -800], sc: 0xe6ecf0, water: ['#15303a', '#4a7c80'], near: 140, far: 1500 },   // thick fog
+  med: { top: '#2a74c6', hor: '#e2e7e4', sun: [-500, 900, 600], sc: 0xfff6e2, water: ['#063a5e', '#1a8cae'] } };
+B.SHALLOW = { palm: '#2fc8bd', green: '#3f8a76', rock: '#2f6a6a', ice: '#5fb3c2', mesa: '#4a8a66', city: '#26505a', sand: '#43dccb' };
 const SEA_GLSL = `
   uniform float t; uniform vec4 W[6]; uniform vec4 W2[6];
   vec3 lin(vec3 c) { return pow(c, vec3(2.2)); }`;
@@ -428,27 +476,32 @@ B.World.prototype.water = function (c) {
 B.World.prototype.build = function (c) {
   this.root.clear(); B.setSea(c.calm, c.wind); this.sky(c.sky); this.water(c);
   const R = this.root, r = rng(c.N);
-  // islands: beach ring, grass or rock, trees
+  // islands: beach ring, grass or rock, trees. Mesas are steep layered sandstone; city blocks are low stone quays with buildings
+  const mesa = c.land === 'mesa', city = c.land === 'city', blocks = city ? [0xd8c7a8, 0xb5654a, 0xe0d6c4, 0x9c8f80, 0xc98e5a, 0x8a5a48].map((c) => ({ c, p: [], n: [], u: [] })) : null;
   for (const I of c.islands) {
-    const seg = 28, geo = new THREE.CylinderGeometry(I.r * .55, I.r, I.h + 2, seg, 3); geo.translate(0, (I.h + 2) / 2 - 2, 0);
+    const seg = 28, geo = new THREE.CylinderGeometry(I.r * (mesa ? .82 : city ? .99 : .55), I.r, I.h + 2, seg, mesa ? 8 : 3); geo.translate(0, (I.h + 2) / 2 - 2, 0);
     const P = geo.attributes.position, col = [];
     for (let k = 0; k < P.count; k++) {
       const x = P.getX(k), y = P.getY(k), z = P.getZ(k), a = Math.atan2(z, x), wob = 1 + .12 * Math.sin(a * 3 + I.x) + .08 * Math.sin(a * 7 + I.z);
-      P.setX(k, x * wob); P.setZ(k, z * wob); if (y > 0) P.setY(k, y * (1 + .15 * Math.sin(a * 5)));
-      const top = y / Math.max(1, I.h), c3 = c.land === 'ice' ? (top > .25 ? [.93, .96, .99] : top > .05 ? [.72, .8, .88] : [.4, .42, .45]) : I.rocky ? (top > .1 ? [.38, .37, .36] : [.3, .29, .27]) : top < .05 ? (c.land === 'green' ? [.55, .5, .4] : [.86, .79, .6]) : c.land === 'green' ? [.24, .4, .2] : [.32, .52, .22];
+      P.setX(k, x * wob); P.setZ(k, z * wob); if (y > 0 && !city) P.setY(k, y * (1 + (mesa ? .05 : .15) * Math.sin(a * 5)));
+      const top = y / Math.max(1, I.h), band = Math.sin(y * .35 + I.x * .01) * .5 + .5;
+      const c3 = mesa ? (top > .97 ? [.62, .45, .3] : [.62 + band * .16, .3 + band * .12, .18 + band * .06]) : city ? (top > .9 ? [.5, .49, .47] : [.36, .34, .32])
+        : c.land === 'ice' ? (top > .25 ? [.93, .96, .99] : top > .05 ? [.72, .8, .88] : [.4, .42, .45]) : I.rocky ? (top > .1 ? [.38, .37, .36] : [.3, .29, .27])
+        : c.land === 'sand' ? (top > .6 ? [.82, .8, .62] : [.95, .92, .8]) : top < .05 ? (c.land === 'green' ? [.55, .5, .4] : [.86, .79, .6]) : c.land === 'green' ? [.24, .4, .2] : [.32, .52, .22];
       col.push(...c3);
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
     const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, flatShading: true })); m.position.set(I.x, 0, I.z); R.add(m);
-    if (!I.rocky) for (let k = 0; k < Math.round(I.r / 6); k++) {      // palms, or conifers on wooded islands
+    if (!I.rocky && !city) for (let k = 0; k < Math.round(I.r / 6); k++) {      // palms, or conifers on wooded islands
       const a = r() * 6.28, d = r() * I.r * .5, x = I.x + Math.cos(a) * d, z = I.z + Math.sin(a) * d, y0 = I.h * .9, pine = c.land === 'green', h = pine ? 2 + r() * 2 : 6 + r() * 5;
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.18, .3, h, 6), new THREE.MeshStandardMaterial({ color: 0x7a5b3a, roughness: 1 })); trunk.position.set(x, y0 + h / 2, z); if (!pine) trunk.rotation.z = (r() - .5) * .3; R.add(trunk);
       const crown = pine ? new THREE.Mesh(new THREE.ConeGeometry(2.4 + r(), 9 + r() * 6, 7), new THREE.MeshStandardMaterial({ color: 0x1f4a2a, roughness: .9, flatShading: true }))
         : new THREE.Mesh(new THREE.ConeGeometry(3.2, 1.6, 7), new THREE.MeshStandardMaterial({ color: 0x2f6b2a, roughness: .9, flatShading: true }));
       if (pine) crown.position.set(x, y0 + h + crown.geometry.parameters.height / 2 - .5, z); else { crown.position.set(x, y0 + h + .3, z); crown.scale.y = .5; } R.add(crown);
     }
-
+    if (city) this.buildings(I, r, blocks);
   }
+  if (city) this.city(blocks);
   // buoys: red on the left of each gate, yellow on the right; the start/finish gate is a floating gantry
   this.buoys = [];
   const bGeo = new THREE.CylinderGeometry(.9, 1.2, 2.6, 14), cap = new THREE.ConeGeometry(.9, 1.2, 14), band = new THREE.CylinderGeometry(1.02, 1.08, .4, 14);
@@ -472,6 +525,33 @@ B.World.prototype.build = function (c) {
     }
   });
   this.boats = [];
+};
+// city blocks on the quays: a ring of buildings round each edge facing the water (plaster, brick and stone) with lit windows for the
+// dusk. All the boxes of one colour are merged into a single mesh (hundreds of buildings, six draw calls).
+B.World.prototype.buildings = function (I, r, acc) {
+  const n = Math.max(5, Math.round(I.r * 6.283 / 22));
+  const ring = (n, k0, rf, hMax) => { for (let k = 0; k < n; k++) {
+    const a = (k + k0) / n * 6.283 + r() * .15, w = 12 + r() * 10, d = 13 + r() * 9, h = 9 + r() * hMax;
+    const rr = I.r * rf * (1 + .12 * Math.sin(a * 3 + I.x) + .08 * Math.sin(a * 7 + I.z)) - w / 2 - 3;   // set back from the wobbly quay edge
+    const geo = new THREE.BoxGeometry(w, h, d).toNonIndexed(), uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) { const f = Math.floor(i / 6), sx = f < 2 ? d : w; uv.setXY(i, f === 2 || f === 3 ? 0 : uv.getX(i) * sx / 12, f === 2 || f === 3 ? 0 : uv.getY(i) * h / 13); }   // a window every 3 m, blank roofs
+    geo.applyMatrix4(new THREE.Matrix4().makeRotationY(-a).setPosition(I.x + Math.cos(a) * rr, I.h + h / 2 - .5, I.z + Math.sin(a) * rr));
+    const o = acc[Math.floor(r() * acc.length)]; o.p.push(...geo.attributes.position.array); o.n.push(...geo.attributes.normal.array); o.u.push(...uv.array);
+  } };
+  ring(n, 0, 1, I.r > 80 ? 30 : 16);
+  if (I.r > 75) ring(Math.round(n * .5), .5, .6, 38);   // taller blocks further in
+};
+B.World.prototype.city = function (acc) {
+  const mk = (lit) => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), q = rng(5);   // a 4 x 4 grid of windows, some lit
+    x.fillStyle = lit ? '#000' : '#fff'; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const on = q() < .45; x.fillStyle = lit ? (on ? '#ffc870' : '#000') : (on ? '#ffd9a0' : '#2a3038'); x.fillRect(i * 32 + 9, j * 32 + 7, 14, 18); }
+    const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  const map = mk(false), glow = mk(true);
+  for (const o of acc) {
+    if (!o.p.length) continue; const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(o.p, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(o.n, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(o.u, 2));
+    this.root.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: o.c, map, emissive: 0xffffff, emissiveMap: glow, emissiveIntensity: .9, roughness: .85 })));
+  }
 };
 // a lofted planing hull (bow at +x, starboard at +z, waterline near y 0): a deep-V bottom with hard chines, a low coloured
 // band above the chine, flared topsides, a forefoot that sweeps up into a raked stem and a sheer that rises towards the bow
@@ -530,8 +610,103 @@ B.World.prototype.makeBoat = function (type, cols, num) {
     const h = add(new THREE.SphereGeometry(.17, 14, 10), accM, x + .02, y + .45, z);
     const v = add(new THREE.SphereGeometry(.172, 14, 8, -Math.PI / 2.4, Math.PI / 1.2, Math.PI / 3, Math.PI / 4), M(0x0a0f14, { roughness: .1, metalness: .6 }), x + .02, y + .45, z); v.rotation.y = -Math.PI / 2; return h;
   };
+  // a rod between two points (arms, legs, cage bars); and the half-width of a lofted hull's deck edge at x
+  const rod = (a, b, r, mat, parent) => { const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]), m = add(new THREE.CylinderGeometry(r, r, d.length(), 8), mat, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, parent);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return m; };
+  const edge = (h, x) => { const R = h.userData.rings; let best = R[0]; for (const q of R) if (Math.abs(q[6][0] - x) < Math.abs(best[6][0] - x)) best = q; return best[6]; };
   const md = T.model || type;
-  if (md === 'cat') {
+  if (md === 'pwc') {
+    // racing jet ski: a short deep-V hull, a raised hood with the handlebar column, a narrow saddle, and the rider standing in the
+    // footwells, knees bent, leaning over the bars; the jet nozzle sticks out of the stern
+    const h = B.hull({ L, B: Bm, D: .3, dead: .35, rise: .25, fine: .45 }, [bottomM, hullM, accM, deckM]); body.add(h);
+    body.position.y = -.14;   // sits low in the water: little freeboard
+    const hood = add(new THREE.SphereGeometry(1, 16, 10), hullM, L * .2, .66, 0); hood.scale.set(L * .27, .26, Bm * .38);
+    add(new THREE.BoxGeometry(L * .3, .04, Bm * .2), accM, L * .2, .9, 0);
+    const seat = add(new THREE.SphereGeometry(1, 14, 8), dark, -L * .2, .7, 0); seat.scale.set(L * .22, .14, .2);
+    rod([L * .18, .8, 0], [L * .06, 1.2, 0], .05, dark);                                                   // steering column
+    rod([L * .06, 1.2, -.34], [L * .06, 1.2, .34], .025, metal);                                         // bars
+    const suit = M(0x1b2530);
+    for (const sd of [-1, 1]) {
+      rod([-L * .16, .58, sd * .2], [-.12, .92, sd * .17], .075, suit); rod([-.12, .92, sd * .17], [-.3, 1.25, sd * .14], .085, suit);   // shin, thigh
+      rod([.1, 1.72, sd * .19], [L * .06, 1.2, sd * .3], .055, suit);                                     // arm to the grip
+    }
+    rod([-.3, 1.25, 0], [.12, 1.75, 0], .2, suit);                                                        // torso, leaning forward
+    add(new THREE.SphereGeometry(.16, 14, 10), accM, .22, 1.92, 0);
+    const v = add(new THREE.SphereGeometry(.162, 14, 8, -Math.PI / 2.4, Math.PI / 1.2, Math.PI / 3, Math.PI / 4), M(0x0a0f14, { roughness: .1, metalness: .6 }), .22, 1.92, 0); v.rotation.y = -Math.PI / 2;
+    const nz = add(new THREE.CylinderGeometry(.08, .11, .3, 10), metal, -L / 2 - .08, .12, 0); nz.rotation.z = Math.PI / 2;
+    numbers(L * .05, .6, edge(h, L * .05)[2] + .03, .34);
+  } else if (md === 'runabout') {
+    // classic mahogany runabout: varnished wood topsides and deck with pale caulking seams, a white boot stripe, chrome rub rails,
+    // a curved windscreen, two upholstered bench seats (cols[0]) with the engine hatch between them, and an ensign on the stern
+    const wood = M(0x6a2a10, { roughness: .16, metalness: .05 }), woodD = M(0x5b220c, { roughness: .2 }), upM = M(hc, { roughness: .7 }), chrome = M(0xdfe4e8, { roughness: .12, metalness: .95 });
+    const h = B.hull({ L, B: Bm, D: .55, dead: .3, rise: .35, fine: .45 }, [M(0x26201c, { roughness: .6 }), wood, M(0xf2f0ea, { roughness: .35 }), woodD]); body.add(h);
+    const R = h.userData.rings, seam = M(0xe9dcbf, { roughness: .4 });
+    for (let f = -.75; f <= .76; f += .25) {   // deck seams: thin ribbons following the sheer, fore and aft of the cockpit
+      for (const [a, b] of [[L * .12, L * .5], [-L * .5, -L * .3]]) {
+        const pos = []; let last = null;
+        for (const q of R) { const e = q[6]; if (e[0] < a || e[0] > b) continue; const z = f * e[2], y = e[1] + .012;
+          if (last) pos.push(last[0], last[1], last[2] - .02, e[0], y, z - .02, e[0], y, z + .02, last[0], last[1], last[2] - .02, e[0], y, z + .02, last[0], last[1], last[2] + .02); last = [e[0], y, z]; }
+        if (pos.length) { const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.computeVertexNormals(); body.add(new THREE.Mesh(ge, seam)); }
+      }
+    }
+    for (const sd of [-1, 1]) { const pts = R.map((q) => new THREE.Vector3(q[6][0], q[6][1] - .04, sd * (q[6][2] + .02))); body.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, .035, 6, false), chrome)); }   // rub rails
+    add(new THREE.BoxGeometry(L * .42, .06, Bm * .86), M(0x2a1a12, { roughness: .8 }), -L * .09, .58, 0);              // cockpit sole
+    for (const x of [L * .04, -L * .2]) {   // bench seats with backrests
+      add(new THREE.BoxGeometry(.7, .3, Bm * .78), upM, x, .78, 0); const bk = add(new THREE.BoxGeometry(.16, .55, Bm * .78), upM, x - .38, 1.0, 0); bk.rotation.z = .2;
+    }
+    const hatch = add(new THREE.BoxGeometry(.9, .22, Bm * .6), wood, -L * .08, .72, 0);
+    for (let k = -2; k <= 2; k++) add(new THREE.BoxGeometry(.92, .01, .02), seam, -L * .08, .835, k * Bm * .12);
+    const ws = add(new THREE.CylinderGeometry(Bm * .46, Bm * .46, .36, 20, 1, true, Math.PI / 2 - 1.05, 2.1), glass, L * .02, 1.0, 0); ws.rotation.z = -.15;   // curved screen
+    const rail = add(new THREE.TorusGeometry(Bm * .46, .025, 6, 20, 2.1), chrome, L * .02 + .03, 1.18, 0); rail.rotation.set(Math.PI / 2, 0, -1.05);
+    for (const x of [L * .45, -L * .45]) for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.18, .05, .05), chrome, x, edge(h, x)[1] + .03, sd * edge(h, x)[2] * .7);   // cleats
+    rod([-L / 2 + .15, .7, 0], [-L / 2 + .05, 1.7, 0], .02, chrome);                                     // ensign staff
+    const fl = add(new THREE.PlaneGeometry(.55, .36), M(ac, { side: THREE.DoubleSide }), -L / 2 - .2, 1.5, 0); fl.rotation.y = 0;
+    numbers(L * .2, .6, edge(h, L * .2)[2] + .04, .5);
+    driver(L * .04, 1.15, -.5); driver(L * .04, 1.15, .5);
+  } else if (md === 'airboat') {
+    // airboat: a flat-bottomed aluminium punt, a driver's seat high on a frame, a car V8 driving a two-blade aircraft propeller in a
+    // round wire cage, and twin air rudders behind it. g.userData.fan spins in the race
+    const h = B.hull({ L, B: Bm, D: .12, dead: .04, rise: .3, fine: .72 }, [M(0x5c6369, { metalness: .6, roughness: .4 }), M(hc, { metalness: .6, roughness: .32 }), accM, M(0x3a4046, { roughness: .85 })]); body.add(h);
+    add(new THREE.BoxGeometry(L * .3, .03, Bm * .5), accM, L * .3, edge(h, L * .3)[1] + .02, 0);
+    const frame = M(0x2b3035, { roughness: .5, metalness: .5 });
+    for (const sx of [-1, 1]) for (const sd of [-1, 1]) rod([-L * .05 + sx * .35, .55, sd * .45], [-L * .05 + sx * .25, 1.75, sd * .32], .04, frame);   // seat stand
+    add(new THREE.BoxGeometry(.75, .12, .85), frame, -L * .05, 1.8, 0); add(new THREE.BoxGeometry(.5, .2, .6), dark, -L * .06, 1.95, 0);
+    const back = add(new THREE.BoxGeometry(.1, .6, .6), dark, -L * .05 - .32, 2.25, 0); back.rotation.z = .15;
+    driver(-L * .02, 2.3, 0);
+    rod([L * .03, 1.85, -.3], [L * .12, 1.35, -.3], .03, metal); // rudder stick
+    add(new THREE.BoxGeometry(.8, .25, Bm * .7), dark, L * .2, .7, 0); add(new THREE.BoxGeometry(.12, .45, Bm * .7), dark, L * .2 - .38, .9, 0);   // passenger bench
+    add(new THREE.BoxGeometry(1.0, .55, .7), accM, -L * .25, 1.0, 0); add(new THREE.BoxGeometry(.8, .25, .5), metal, -L * .25, 1.38, 0);      // V8
+    add(new THREE.BoxGeometry(.25, .7, .8), dark, -L * .12, 1.05, 0);                                    // radiator
+    const hub = add(new THREE.CylinderGeometry(.14, .18, .5, 12), metal, -L * .36, 1.95, 0); hub.rotation.z = Math.PI / 2;
+    const fan = new THREE.Group(); fan.position.set(-L * .39, 1.95, 0); body.add(fan); g.userData.fan = fan;
+    for (const sd of [-1, 1]) { const bl = add(new THREE.BoxGeometry(.07, 1.0, .2), M(0x6b4a2a, { roughness: .5 }), 0, sd * .58, 0, fan); bl.rotation.y = sd * .3; }   // wooden blades
+    const disc = add(new THREE.CircleGeometry(1.12, 32), M(0xd8dde2, { transparent: true, opacity: .12, depthWrite: false }), -L * .39, 1.95, 0); disc.rotation.y = Math.PI / 2;
+    for (const x of [-L * .33, -L * .45]) { const ring = add(new THREE.TorusGeometry(1.25, .025, 6, 36), frame, x, 1.95, 0); ring.rotation.y = Math.PI / 2; }   // cage
+    for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283, y = 1.95 + Math.sin(a) * 1.25, z = Math.cos(a) * 1.25; rod([-L * .45, 1.95, 0], [-L * .45, y, z], .012, frame); rod([-L * .33, y, z], [-L * .45, y, z], .015, frame); }
+    for (const sd of [-1, 1]) rod([-L * .36, .55, sd * .7], [-L * .4, 1.2, sd * .62], .04, frame);
+    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.55, 1.5, .04), accM, -L / 2 - .1, 1.8, sd * .42);   // air rudders
+    rod([L * .36, .6, .4], [L * .36, 3.2, .4], .012, metal); const fl = add(new THREE.PlaneGeometry(.4, .25), M(ac), L * .36 - .2, 3.05, .4); fl.rotation.y = 0;   // safety flag
+    numbers(L * .1, .45, edge(h, L * .1)[2] + .02, .45);
+  } else if (md === 'foil') {
+    // foiling speedboat: a sleek hull on three foils (two forward struts carrying a wide main wing, a rear strut with a T-foil and
+    // the propeller pod at its foot) and a bubble canopy. At rest the foils hide under the water; at speed the hull flies clear
+    const h = B.hull({ L, B: Bm, D: .45, dead: .3, rise: .45, fine: .5 }, mats); body.add(h);
+    const carbon = M(0x1a1d22, { roughness: .35, metalness: .3 });
+    for (const sd of [-1, 1]) { const st = add(new THREE.BoxGeometry(.34, 1.6, .07), carbon, L * .16, -.95, sd * Bm * .44); st.rotation.x = sd * -.1; }
+    add(new THREE.BoxGeometry(.5, .06, Bm * 1.12), carbon, L * .16, -1.72, 0);
+    for (const sd of [-1, 1]) { const tip = add(new THREE.BoxGeometry(.4, .3, .05), accM, L * .16 - .05, -1.6, sd * Bm * .56); tip.rotation.x = sd * .4; }
+    add(new THREE.BoxGeometry(.36, 1.7, .08), carbon, -L * .42, -.9, 0);
+    add(new THREE.BoxGeometry(.42, .05, 1.6), carbon, -L * .42, -1.72, 0);
+    const pod = add(new THREE.CylinderGeometry(.13, .1, 1.0, 12), carbon, -L * .42 - .1, -1.68, 0); pod.rotation.z = Math.PI / 2;
+    const prop = add(new THREE.CylinderGeometry(.24, .24, .05, 3), metal, -L * .42 - .65, -1.68, 0); prop.rotation.z = Math.PI / 2;
+    const can = add(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), glass, -L * .04, .66, 0); can.scale.set(L * .17, .58, Bm * .3);
+    const fr = add(new THREE.TorusGeometry(1, .04, 6, 24, Math.PI), accM, -L * .04, .66, 0); fr.scale.set(L * .17, .58, 1);
+    add(new THREE.BoxGeometry(L * .5, .03, .3), accM, L * .22, edge(h, L * .22)[1] + .015, 0);
+    add(new THREE.BoxGeometry(L * .2, .26, Bm * .5), hullM, -L * .32, .75, 0);
+    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.6, .2, .26), dark, -L * .3, .95, sd * Bm * .15);
+    numbers(L * .2, .62, edge(h, L * .2)[2] + .03, .8);
+    driver(-L * .04, .5, -.4); driver(-L * .04, .5, .4);
+  } else if (md === 'cat') {
     // two slim sponsons joined by a wide, pointed tunnel deck; enclosed canopy; twin big outboards and a small rear wing
     for (const sd of [-1, 1]) { const h = B.hull({ L, B: Bm * .3, D: .55, dead: .42, rise: .35, fine: .42 }, mats); h.position.z = sd * Bm * .35; body.add(h); }
     const deck = B.hull({ L: L * .94, B: Bm * .98, D: -.05, dead: .08, rise: .3, fine: .32 }, [hullM, hullM, accM, hullM]); deck.position.set(-L * .03, .12, 0); body.add(deck);
@@ -566,6 +741,26 @@ B.World.prototype.makeBoat = function (type, cols, num) {
     const prop = add(new THREE.CylinderGeometry(.3, .3, .05, 3), metal, -L / 2 - .15, -.15, 0); prop.rotation.z = Math.PI / 2; g.userData.props = [prop];
     numbers(-L * .28, .62, Bm * .25 + .02, .8);
     driver(L * .2, .55, 0).visible = true;
+  } else if (md === 'vee' && T.open) {
+    // Class 2 offshore: a long stepped deep-V with an open cockpit (wraparound screen, bucket seats, roll hoop), a long engine deck
+    // with big air intakes, exhausts out of the topsides and twin stern drives instead of outboards
+    const h = B.hull({ L, B: Bm, D: .8, dead: .42, rise: .75, fine: .4 }, mats); body.add(h);
+    for (const x of [L * .08, -L * .12]) for (const sd of [-1, 1]) { const st = add(new THREE.BoxGeometry(.07, .5, .02), dark, x, .08, sd * (edge(h, x)[2] * .93 + .01)); st.rotation.z = -.5; }   // hull steps
+    add(new THREE.BoxGeometry(L * .55, .03, .4), accM, L * .2, .72, 0);
+    add(new THREE.BoxGeometry(1.4, .08, Bm * .72), deckM, -L * .05, .6, 0);
+    for (const sd of [-1, 1]) {
+      add(new THREE.BoxGeometry(.55, .45, .5), dark, -L * .07, .82, sd * .42); add(new THREE.BoxGeometry(.12, .6, .5), dark, -L * .07 - .3, 1.1, sd * .42);   // bucket seats
+      const sw = add(new THREE.BoxGeometry(.6, .32, .04), glass, L * .04, .9, sd * Bm * .33); sw.rotation.y = sd * .35;
+      add(new THREE.BoxGeometry(1.1, .4, .38), accM, -L * .3, 1.0, sd * .55); add(new THREE.BoxGeometry(.06, .26, .28), dark, -L * .3 + .56, 1.0, sd * .55);   // air intakes
+      for (let k = 0; k < 2; k++) { const ex = add(new THREE.CylinderGeometry(.09, .09, .3, 10), metal, -L * .38 + k * .45, .3, sd * (edge(h, -L * .38)[2] + .1)); ex.rotation.x = Math.PI / 2; }
+      add(new THREE.BoxGeometry(.32, .9, .14), dark, -L / 2 - .22, -.2, sd * .55);                        // stern drive leg
+      const pr = add(new THREE.CylinderGeometry(.28, .28, .05, 3), metal, -L / 2 - .48, -.5, sd * .55); pr.rotation.z = Math.PI / 2; (g.userData.props = g.userData.props || []).push(pr);
+    }
+    const ws = add(new THREE.BoxGeometry(.04, .38, Bm * .5), glass, L * .07, .95, 0); ws.rotation.z = -.7;
+    const hoop = add(new THREE.TorusGeometry(.75, .05, 6, 18, Math.PI), metal, -L * .14, .62, 0); hoop.rotation.y = Math.PI / 2;
+    add(new THREE.BoxGeometry(L * .3, .3, Bm * .62), hullM, -L * .32, .72, 0);
+    numbers(L * .22, .62, edge(h, L * .22)[2] + .04, 1.0);
+    driver(-L * .06, .95, -.42); driver(-L * .06, .95, .42);
   } else if (md === 'vee') {
     // offshore deep-V monohull: long raked bow, a low two-seat canopy, engine hatch with intakes and twin outboards
     body.add(B.hull({ L, B: Bm, D: .75, dead: .42, rise: .7, fine: .38 }, mats));
@@ -729,18 +924,26 @@ B.UPGRADES = [
 // career events: rivals race the same boat you bring; only the listed boats may enter
 B.EVENTS = [
   { id: 'novice', name: 'Harbour Novice Cup', course: 'harbour', laps: 2, skill: .92, rank: 0, allow: ['rib', 'jet'], purse: 1200 },
+  { id: 'atollski', name: 'Atoll Jet Ski Cup', course: 'atoll', laps: 2, skill: .92, rank: 0, allow: ['pwc', 'rib'], purse: 1300 },
   { id: 'lagoonclub', name: 'Lagoon Club Sprint', course: 'lagoon', laps: 3, skill: .94, rank: 0, allow: ['rib', 'jet'], purse: 1600 },
+  { id: 'concours', name: 'Canal Concours', course: 'canal', laps: 2, skill: .94, rank: 0, allow: ['runabout', 'jet'], purse: 1700 },
   { id: 'reefrun', name: 'Reef Run', course: 'reef', laps: 3, skill: .96, rank: 1, allow: ['rib', 'jet', 'vee'], purse: 2600 },
+  { id: 'canyonrun', name: 'Canyon River Run', course: 'canyon', laps: 2, skill: .96, rank: 1, allow: ['airboat', 'jet', 'pwc'], purse: 2900 },
   { id: 'laketrophy', name: 'Lake Trophy', course: 'lake', laps: 4, skill: .97, rank: 1, allow: ['jet', 'vee', 'f2'], purse: 3000 },
   { id: 'fjordclassic', name: 'Fjord Classic', course: 'fjord', laps: 3, skill: .97, rank: 2, allow: ['vee', 'f2', 'hydro'], purse: 4800 },
+  { id: 'misttrophy', name: 'Misty Lake Trophy', course: 'mist', laps: 3, skill: .97, rank: 2, allow: ['airboat', 'vee', 'f2'], purse: 5000 },
   { id: 'sunsetgp', name: 'Sunset Grand Prix', course: 'harbour', laps: 5, skill: .99, rank: 2, allow: ['f2', 'hydro'], purse: 5500 },
   { id: 'glacier', name: 'Glacier Challenge', course: 'glacier', laps: 3, skill: .98, rank: 3, allow: ['vee', 'hydro', 'cat'], purse: 7500 },
+  { id: 'foilcup', name: 'Atoll Foil Cup', course: 'atoll', laps: 4, skill: .99, rank: 3, allow: ['foil', 'hydro', 'cat'], purse: 8000 },
   { id: 'marathon', name: 'Archipelago Marathon', course: 'archipelago', laps: 2, skill: .98, rank: 3, allow: ['hydro', 'cat'], purse: 8500 },
   { id: 'offshore', name: 'Offshore Classic', course: 'offshore', laps: 2, skill: 1, rank: 4, allow: ['cat', 'super'], purse: 12000 },
   { id: 'lakespeed', name: 'Lake Speed Week', course: 'lake', laps: 5, skill: 1, rank: 4, allow: ['f1', 'hydro'], purse: 12500 },
+  { id: 'riviera', name: 'Riviera Endurance', course: 'coast', laps: 2, skill: 1, rank: 4, allow: ['c2', 'cat', 'vee'], purse: 13500 },
+  { id: 'canalgp', name: 'City Canals Grand Prix', course: 'canal', laps: 5, skill: 1.01, rank: 5, allow: ['f1', 'foil', 'f2'], purse: 16500 },
   { id: 'reefmasters', name: 'Reef Masters', course: 'reef', laps: 5, skill: 1.01, rank: 5, allow: ['f1', 'super'], purse: 17000 },
   { id: 'glaciergp', name: 'Glacier Grand Prix', course: 'glacier', laps: 4, skill: 1.01, rank: 5, allow: ['f1', 'super', 'unl'], purse: 19000 },
   { id: 'fjordws', name: 'Fjord World Series', course: 'fjord', laps: 5, skill: 1.02, rank: 6, allow: ['unl', 'super'], purse: 26000 },
+  { id: 'canyonws', name: 'Canyon World Series', course: 'canyon', laps: 3, skill: 1.02, rank: 6, allow: ['unl', 'super', 'c2'], purse: 29000 },
   { id: 'offshorews', name: 'Offshore World Series', course: 'offshore', laps: 3, skill: 1.02, rank: 6, allow: ['unl', 'super', 'jetplane'], purse: 32000 },
   { id: 'champion', name: 'Champion of Champions', course: 'lake', laps: 6, skill: 1.04, rank: 7, allow: ['jetplane', 'unl'], purse: 55000 },
 ];
@@ -1008,7 +1211,9 @@ B.Game = function () {
       const q = B.at(c, A.s), b = A.boat; b.x = q.x + q.rx * A.o; b.z = q.z + q.rz * A.o; b.h = q.h; b.u = A.v; b.r = q.k * A.v;
       b.plane += (clamp((A.v - 9) / 7, 0, 1) - b.plane) * Math.min(1, dt * 1.5); b.thr = vt > A.v ? 1 : .3;
       const w = B.waveAt(b.x, b.z, this.clock, c.calm), f = [Math.cos(b.h), Math.sin(b.h)], wA = B.waveAt(b.x + f[0] * 3, b.z + f[1] * 3, this.clock, c.calm);
-      b.y = w + b.plane * .25; b.pitch += (Math.atan2(wA - w, 3) + (1 - b.plane) * .1 - b.pitch) * Math.min(1, dt * 4); b.roll += (clamp(b.r * A.v * .022, -.32, .32) - b.roll) * Math.min(1, dt * 3); b.speed = A.v;
+      if (b.T.foil) b.foilUp += (clamp((A.v - b.T.foil) / 6, 0, 1) - b.foilUp) * Math.min(1, dt * 1.2);
+      const bank = b.T.bank || 1, lift = b.foilUp;
+      b.y = w * (1 - lift * .6) + b.plane * .25 + lift * 1.3; b.pitch += (Math.atan2(wA - w, 3) * (1 - lift * .6) + (1 - b.plane) * .1 - b.pitch) * Math.min(1, dt * 4); b.roll += (clamp(b.r * A.v * .022 * bank, -.32 * bank, .32 * bank) - b.roll) * Math.min(1, dt * 3); b.speed = A.v;
     }
     // you bump rivals: push apart
     for (const A of this.ai) { const b = A.boat, dx = pl.x - b.x, dz = pl.z - b.z, d = Math.hypot(dx, dz), R = (pl.T.beam + b.T.beam) * .9; if (d < R && d > .01) { pl.x += dx / d * (R - d); pl.z += dz / d * (R - d); pl.u *= Math.exp(-dt * 2.5); A.v *= Math.exp(-dt * 1.2); A.o += (A.o >= B.locate(this.course, pl.x, pl.z, this.pIdx).d ? 1 : -1) * 8 * dt; } }
@@ -1042,12 +1247,12 @@ B.Game = function () {
       if (b.splash > 0) { for (let k = 0; k < 40; k++) { const a = R() * 6.283, u = 2 + R() * 6; sp.emit(b.x + f[0] * T.len * .2, b.y, b.z + f[1] * T.len * .2, Math.cos(a) * u + f[0] * v * .3, 2 + R() * 7 * b.splash, Math.sin(a) * u + f[1] * v * .3, 1.4, 1.4, .8); } b.splash = 0; }
       if (b.air || v < 5) continue;
       const vx = f[0] * v, vz = f[1] * v;
-      for (let n = v * .5 * dt * q * (1 + Math.max(0, b.vy) * .4); n > 0; n--) {
+      for (let n = v * .5 * dt * q * (1 + Math.max(0, b.vy) * .4) * (1 - b.foilUp * .85); n > 0; n--) {   // foilers fly above their spray
         if (n < 1 && R() > n) break;
         for (const sd of [-1, 1]) { const out = 2 + v * .09 + R() * 2, along = T.len * (.15 - R() * .2);
           sp.emit(b.x + f[0] * along + s[0] * sd * T.beam * .5, b.y + .2, b.z + f[1] * along + s[1] * sd * T.beam * .5, vx * .5 + s[0] * sd * out, 1.5 + v * .05 + R() * 1.5, vz * .5 + s[1] * sd * out, .6 + v * .012, .8 + R() * .5, .5); }
       }
-      const rt = T.model === 'hydro' ? 1 : T.model === 'tunnel' ? .65 : T.model === 'jet' ? .8 : .35;
+      const rt = T.model === 'hydro' ? 1 : T.model === 'tunnel' ? .65 : T.model === 'jet' || T.model === 'pwc' ? .8 : T.model === 'airboat' ? .1 : T.foil ? .3 * (1 - b.foilUp) + .05 : .35;
       if (v > 10) for (let m = rt * v * .9 * dt * q; m > 0; m--) {
         if (m < 1 && R() > m) break;
         const up = v * (.12 + .14 * rt) * (.7 + R() * .5), sx = (R() - .5) * 3;
@@ -1059,6 +1264,7 @@ B.Game = function () {
   P._render = function (dt) {
     const W = this.world, b = this.player, cam = W.cam, c = this.course;
     this._place(this.pMesh, b); this.ai.forEach((A) => this._place(A.mesh, A.boat));
+    for (const [m, o] of [[this.pMesh, b]].concat(this.ai.map((A) => [A.mesh, A.boat]))) if (m.userData.fan) m.userData.fan.rotation.x += (6 + 40 * o.thr) * dt;   // airboat propellers
     W.buoys.forEach((y) => { const k = Math.min(1, dt * .4); y.x += (y.x0 - y.x) * k; y.z += (y.z0 - y.z) * k; y.g.position.x = y.x; y.g.position.z = y.z; y.g.position.y = B.waveAt(y.x, y.z, this.clock, c.calm) - .4; y.g.rotation.z = Math.sin(this.clock * 1.3 + y.x) * .08; });
     W.waterMat.uniforms.t.value = this.clock;
     const f = [Math.cos(b.h), Math.sin(b.h)];

@@ -6932,7 +6932,7 @@ const Menu = {
   renderTracks() {
     const c = this.choice;
     $('trackTitle').textContent = MODES[c.mode].name + ' — choose a track';
-    $('trackTitle').innerHTML = `${MODES[c.mode].name} <b>·</b> choose a track`;
+    $('trackTitle').innerHTML = `${c.bikes && c.mode === 'road' ? 'GP Bike Race' : MODES[c.mode].name} <b>·</b> choose a track`;
     let html = '';
     $('trackBack').innerHTML = this.card('back', '← Back', 'back'); this.bind('trackBack');
     const cls = c.mode === 'free' ? c.car : c.mode;
@@ -6953,14 +6953,18 @@ const Menu = {
   renderSetup() {
     const c = this.choice, race = c.mode !== 'free';
     const tName = c.track === 'flat' ? 'Flat World' : TRACK_DATA[c.track].name;
-    $('setupTitle').textContent = `${MODES[c.mode].name} · ${tName}`;
+    $('setupTitle').textContent = `${race && c.bikes && c.mode === 'road' ? 'GP Bike Race' : MODES[c.mode].name} · ${tName}`;
     const row = (label, key, opts) => `<div class="optrow"><span>${label}</span><div>${opts.map(([v, txt]) =>
       this.card('opt' + (String(c[key]) === String(v) ? ' on' : ''), txt, key + ':' + v)).join('')}</div></div>`;
     let html = '<div class="sec">Car</div>';
     if (!race) html += row('Car', 'car', [['road', `Road car · 5.0 V8 · ${CAR_SPECS.road.hp} hp · ${CAR_SPECS.road.mass.toLocaleString()} kg`], ['gt', `GT3 · 6.2 V8 · ${CAR_SPECS.gt.hp} hp · ${CAR_SPECS.gt.mass.toLocaleString()} kg`], ['f1', `F1 2026 · V6 turbo hybrid · ${CAR_SPECS.f1.hp} hp · ${CAR_SPECS.f1.mass} kg`]]);
-    { const cls = race ? c.mode : c.car, key = 'v_' + cls;
-      if (!c[key]) c[key] = cls;
-      html += row('Model', key, VARIANTS[cls].map(v => { const S = tunedSpec(cls, TUNE_DEF, v.id); return [v.id, `${v.name} · ${S.hp} hp`]; })); }
+    const bike = race && c.bikes && c.mode === 'road';   // GP Bikes: everyone rides the GP bike (no car models to pick)
+    if (bike) html += `<div class="optrow"><span>Model</span><div>${this.card('opt on', `${GP_BIKE.name} · ${tunedSpec('road', TUNE_DEF, GP_BIKE.id).hp} hp`, 'noop')}</div></div>`;
+    else { const cls = race ? c.mode : c.car, key = 'v_' + cls;
+      // models the admin has blocked for this player can't be picked here either (the standard car always stays)
+      const list = VARIANTS[cls].filter(v => v.id === cls || !Career.blocked(v.id));
+      if (!c[key] || !list.some(v => v.id === c[key])) c[key] = cls;
+      html += row('Model', key, list.map(v => { const S = tunedSpec(cls, TUNE_DEF, v.id); return [v.id, `${v.name} · ${S.hp} hp`]; })); }
     { const T = loadTune(c.mode === 'free' ? c.car : c.mode), n = Object.keys(T).filter(k => T[k]).length;
       html += `<div class="optrow"><span>Car setup</span><div>${this.card('opt', n ? `🔧 Tuned (${n} change${n > 1 ? 's' : ''})` : '🔧 Standard — tune it', 'tune')}</div></div>`; }
     if (race) {
@@ -6984,10 +6988,10 @@ const Menu = {
     html += '<div class="sec">Display</div>';
     html += row('Graphics', 'gfx', [['high', 'High (shadows)'], ['low', 'Low (faster)']]);
     // summary card
-    const cls = race ? c.mode : c.car, V = variantOf(cls, c['v_' + cls] || cls), S = tunedSpec(cls, loadTune(cls), V.id);
+    const cls = race ? c.mode : c.car, V = bike ? GP_BIKE : variantOf(cls, c['v_' + cls] || cls), S = tunedSpec(cls, loadTune(cls), V.id);
     const tk = c.track, tn = tk === 'flat' ? 'Flat World' : TRACK_DATA[tk].name;
     const lbl = { qualify: 'Qualifying sets the grid', pole: 'Start on pole', middle: 'Start mid-pack', back: 'Start at the back' };
-    const sum = `<div class="summary">${trackSVG(tk)}<h2>${tn}</h2><p>${MODES[c.mode].name}${tk !== 'flat' ? ' · ' + TRACK_DATA[tk].km.toFixed(2) + ' km' : ''}</p>
+    const sum = `<div class="summary">${trackSVG(tk)}<h2>${tn}</h2><p>${bike ? 'GP Bike Race' : MODES[c.mode].name}${tk !== 'flat' ? ' · ' + TRACK_DATA[tk].km.toFixed(2) + ' km' : ''}</p>
       <p style="margin-top:10px"><b>${V.name}</b> · ${S.hp} hp · ${Math.round(S.mass)} kg</p>
       ${race ? `<p>${c.laps} laps · ${c.opponents} rivals (${c.difficulty}) · ${lbl[c.startPos] || ''}</p>` : ''}
       <p>${{ morning: 'Morning', noon: 'Midday', golden: 'Golden hour', dusk: 'Dusk', night: 'Night' }[c.tod] || ''} · ${{ clear: 'Clear', cloudy: 'Cloudy', rain: 'Rain', changing: 'Rain later' }[c.weather] || ''}</p>

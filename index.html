@@ -1606,6 +1606,21 @@ SIM.Aircraft = (function () {
   P.controlLaws = function (dt) { return this.spec.heli ? this._heliLaws(dt) : laws0.call(this, dt); };
   const autoTrim0 = P.autoTrim;
   P.autoTrim = function () { return this.spec.heli ? 0 : autoTrim0.call(this); };
+
+  // air start: the autopilot flies the helicopter (headless, high above any terrain) into trimmed level flight at this
+  // speed, then hands over with its collective folded into the lever and the attitude / heading holds on the trim
+  SIM.settleHeli = function (ac, ias, secs) {
+    const real = ac.env, p0 = { x: ac.p.x, y: ac.p.y, z: ac.p.z }, ap = ac.ap, r = ac.rot, dt = 1 / 60;
+    ac.env = Object.assign(Object.create(real), { turbulence: 0, groundHeight: () => -5000, groundNormal: (x, z, o) => { o.x = 0; o.y = 1; o.z = 0; return o; } });
+    Object.assign(ap, { on: true, hdgOn: true, altOn: true, spdOn: true, spd: ias, alt: ac.p.y, hdg: ac.euler.heading * U.R2D });
+    for (let i = 0, n = Math.round((secs || 30) / dt); i < n && !ac.crashed; i++) ac.step(dt);
+    ac.env = real; ap.on = false;
+    ac.p.x = p0.x; ac.p.y = p0.y; ac.p.z = p0.z;
+    ac.ctl.throttle = clamp(ac.ctl.throttle + (r.cb || 0), 0, 1); r.cb = r.cbI = 0; r.lastColl = ac.ctl.throttle; r.collT = 2; r.hHold = ac.p.y;
+    r.thHold = ac.euler.pitch; r.hdgHold = ac.euler.heading; ac.ctl.pitch = ac.ctl.roll = ac.ctl.yaw = 0;
+    ac.airTime = 10; ac.events.length = 0; ac.maxG = 1; ac.minG = 1;
+    ap.hdg = ac.euler.heading * U.R2D; ap.alt = Math.round(ac.p.y / 10) * 10; ap.spd = ac.ias;
+  };
 })();
 
 // ---------- default environment (used by tests; the game supplies its own) ----------
@@ -1981,7 +1996,7 @@ SIM.flatEnv = function (groundY) {
       Clb: -0.05, Clp: -0.3, Clr: 0.05, Clda: 0.1, Cldr: 0.01, Cnb: 0.05, Cnr: -0.1, Cnp: 0, Cndr: 0.05, Cnda: 0 },
     fcs: { law: 'direct', vRef: 40, bwQ: 2, bwTh: 1, bwP: 2, bwR: 1, qMax: 0.5, nzCmdMax: 2.5, pMax: 1, pSched: 0, levelBank: 30, Kphi: 0.7, holdPitch: 0.8, attHold: true,
       apBank: 0.45, apHdgK: 1.2, vMinAP: 0, apAoaOff: 0, surfRate: 3, Kalpha: 0, groundYawDamp: 0 },
-    ap: { vsMax: 5 }, units: { spd: 'kt' }, gLimit: [3.5, -0.5],
+    ap: { vsMax: 5 }, units: { spd: 'kt' }, gLimit: [3.5, -0.5], hasAP: true,   // the AFCS autopilot (height, heading, speed or hover)
   };
   // skids: four sliding contact points; rotor tips and the tail rotor are hard points (a strike is a crash)
   const skids = (x, y, zf, zr) => [[-x, zf], [x, zf], [-x, zr], [x, zr]].map(([px, pz], i) => ({ name: 'skid' + i, pos: [px, y, pz], k: 52000, c: 7000, travel: 0.18, brake: false, lat: 1.0, rollMul: 28 }));
@@ -2281,7 +2296,7 @@ SIM.AIRLINER_TYPES = [
       wing: { x0: 0.6, semi: 8.75, d: 5.3, c0: 3.7, c1: 2.0, sweep: 1, y: -0.55, dih: 2, t: 0.055 }, flap: { k0: 5.2, k1: 8.3, f: 0.72 },
       stab: { x0: 0.5, semi: 2.75, d: 12.4, c0: 2.4, c1: 1.5, sweep: 6, y: 0.4, dih: 0 }, fin: { n: 2, x: 2.7, d: 12.4, c0: 2.5, c1: 1.4, h: 2.5, sweep: 14, cant: 0, y: 0.4 },
       podsGeom: { d0: 7.0, d1: 12.8, x: 1.4, y: 0.62, r: 0.62 }, nozzles: null,
-      gear: { main: 2.45, mainD: 7.5, noseD: 2.2, y: -1.6 }, eye: { d: 3.4, y: 0.8 }, gunNose: true,
+      gear: { main: 2.45, mainD: 8.1, noseD: 2.2, y: -1.6 }, eye: { d: 3.4, y: 0.8 }, gunNose: true,
     },
     {
       id: 'f4', name: 'F-4E Phantom II', maker: 'McDonnell Douglas', cls: 'Supersonic interceptor / fighter-bomber', rank: 2, len: 19.2, cgD: 8.7, span: 11.7, S: 49.2, dih: 12, sweep: 45, oew: 13760, fuel: 5000, payload: 400,
@@ -2425,6 +2440,7 @@ SIM.AIRLINER_TYPES = [
     const hasAB = C.Tab > 0;
     const old = C.id === 'a10' || C.id === 't38' || C.id === 'f4';
     const fcs = Object.assign({}, f16.fcs, { nzCmdMax: C.nz, pMax: C.pMax, alphaLim: (C.aS - 2) * D, vRef: Math.round(vs0 * 1.45), bwP: 2.5 + C.pMax, surfRate: old ? 5 : 8 });
+    if (C.nz <= 3) { fcs.stiffComp = 0.5; fcs.qMax = 0.15; }   // low-g heavies (SR-71, XB-70): the f16 gains alone could not hold level flight (the nose sagged into a dive); gentler push-over
     const wave = C.wave === 'm3' ? [[0.85, 0], [0.93, 0.004], [1.05, 0.014], [1.3, 0.012], [1.8, 0.009], [2.4, 0.008], [3.0, 0.010], [3.4, 0.03], [4, 0.06]] : C.mach < 1 ? [[0.55, 0], [0.62, 0.004], [0.7, 0.02], [0.78, 0.08], [0.9, 0.2], [1.2, 0.3], [3, 0.3]] : f16.waveDrag;
     const spec = {
       id: C.id, name: C.name, cls: C.cls, kind: 'jet', model: C.id, fighter: true, group: 'fighter', maker: C.maker, blurb: C.blurb,
@@ -5666,7 +5682,7 @@ SIM.Models = (function () {
   // Light, slow, draggy: trim about 10 m/s (36 km/h) sinking about 1.1 m/s (glide ratio 9).
   // The pilot hangs far below the wing, which gives strong pendulum stability, so damping is high.
   A.para = {
-    id: 'para', name: 'Paraglider (EN-B wing)', cls: 'Paraglider', kind: 'glider', model: 'para', glider: true, para: true,
+    id: 'para', name: 'Paraglider (EN-B wing)', cls: 'Paraglider', kind: 'glider', model: 'para', glider: true, para: true, fixedGear: true,   // feet: nothing to retract
     blurb: 'A foot-launched wing with no engine. Slow, gentle and happy in small thermals: circle tightly in the lift under the cumulus. Brake to turn and flare to land on your feet.',
     emptyMass: 22, payload: 80, fuelCap: 0, fuelDefault: 0,
     inertia: [300, 260, 420], S: 25, b: 10, c: 2.4, wingDY: 0.3, washFrac: 0, thrustOffset: 0,
@@ -6788,7 +6804,7 @@ function build(C, spec) {
       blurb: 'Boxy, tough and brilliantly practical: fixed gear, high wing and the best short-field twin in the business.',
       emptyMass: 1900, payload: 900, fuelCap: 330, S: 30.2, b: 14.94, c: 2.02, P: 390e3, T0: 7600, D: 1.95, rpmMax: 2700, pitch: 'cs', eng: '2 x Lycoming IO-540 260 hp', retract: false, flaps: 3, short: true,
       sp: { vs0: 25, vs1: 28, vr: 31, vy: 40, vne: 79, vfe: 48, vno: 60, vcruise: 55 }, eye: [0, 0.7, -0.9], chase: 17, stats: ['2 x 260 hp', 'Fixed gear', 'STOL capable', 'Seats 9'], CD0: 0.042, price: 2800, rank: 0 },
-    { id: 'dhc6', name: 'DHC-6 Twin Otter', cls: 'STOL turboprop twin', model: { wing: 'high', tail: 'T', L0: -6.0, L1: 9.8, w: 0.84, h: 1.25, hb: 0.8, wy: 1.3, c0: 2.0, c1: 2.0, ex: 3.3, nr: 0.42, blades: 3, pr: 1.35, fin: 3.9, stabY: 3.6, stabSp: 3.0, gY: 1.75, gn: -3.8, gm: 0.1, trk: 3.6, fixed: true, strut: true, long: true, body: 0xf1efe7, stripe: 0xd94a1a, accent: 0x1b2f5a },
+    { id: 'dhc6', name: 'DHC-6 Twin Otter', cls: 'STOL turboprop twin', model: { wing: 'high', tail: 'T', L0: -6.0, L1: 9.8, w: 0.84, h: 1.25, hb: 0.8, wy: 1.3, c0: 2.0, c1: 2.0, ex: 3.3, nr: 0.42, blades: 3, pr: 1.35, fin: 3.9, stabY: 3.6, stabSp: 3.0, gY: 1.75, gn: -3.8, gm: 0.35, trk: 3.6, fixed: true, strut: true, long: true, body: 0xf1efe7, stripe: 0xd94a1a, accent: 0x1b2f5a },
       blurb: 'The legendary bush twin: enormous flaps, huge payload and an astonishing short take-off run. Lands almost anywhere.',
       emptyMass: 3400, payload: 1500, fuelCap: 1000, S: 39, b: 19.8, c: 1.98, P: 920e3, T0: 21000, D: 2.7, rpmMax: 2200, pitch: 'cs', eng: '2 x PT6A-34 620 shp', retract: false, flaps: 4, turbo: true, short: true,
       sp: { vs0: 23, vs1: 27, vr: 29, vy: 38, vne: 90, vfe: 45, vno: 70, vcruise: 70 }, eye: [0, 1.02, -3.3], chase: 26, stats: ['2 x 620 shp turboprops', 'Fixed gear', 'Take-off roll 200 m', 'Seats 19'], CD0: 0.040, price: 6500, rank: 1 },
@@ -9805,8 +9821,11 @@ SIM.HUD = (function () {
   P._drawMinimal = function (ac, s, info) {
     const ctx = this.ctx, W = this.W, H = this.H;
     if (!info.cockpitOk) {
-    ctx.fillStyle = 'rgba(8,14,20,0.55)'; ctx.fillRect(10, H - 56, 230, 44);
+    // helicopters have no 3D panel: keep rotor RPM, torque and collective in view from the cabin
+    const hl = s.heli && ac.rot ? 'NR ' + fmt(ac.rot.om / s.heli._k.om0 * 100, 0) + '%  TQ ' + fmt((ac.eng.torque || 0) * 100, 0) + '%  COLL ' + fmt(U.clamp(ac.ctl.throttle + (ac.rot.cb || 0), 0, 1) * 100, 0) + '%' : null;
+    ctx.fillStyle = 'rgba(8,14,20,0.55)'; ctx.fillRect(10, H - (hl ? 72 : 56), 230, hl ? 60 : 44);
     ctx.font = '12px Consolas,monospace'; ctx.fillStyle = '#cfe';
+    if (hl) ctx.fillText(hl, 18, H - 54);
     ctx.fillText('IAS ' + fmt(ac.ias * U.KT, 0) + 'kt   ALT ' + fmt(ac.p.y * U.FT, 0) + 'ft', 18, H - 38);
     ctx.fillText('VS ' + fmt(ac.vs * U.FPM, 0) + 'fpm   HDG ' + fmt(U.wrap360(ac.euler.heading * U.R2D), 0), 18, H - 22);
     }
@@ -9853,13 +9872,14 @@ SIM.settle = function (ac, o) {
   // Run the real physics headlessly until the aircraft is in a steady, trimmed state, so the player inherits a stable approach/cruise.
   const U = SIM.U, dt = 1 / 60, byPitch = !!o.speedByPitch;
   const n = Math.round((o.secs || (byPitch ? 28 : 55)) / dt);
-  const real = ac.env;
+  const real = ac.env, as0 = ac.assist;
+  if (ac.spec.para) ac.assist = false;   // the paraglider's attitude hold fights the speed-by-pitch loop (it settled 8 kt fast)
   ac.env = Object.assign(Object.create(real), {
     turbulence: 0, groundHeight: () => -5000, groundNormal: (x, z, out) => { out.x = 0; out.y = 1; out.z = 0; return out; },
   });
   const fT = (o.fpa || 0) * U.D2R, G = o.gain || 1, thr0 = o.thr != null ? o.thr : 0.3;
   let vT = o.ias;
-  const p0 = { x: ac.p.x, y: ac.p.y, z: ac.p.z };
+  const p0 = { x: ac.p.x, y: ac.p.y, z: ac.p.z }, h0 = ac.euler.heading;
   let si = 0, ti = 0, prev = null;
   ac.autoTrim();
   for (let i = 0; i < n; i++) {
@@ -9878,12 +9898,17 @@ SIM.settle = function (ac, o) {
       ti = U.clamp(ti + err * dt * 0.012 * G, -0.8, 0.8);
       ac.ctl.throttle = U.clamp(thr0 + ti + err * 0.03 * G, 0, 1);
     }
-    ac.ctl.roll = 0; ac.ctl.yaw = 0;
+    ac.ctl.roll = U.clamp(-2 * ac.euler.roll, -0.4, 0.4); ac.ctl.yaw = 0;   // wings level (torque and slipstream bank a single)
   }
   ac.ctl.pitch = 0; ac.ctl.roll = 0; ac.ctl.yaw = 0;
   ac.surf.de = 0; ac.surf.da = 0; ac.surf.dr = 0;
-  ac.env = real;
+  ac.env = real; ac.assist = as0;
   ac.p.x = p0.x; ac.p.y = p0.y; ac.p.z = p0.z;   // rigid-translate back to the intended start point
+  {   // ... and turn back onto the intended heading: a minute of settling drifted props up to 40 degrees off the runway
+    const dq = U.Q.axisAngle(0, 1, 0, -U.wrapPI(h0 - ac.euler.heading), {});
+    ac.q = U.Q.norm(U.Q.mul(dq, ac.q, {})); U.Q.rot(dq, ac.v.x, ac.v.y, ac.v.z, ac.v);
+    ac._updateDerived(0);
+  }
   ac.autoTrim();
   ac.airTime = 10; ac.events.length = 0; ac.maxG = 1; ac.minG = 1;
   ac.fcsState.hold = true; ac.fcsState.thT = ac.euler.pitch;
@@ -11961,6 +11986,7 @@ SIM.Upgrades = (function () {
     const fe = 1 + 0.06 * lv.engine, fc = 1 + 0.09 * lv.ctrl, ff = 1 + 0.10 * lv.fuel;
     ['T0', 'Tab', 'P'].forEach((k) => { if (spec.engine[k]) spec.engine[k] *= fe; });
     ['bwQ', 'bwP', 'bwR', 'pMax', 'qMax'].forEach((k) => { if (spec.fcs[k]) spec.fcs[k] *= fc; });
+    if (spec.heli) { if (b.Pmax == null) b.Pmax = spec.heli.Pmax; spec.heli.Pmax = b.Pmax * fe; }   // helicopters: engine tiers add power (the rotor model reads heli.Pmax)
     if (spec.fuelCap) { spec.fuelCap = b.fuelCap * ff; spec.fuelDefault = Math.min(1, b.fuelDefault / ff); }
     SIM.deriveSpec(spec);
   };
@@ -12571,7 +12597,7 @@ SIM.Game = (function () {
   };
 
   P.startFree = function (cfg) {
-    this.cfg = cfg; this.kind = 'free'; this.trip = null;
+    this.cfg = cfg; this.kind = 'free'; this.trip = null; this.def = null;   // no stale challenge title in the pause menu
     const tod = cfg.tod;
     this.build(cfg.airport, cfg.aircraft, { preset: cfg.weather, rwy: cfg.rwy || 0, end: cfg.end || 0 }, tod);
     const R = this.rwy(cfg.airport, cfg.rwy || 0, cfg.end || 0);
@@ -12581,7 +12607,8 @@ SIM.Game = (function () {
       let ias = s.speeds.vcruise * (s.airliner ? 0.74 : s.fighter ? 0.6 : s.glider ? 1.0 : 0.82);
       if (s.airliner) ias = Math.min(ias, 250 / U.KT);   // airliners keep to 250 kt below 10,000 ft
       this.placeAir(R.x, Math.max(gh, R.y) + (s.airliner ? 1600 : s.para ? 450 : s.glider ? 700 : s.fighter ? 1500 : 650), R.z, R.hdg, { speed: ias, throttle: 0.5, gearUp: !s.fixedGear && !s.glider });
-      SIM.settle(this.ac, { ias, fpa: 0, speedByPitch: !!s.glider, thr: 0.45, gain: SIM.gainOf(s) });
+      if (s.heli) SIM.settleHeli(this.ac, ias);   // collective is not a throttle: the helicopter's own autopilot trims it
+      else SIM.settle(this.ac, { ias, fpa: 0, speedByPitch: !!s.glider, thr: 0.45, gain: SIM.gainOf(s) });
       this.assist();
     } else {
       this.placeGround(R, 12);
@@ -12679,7 +12706,8 @@ SIM.Game = (function () {
     const jp = (c) => I.justPressed(c);
     if (jp('KeyG') && !s.fixedGear) ac.ctl.gear = ac.ctl.gear > 0.5 ? 0 : 1;
     if (jp('KeyT')) this.towAction();
-    if ((jp('KeyE') || jp('PadEngine')) && this.ent.camMode !== 'free') this.engineToggle();
+    // E is also the right rudder / pedal key, so from the keyboard it only acts when it cannot be a pedal input (see engineToggle)
+    if ((jp('KeyE') || jp('PadEngine')) && this.ent.camMode !== 'free') this.engineToggle(!I.key('PadEngine'));
     if (jp('KeyN') && this.challenge && this.challenge.action) this.challenge.action(this, this.cst);
     if (jp('Period')) this.cycleWarp();
     if (jp('KeyM') && ac.ap.on) { this.apNav = !this.apNav; this.hud.flash('Autopilot route tracking ' + (this.apNav ? 'ON' : 'OFF'), 'info'); }
@@ -12700,7 +12728,7 @@ SIM.Game = (function () {
       if (I.key('KeyI')) ap.alt += 60 * this._dt * (s.fighter ? 4 : 1);
       if (I.key('KeyK')) ap.alt = Math.max(0, ap.alt - 60 * this._dt * (s.fighter ? 4 : 1));
       if (I.key('KeyO')) ap.spd += 6 * this._dt;
-      if (I.key('KeyU')) ap.spd = Math.max(15, ap.spd - 6 * this._dt);
+      if (I.key('KeyU')) ap.spd = Math.max(s.heli ? 0 : 15, ap.spd - 6 * this._dt);   // a helicopter can slow the autopilot to a hover
     }
     const throttleKeys = [['Digit0', 0], ['Digit1', 0.1], ['Digit2', 0.2], ['Digit3', 0.3], ['Digit4', 0.4], ['Digit5', 0.5], ['Digit6', 0.6], ['Digit7', 0.7], ['Digit8', 0.8], ['Digit9', 1]];
     for (const [c, v] of throttleKeys) if (jp(c)) I.throttleHeld = v;
@@ -12712,14 +12740,15 @@ SIM.Game = (function () {
     this.hud.flash('Flaps ' + s.flaps[ac.ctl.flap].deg + '°', 'info');
   };
   // engine start / shut-down (only on the ground; shut-down needs the aircraft nearly stopped)
-  P.engineToggle = function () {
+  P.engineToggle = function (pedalKey) {
     const ac = this.ac, s = this.spec, E = s.engine;
     if (!E || E.type === 'none' || s.glider || this.mode !== 'play') return;
     if (ac.eng.running || this.starting != null) {
-      if (!ac.onGround || ac.gs > 3) { this.hud.flash('Stop the aircraft before shutting down', 'bad'); return; }
+      if (!ac.onGround || ac.gs > 3) { if (!pedalKey) this.hud.flash('Stop the aircraft before shutting down', 'bad'); return; }
+      if (pedalKey && this.input.throttleHeld > 0.02) return;   // E as a pedal (taxi, helicopter on the ground): shut down only at idle / collective down
       ac.eng.running = false; this.starting = null; this.hud.flash('Engine shut down', 'info');
     } else {
-      if (!ac.onGround) { this.hud.flash('Cannot start the engine in the air', 'bad'); return; }
+      if (!ac.onGround) { if (!pedalKey) this.hud.flash('Cannot start the engine in the air', 'bad'); return; }
       if (ac.fuel <= 0) { this.hud.flash('No fuel', 'bad'); return; }
       if (this.input.throttleHeld > 0.25) { this.hud.flash('Throttle to idle to start the engine', 'bad'); return; }
       this.starting = E.type === 'piston' ? 2.6 : 6; this.hud.flash('Starting engine...', 'info');
@@ -12735,7 +12764,7 @@ SIM.Game = (function () {
     const ac = this.ac, ap = ac.ap;
     if (this.challenge && this.kind === 'challenge' && this.def.kind !== 'landing' && false) return;
     ap.on = !ap.on;
-    if (ap.on) { ap.hdg = ac.euler.heading * U.R2D; ap.alt = Math.round(ac.p.y / 10) * 10; ap.spd = ac.ias; ap.spdOn = this.spec.engine.type === 'jet'; ap.hdgOn = true; ap.altOn = true; ap.vsI = 0; }
+    if (ap.on) { ap.hdg = ac.euler.heading * U.R2D; ap.alt = Math.round(ac.p.y / 10) * 10; ap.spd = ac.ias; ap.spdOn = this.spec.engine.type === 'jet' || !!this.spec.heli; ap.hdgOn = true; ap.altOn = true; ap.vsI = 0; }
     this.hud.flash('Autopilot ' + (ap.on ? 'ON' : 'OFF'), 'info');
   };
   P.cycleCamera = function () {
@@ -12910,7 +12939,8 @@ SIM.Game = (function () {
   function paintBuy() {
     const a = SIM.AIRCRAFT[sel.aircraft], box = $('acBuy'), owned = Shop.owned(a.id);
     box.hidden = owned; box.innerHTML = '';
-    if (!owned) {
+    if (!owned && Shop.blocked(a.id)) box.appendChild(el('span', '', 'Not available: the admin has taken this aircraft away'));
+    else if (!owned) {
       const gate = SIM.Career.gate(a.id), afford = Shop.credits() >= Shop.price(a.id);
       const b = el('button', 'btn', 'Unlock \u00B7 ' + fmtCr(Shop.price(a.id))); b.type = 'button'; b.disabled = !afford || !gate.ok;
       b.addEventListener('click', () => { if (Shop.buy(a.id)) { paintWallet(); buildHangar(); buildChallenges(); } });
@@ -12941,7 +12971,7 @@ SIM.Game = (function () {
     SIM.AIRCRAFT_LIST.filter((a) => grp === 'all' || a.group === grp).forEach((a) => {
       const b = el('button', 'ac'); b.type = 'button'; b.dataset.id = a.id;
       const own = Shop.owned(a.id); if (!own) b.classList.add('locked');
-      b.innerHTML = '<div class="n">' + a.name.replace(/ (Skyhawk|Fighting Falcon|Cub.*)$/, '') + '</div><div class="c">' + a.cls + '</div><div class="s">' + a.stats.slice(0, 2).join(' &middot; ') + '</div>' + (own ? '' : '<div class="lock">\uD83D\uDD12 ' + fmtCr(Shop.price(a.id)) + (SIM.Career.gate(a.id).ok ? '' : ' \u00B7 ' + SIM.Career.gate(a.id).need) + '</div>');
+      b.innerHTML = '<div class="n">' + a.name.replace(/ (Skyhawk|Fighting Falcon|Cub.*)$/, '') + '</div><div class="c">' + a.cls + '</div><div class="s">' + a.stats.slice(0, 2).join(' &middot; ') + '</div>' + (own ? '' : Shop.blocked(a.id) ? '<div class="lock">\uD83D\uDD12 Not available</div>' : '<div class="lock">\uD83D\uDD12 ' + fmtCr(Shop.price(a.id)) + (SIM.Career.gate(a.id).ok ? '' : ' \u00B7 ' + SIM.Career.gate(a.id).need) + '</div>');
       b.addEventListener('click', () => { sel.aircraft = a.id; saveSel(); paintAc(); schedulePreview(); });
       hangar.appendChild(b);
     });
@@ -12994,6 +13024,7 @@ SIM.Game = (function () {
       const lv = Up.levels(a.id);
       Up.TYPES.forEach((t) => {
         if (t.id === 'fuel' && !a.fuelCap) return;
+        if (t.id === 'ctrl' && a.heli) return;   // no control surfaces on a helicopter (its flight control system is not upgraded)
         const row = el('div', 'upg'), tier = lv[t.id], cost = tier < 3 ? Up.cost(a.id, tier) : 0;
         row.innerHTML = '<div class="nm">' + t.name + '<small>' + t.per + '</small></div><div class="pips">' + '\u25A0'.repeat(tier) + '\u25A1'.repeat(3 - tier) + '</div>';
         const b = el('button', 'btn', tier >= 3 ? 'Maxed' : 'Buy \u00B7 ' + fmtCr(cost)); b.type = 'button'; b.disabled = tier >= 3 || Shop.credits() < cost;
@@ -13181,7 +13212,7 @@ SIM.Game = (function () {
     if (!T) { btn.disabled = true; btn.textContent = 'Select a trip'; rs.hidden = true; return; }
     const sv = TR.get(T.id), ac = tripAcFor(T, sv), ok = Shop.owned(ac);
     btn.disabled = !ok; rs.hidden = !sv;
-    btn.textContent = !ok ? 'Unlock ' + SIM.AIRCRAFT[ac].name + ' in Free flight first' : sv ? 'Resume trip: leg ' + (sv.next + 1) + ' of ' + T.legs.length : 'Start trip';
+    btn.textContent = !ok ? (Shop.blocked(ac) ? 'The ' + SIM.AIRCRAFT[ac].name + ' is not available' : 'Unlock ' + SIM.AIRCRAFT[ac].name + ' in Free flight first') : sv ? 'Resume trip: leg ' + (sv.next + 1) + ' of ' + T.legs.length : 'Start trip';
   }
   function previewTrip() {
     const T = sel.trip && TR.byId[sel.trip]; if (!T) return;
@@ -13330,7 +13361,9 @@ SIM.Game = (function () {
     tb.querySelector('[data-a=ap]').hidden = !s.hasAP;
     tb.querySelector('[data-a=rev]').hidden = s.engine.type !== 'jet' || !s.engine.rev;
     tb.querySelector('[data-a=spoil]').hidden = !((s.glider && !s.para) || s.airliner);
-    tb.querySelector('[data-a=release]').hidden = !s.glider;
+    tb.querySelector('[data-a=release]').hidden = !s.glider || !!s.para;
+    // glider hint bar: a paraglider has no tow, air brakes or wheel
+    const gb = $('gbar'); gb.querySelector('[data-a=tow]').hidden = gb.querySelector('[data-a=spoil]').hidden = !!s.para; gb.querySelector('[data-a=gear]').hidden = !!s.fixedGear;
     dom.towState(true);
   }
   // glider-only: tow button label + the small top-of-screen hint bar
@@ -13430,8 +13463,14 @@ SIM.Game = (function () {
       give: (id) => { if (!SIM.AIRCRAFT[id]) return; const w = Shop._w(); if (w.owned.indexOf(id) < 0) w.owned.push(id); SIM.store.set('wallet', w); },
       take: (id) => { const w = Shop._w(); w.owned = w.owned.filter((x) => x !== id); SIM.store.set('wallet', w); },
       name: (id) => (SIM.AIRCRAFT[id] ? SIM.AIRCRAFT[id].name : id),
-      refresh: () => { try { paintWallet(); buildHangar(); buildChallenges(); } catch (e) { /* menu not built yet */ } },
+      refresh: () => { try { paintWallet(); buildHangar(); buildChallenges(); buildTrips(); } catch (e) { /* menu not built yet */ } },
     });
+    // blocking a free aircraft leaves the wallet as it was, so no refresh is asked for: repaint the menus when the block list changes
+    if (window.ErikaAccess && ErikaAccess.blocked) {
+      const blk = () => SIM.AIRCRAFT_LIST.filter((a) => Shop.blocked(a.id)).map((a) => a.id).join();
+      let last = blk();
+      setInterval(() => { const k = blk(); if (k === last) return; last = k; if (game.mode === 'menu') { try { buildHangar(); buildChallenges(); buildTrips(); } catch (e) { /* ignore */ } } }, 5000);
+    }
     window.addEventListener('resize', () => game.resize());
     if (window.ResizeObserver) new ResizeObserver(() => game.resize()).observe(stage);
     game.showPreview(sel.airport, sel.aircraft, SIM.TIMES[sel.time], sel.wx);
