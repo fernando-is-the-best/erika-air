@@ -111,7 +111,7 @@
     let changed = false;
     Object.entries(ctl.grants || {}).filter(([gid, g]) => g && done.indexOf(gid) < 0).sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).forEach(([gid, g]) => {
       if (typeof g.set === 'number') { adapter.setCredits(Math.max(0, Math.round(g.set))); msgs.push('your credits are now ' + Math.round(g.set).toLocaleString()); }
-      if (typeof g.credits === 'number' && g.credits) { adapter.setCredits(Math.max(0, Math.round(adapter.credits() + g.credits))); msgs.push((g.credits > 0 ? '+' : '\u2212') + Math.abs(g.credits).toLocaleString() + ' credits'); }
+      if (typeof g.credits === 'number' && g.credits) { const was = adapter.credits(), now = Math.max(0, Math.round(was + g.credits)), d = now - was; adapter.setCredits(now); if (d) msgs.push((d > 0 ? '+' : '\u2212') + Math.abs(d).toLocaleString() + ' credits'); }   // the real change (a take stops at 0)
       (g.give || []).forEach((id) => { adapter.give(id); msgs.push('you now have the ' + name(id)); });
       (g.take || []).forEach((id) => { adapter.take(id); msgs.push('the ' + name(id) + ' was taken away'); });
       done.push(gid); changed = true;

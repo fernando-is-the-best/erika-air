@@ -384,6 +384,8 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
     const t = docs.length; $('gTotal').textContent = t; $('gUsed').textContent = used; $('gFree').textContent = free; $('gOff').textContent = off; $('gLive').textContent = live;
     const pc = (v) => (t ? (v / t) * 100 : 0) + '%'; $('bUsed').style.width = pc(used); $('bFree').style.width = pc(free); $('bOff').style.width = pc(off);
   }
+  // how each game's activity reads on the desk: [last …, … count word, live tooltip]
+  const WORDS = { air: ['last flew', 'flight', 'Flying in the last 15 minutes'], race: ['last raced', 'race', 'Racing in the last 15 minutes'], boat: ['last played', 'session', 'Playing in the last 15 minutes'] };
   let editing = null;
   function paintList() {
     const L = $('list'); L.textContent = '';
@@ -408,9 +410,9 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
       const pill = document.createElement('span'); pill.className = 'pill ' + st; pill.textContent = st === 'free' ? 'Unused' : st === 'used' ? (c.once ? 'Used' : 'In use') : 'Turned off'; meta.appendChild(pill);
       const gp = document.createElement('span'); gp.className = 'pill game ' + (GAMES[c.game] ? c.game : 'air'); gp.textContent = (KIND[c.game] || KIND.air) + (c.once ? ' · one-time' : ''); meta.appendChild(gp);
       const recent = c.lastSeen && c.lastSeen.toDate && Date.now() - c.lastSeen.toDate().getTime() < 15 * 60000;
-      if (recent && st === 'used') { const d = document.createElement('span'); d.className = 'dot'; d.title = 'Flying in the last 15 minutes'; meta.appendChild(d); }
+      if (recent && st === 'used') { const d = document.createElement('span'); d.className = 'dot'; d.title = WORDS[c.game] ? WORDS[c.game][2] : WORDS.air[2]; meta.appendChild(d); }
       const info = document.createElement('span');
-      info.textContent = [st === 'used' ? 'claimed ' + fmt(c.claimedAt) : 'made ' + fmt(c.createdAt), c.lastSeen ? 'last flew ' + ago(c.lastSeen) : '', c.plays ? c.plays + (c.plays === 1 ? ' flight' : ' flights') : ''].filter(Boolean).join(' · ');
+      info.textContent = [st === 'used' ? 'claimed ' + fmt(c.claimedAt) : 'made ' + fmt(c.createdAt), c.lastSeen ? (WORDS[c.game] || WORDS.air)[0] + ' ' + ago(c.lastSeen) : '', c.plays ? c.plays + ' ' + (WORDS[c.game] || WORDS.air)[1] + (c.plays === 1 ? '' : 's') : ''].filter(Boolean).join(' · ');
       meta.appendChild(info);
       left.append(code, meta);
       if (showFleet) {
