@@ -1024,7 +1024,7 @@ const VARIANTS = {
       mod: { massAdd: 80, tractionMul: .85, aMaxMul: .93, engineName: '7.0 V8 (1969)', torque: [[0, 450], [1500, 600], [3000, 650], [4500, 620], [5500, 540], [6000, 480], [7500, 250]], limit: 6000, finalMul: .9, autoUp: 5800, autoDown: 2200, autoDownCoast: 1600,
         sound: { cyl: 8, pattern: [1, .45, 1, 1, .45, 1, .45, .45], tone: 1.2, crackle: 1.4 } } },
     { id: 'road_drift', name: 'Drift Spec S6', desc: 'Turbo straight-six, rear drive and a loose rear end: built to go sideways', price: 28000, paint: ['#f4f1ea', '#e2331f'],
-      mod: { massAdd: -180, tractionMul: .78, engineName: '3.0 turbo I6', torque: [[0, 300], [2500, 560], [4000, 640], [6000, 640], [7000, 580], [7500, 520], [9000, 250]], limit: 7500, autoUp: 7200, autoDown: 3200, autoDownCoast: 2400,
+      mod: { massAdd: -180, tractionMul: .78, slipLim: .16, spinSlide: 1.6, engineName: '3.0 turbo I6', torque: [[0, 300], [2500, 560], [4000, 640], [6000, 640], [7000, 580], [7500, 520], [9000, 250]], limit: 7500, autoUp: 7200, autoDown: 3200, autoDownCoast: 2400,
         sound: { cyl: 6, pattern: [1, 1, 1, 1, 1, 1], tone: 1.7, turbo: 1.1, crackle: 1.6 } } },
     { id: 'road_hyper', name: 'Hyper W16', desc: 'Quad-turbo W16, all-wheel drive and over 1,300 hp: the fastest road car you can buy', price: 120000, paint: ['#0d1b3a', '#c0c4cc'],
       mod: { massAdd: 300, tractionMul: 1.45, aMaxMul: 1.08, dragMul: .72, engineName: '8.0 W16 quad-turbo', torque: [[0, 700], [2000, 1350], [3000, 1600], [6000, 1600], [6700, 1450], [7000, 1300], [8500, 500]], limit: 7000, finalMul: .72, autoUp: 6800, autoDown: 3000, autoDownCoast: 2400,
@@ -1111,7 +1111,7 @@ function tunedSpec(cls, T = loadTune(cls), vid = cls) {
   if (M.dfMul) B.df *= M.dfMul; if (M.dfCapMul) B.dfCap = 1 + (B.dfCap - 1) * M.dfCapMul;
   if (M.dragMul) B.drag *= M.dragMul;
   if (M.finalMul) B.final *= M.finalMul;
-  for (const k of ['limit', 'idle', 'autoUp', 'autoDown', 'autoDownCoast', 'engineName', 'noErs', 'activeAero', 'reverseLimit', 'wheelR', 'final', 'gears', 'ratios', 'shiftTime', 'eff', 'driftAssist', 'maxSlip',
+  for (const k of ['limit', 'idle', 'autoUp', 'autoDown', 'autoDownCoast', 'engineName', 'noErs', 'activeAero', 'reverseLimit', 'wheelR', 'final', 'gears', 'ratios', 'shiftTime', 'eff', 'driftAssist', 'maxSlip', 'slipLim', 'spinSlide',
     'grip', 'maxLat', 'hbMaxLat', 'aMax', 'traction', 'brake', 'rolling', 'drag', 'wheelbase', 'length', 'width', 'lock', 'eye', 'lookDrop', 'chase']) if (M[k] !== undefined) B[k] = M[k];
   if (V.model) B.pid = V.id;   // its own racing-line speed profile
   if (M.sound) B.sound = Object.assign({}, B.sound, M.sound);
@@ -1313,7 +1313,7 @@ class Car {
     // extra cornering when steering into the boosted edge range (past normal full lock)
     const over = clamp((Math.abs(inp.steer || 0) - 1) / (STEER_CURVE.edgeBoost - 1), 0, 1);
     const edge = this.hb ? 1 : 1 + (STEER_CURVE.edgeGrip - 1) * over;
-    const gripMul = surf.grip / (1 + this.wheelspin * (nd ? 0.35 : 1.6));
+    const gripMul = surf.grip / (1 + this.wheelspin * (nd ? 0.35 : (E.spinSlide ?? 0.9)));   // wheelspin costs rear grip (power oversteer)
     // F1: stays planted unless it's knocked or snapped past the limit — then it spins out until it has slowed down
     if (nd) {
       const spd0 = Math.hypot(vF, vL), sa0 = Math.atan2(Math.abs(vL), Math.abs(vF) + 0.5);
@@ -1334,7 +1334,10 @@ class Car {
     const maxLat = (this.spinning && nd ? E.maxLat * 0.22 : this.hb ? E.hbMaxLat : E.maxLat * edge * dfMul) * gripMul;
     const demand = Math.abs(vL) * E.grip * gripMul;
     this.latSat = maxLat > 0 ? demand / maxLat : 0;   // > 1 means the tyres have let go sideways
-    const kill = Math.min(demand, maxLat), spd0 = Math.hypot(vF, vL);
+    // tyres push back in proportion to the slip angle, so the car only drifts a few degrees wide of where it points while
+    // the grip holds (about 5° at the limit; drift cars more). Past the grip limit it still slides as before.
+    const stiff = E.driftAssist || this.hb ? 0 : E.aMax * dfMul * gripMul * Math.atan2(Math.abs(vL), Math.abs(vF) + 1) / (E.slipLim || .085);
+    const kill = Math.min(Math.max(demand, stiff), maxLat), spd0 = Math.hypot(vF, vL);
     vL -= Math.sign(vL) * Math.min(Math.abs(vL), kill * dt);
     if (E.driftAssist && spd0 > 5 && Math.abs(vF) > 1) {   // Rickshaw Rush: a slide swings your speed round instead of scrubbing it off
       const ang = Math.min(1, Math.atan2(Math.abs(vL), Math.abs(vF)) / E.maxSlip), keep = spd0 * (1 - .14 * ang * dt), f2 = keep * keep - vL * vL;
