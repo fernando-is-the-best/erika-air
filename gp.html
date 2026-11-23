@@ -511,7 +511,7 @@ const Input = {
    Gamepad (standard mapping): left stick steers, RT gas, LT brake,
    A handbrake, RB/LB shift up/down, Y camera, Start pause.             */
 const STEER_CURVE = {
-  kbStart: 1.0,    // wheel speed when you first press A/D (lock per second)
+  kbStart: 1.6,    // wheel speed when you first press A/D (lock per second)
   kbExpo: 4.5,     // how fast that speed grows as the wheel turns (exponential): higher = snappier
   edgeBoost: 1.7,  // full push / full hold = this × the normal full lock (extra turning at the edges)
   edgeExpo: 3.0,   // how sharply the extra lock arrives towards the edge (centre stays linear)
@@ -543,7 +543,7 @@ const Controls = {
       const rate = (reversing ? 4.5 : Math.min(8, STEER_CURVE.kbStart * Math.exp(STEER_CURVE.kbExpo * Math.abs(this.kbSteer)))) * this.sens;
       this.kbSteer = clamp(this.kbSteer + dir * rate * dt, -STEER_CURVE.edgeBoost, STEER_CURVE.edgeBoost);
     } else {
-      const back = (1.8 + 2 * Math.abs(this.kbSteer)) * dt;
+      const back = (2.6 + 2.4 * Math.abs(this.kbSteer)) * dt;
       this.kbSteer = Math.abs(this.kbSteer) <= back ? 0 : this.kbSteer - Math.sign(this.kbSteer) * back;
     }
     let steer = this.kbSteer;
@@ -1231,7 +1231,7 @@ class Car {
     this.steer = 0; this.vF = 0; this.vL = 0; this.throttle = 0;
     this.braking = false; this.hb = false; this.wheelSpin = 0;
     this.slide = 0; this.latSat = 0;
-    this.wImp = 0; this.yawRate = 0; this.spinning = false;   // extra spin from collisions (rad/s), damped by the tyres
+    this.wImp = 0; this.yawRate = 0; this.yawT = 0; this.spinning = false;   // extra spin from collisions (rad/s), damped by the tyres
     this.gear = 1; this.shiftT = 0; this.rpm = this.spec.idle; this.wheelspin = 0; this.limiter = false; this.shifted = false;
   }
   get speed() { return Math.hypot(this.vx, this.vy); }
@@ -1342,7 +1342,12 @@ class Car {
     }
 
     const steerIn = clamp(inp.steer || 0, -STEER_CURVE.edgeBoost, STEER_CURVE.edgeBoost);   // analog, from Controls
-    const target = clamp(steerIn * E.lock / (1 + Math.abs(vF) / 18), -STEER_CURVE.maxWheel, STEER_CURVE.maxWheel);
+    // speed-sensitive steering: past the grip limit more lock only scrubs the tyres, so at speed the full stick / key
+    // travel is spread over the useful range (about half input reaches what the tyres can take). Small inputs then give small,
+    // smooth corrections instead of snapping the car straight to the limit.
+    let lockV = E.lock / (1 + Math.abs(vF) / 18);
+    if (!E.driftAssist && Math.abs(vF) > 6) lockV = Math.min(lockV, 2 * Math.atan(this.wheelbase * E.aMax * dfMul * gripMul / (vF * vF)));
+    const target = clamp(steerIn * lockV, -STEER_CURVE.maxWheel, STEER_CURVE.maxWheel);
     this.steer += clamp(target - this.steer, -5 * dt, 5 * dt);
 
     // weight transfer: braking loads the front (sharper turn-in, the rear goes light), accelerating loads the rear (pushes wide)
@@ -1369,6 +1374,8 @@ class Car {
         yaw = clamp(pr, -6, 6) + clamp((want - sa) * 7, -4, 4);
       }
     }
+    // the car has weight: it takes a moment (~0.05 s, less for a single-seater) to start rotating into a turn
+    if (!E.driftAssist) { const tau = nd ? .04 : .055; this.yawT = (this.yawT ?? yaw) + (yaw - (this.yawT ?? yaw)) * Math.min(1, dt / tau); yaw = this.yawT; }
     yaw += this.wImp;
     this.yawRate = yaw;
     const spd = Math.hypot(this.vx, this.vy);   // a slow or stopped car's tyres scrub the spin out quickly
