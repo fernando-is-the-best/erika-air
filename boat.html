@@ -332,6 +332,32 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   this.speed = Math.hypot(this.u, this.v);
 };
 
+// how fast a boat can really hold a corner of radius R (m/s): a quick simulation of the real hull (slide, scrub and all) on calm
+// water, steering to hold the circle and easing the throttle when the steering runs out. Rivals never corner faster than this,
+// so a boat that slides (the airboat) races rivals that are held to the same physics. Cached per boat type.
+B.cornerSpeed = function (type, R) {
+  const C = (B._cc = B._cc || {});
+  if (!C[type]) {
+    const radii = [8, 14, 22, 35, 55, 85, 130, 200, 320, 500, 800], sea = B.SEA;
+    B.setSea(0, 0);   // flat water for the measurement
+    C[type] = radii.map((rad) => {
+      const b = new B.Boat(type); b.u = Math.min(b.T.top * .5, 15); let steer = 0, thr = 1, sum = 0, n = 0;
+      for (let i = 0; i < 120 * 24; i++) {
+        const want = b.speed / rad;   // yaw rate that keeps the boat on the circle
+        steer = clamp(steer + (want - b.r) * 6 / 120, 0, 1);
+        thr = clamp(thr + (steer > .97 ? -1.5 : .6) / 120, 0, 1);
+        b.step(1 / 120, { thr, brk: 0, steer }, i / 120, 0);
+        if (i > 120 * 16) { sum += b.speed * Math.min(1, b.r / Math.max(want, 1e-3)); n++; }   // speed actually achieved on the circle
+      }
+      return [rad, Math.min(b.T.top, sum / n)];
+    });
+    B.SEA = sea;
+  }
+  const t = C[type]; if (R <= t[0][0]) return t[0][1]; if (R >= t[t.length - 1][0]) return t[t.length - 1][1];
+  let i = 0; while (t[i + 1][0] < R) i++;
+  const f = Math.log(R / t[i][0]) / Math.log(t[i + 1][0] / t[i][0]); return t[i][1] + (t[i + 1][1] - t[i][1]) * f;
+};
+
 // ---------------------------------------------------------------- 3D world
 B.World = function (canvas) {
   const R = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -1118,7 +1144,7 @@ B.Game = function () {
   };
   P._profile = function () {
     const c = this.course, T = B.TYPES[this.rc.boat], v = new Array(c.N);
-    for (let i = 0; i < c.N; i++) { const k = Math.abs(c.P[i].k) + 1e-6; v[i] = Math.min(T.top * .97, Math.sqrt(T.lat * Math.max(1 / k, T.turnR)) * .97 + 2); }
+    for (let i = 0; i < c.N; i++) { const k = Math.abs(c.P[i].k) + 1e-6; v[i] = Math.min(T.top * .97, Math.sqrt(T.lat * Math.max(1 / k, T.turnR)) * .97 + 2, T.airProp ? B.cornerSpeed(this.rc.boat, Math.max(1 / k, T.turnR * 1.3)) * 1.06 : Infinity); }   // airboats slide: rivals corner only as fast as a real airboat can (+6% for the perfect line)
     for (let pass = 0; pass < 2; pass++) for (let n = 0; n < c.N * 2; n++) { const i = (c.N * 2 - n) % c.N, j = (i + 1) % c.N; v[i] = Math.min(v[i], Math.sqrt(v[j] * v[j] + 2 * 8 * c.ds)); }
     return v;
   };

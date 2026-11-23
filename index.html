@@ -6964,11 +6964,11 @@ function build(C, spec) {
       emptyMass: 800, payload: 250, fuelCap: 110, S: 13.5, b: 11.94, c: 1.13, P: 134e3, T0: 3400, D: 1.9, rpmMax: 2700, pitch: 'fixed', eng: 'Lycoming IO-360 180 hp', retract: false, flaps: 2,
       sp: { vne: 83, vcruise: 65 }, eye: [0, 0.6, -0.45], chase: 13, stats: ['180 hp piston', 'Glass cockpit', 'Cruise 130 kt', 'Endurance 5 h'], CD0: 0.023, k: 0.045, price: 2200, rank: 0 },
     { id: 'dhc2', name: 'DHC-2 Beaver', cls: 'Bush utility single', blurb: 'The bush pilot\'s favourite: a big radial, a huge wing and a take-off run measured in a few hundred feet.',
-      model: { wing: 'high', tail: 'conv', L0: -2.9, L1: 5.9, w: 0.66, h: 1.08, hb: 0.62, wy: 1.12, c0: 2.1, c1: 1.7, nr: 0.46, blades: 2, pr: 1.3, fin: 2.5, stabY: 0.45, stabSp: 2.1, gY: 1.2, gn: -1.7, gm: 0.4, trk: 1.45, strut: true, body: 0xe8e5da, stripe: 0x2d5a3c, accent: 0xd4a62a },
+      model: { wing: 'high', tail: 'conv', tw: true, tm: -0.5, twY: 1.55, L0: -2.9, L1: 5.9, w: 0.66, h: 1.08, hb: 0.62, wy: 1.12, c0: 2.1, c1: 1.7, nr: 0.46, blades: 2, pr: 1.3, fin: 2.5, stabY: 0.45, stabSp: 2.1, gY: 1.2, gn: -1.7, gm: 0.4, trk: 1.45, strut: true, body: 0xe8e5da, stripe: 0x2d5a3c, accent: 0xd4a62a },
       emptyMass: 1520, payload: 520, fuelCap: 200, S: 23.2, b: 14.63, c: 1.6, P: 335e3, T0: 6800, D: 2.6, rpmMax: 2200, pitch: 'cs', eng: 'P&W R-985 450 hp radial', retract: false, flaps: 3,
       sp: { vne: 80, vcruise: 55 }, eye: [0, 0.8, -0.8], chase: 15, stats: ['450 hp radial', 'Short take-off', 'Cruise 105 kt', 'Seats 6'], CD0: 0.036, price: 2200, rank: 0 },
     { id: 'dhc3', name: 'DHC-3 Otter', cls: 'Large bush utility single', blurb: 'A bigger Beaver: more wing, more payload and the same STOL temperament, with a deep cabin for nine.',
-      model: { wing: 'high', tail: 'conv', L0: -3.6, L1: 7.2, w: 0.76, h: 1.2, hb: 0.7, wy: 1.25, c0: 2.4, c1: 1.9, nr: 0.5, blades: 3, pr: 1.5, fin: 3.0, stabY: 0.55, stabSp: 2.5, gY: 1.4, gn: -2.1, gm: 0.5, trk: 1.7, strut: true, long: true, body: 0xe8e5da, stripe: 0x8a2a2a, accent: 0x1a1d21 },
+      model: { wing: 'high', tail: 'conv', tw: true, tm: -0.6, twY: 1.75, L0: -3.6, L1: 7.2, w: 0.76, h: 1.2, hb: 0.7, wy: 1.25, c0: 2.4, c1: 1.9, nr: 0.5, blades: 3, pr: 1.5, fin: 3.0, stabY: 0.55, stabSp: 2.5, gY: 1.4, gn: -2.1, gm: 0.5, trk: 1.7, strut: true, long: true, body: 0xe8e5da, stripe: 0x8a2a2a, accent: 0x1a1d21 },
       emptyMass: 2100, payload: 900, fuelCap: 330, S: 34.8, b: 17.7, c: 2.0, P: 450e3, T0: 9500, D: 2.7, rpmMax: 2250, pitch: 'cs', eng: 'P&W R-1340 600 hp radial', retract: false, flaps: 3,
       sp: { vne: 85, vcruise: 55 }, eye: [0, 0.95, -1.0], chase: 17, stats: ['600 hp radial', 'Short take-off', 'Cruise 105 kt', 'Seats 9'], CD0: 0.038, price: 3200, rank: 0 },
     { id: 'c206', name: 'Cessna 206 Stationair', cls: 'Light single utility', blurb: 'A six-seat workhorse: a big fuel-injected engine, huge cargo doors and a strong climb even when heavily loaded.',
@@ -6984,7 +6984,7 @@ function build(C, spec) {
       emptyMass: 600, payload: 260, fuelCap: 110, S: 14.2, b: 8.72, c: 1.7, P: 119e3, T0: 3000, D: 1.9, rpmMax: 2700, pitch: 'fixed', eng: 'Lycoming O-320 160 hp', retract: false, flaps: 2,
       sp: { vne: 80, vcruise: 62 }, eye: [0, 0.6, -0.4], chase: 12, stats: ['160 hp piston', 'Bubble canopy', 'Cruise 120 kt', 'Seats 4'], CD0: 0.024, k: 0.05, price: 1500, rank: 0 },
     { id: 'pc6', name: 'Pilatus PC-6 Porter', cls: 'STOL turboprop single', blurb: 'The ultimate mountain STOL: a huge wing, a PT6 up front and a take-off run that barely exists.',
-      model: { wing: 'high', tail: 'conv', L0: -3.2, L1: 6.4, w: 0.7, h: 1.1, hb: 0.64, wy: 1.15, c0: 2.1, c1: 1.7, nr: 0.42, blades: 3, pr: 1.25, fin: 2.8, stabY: 0.5, stabSp: 2.3, gY: 1.25, gn: -1.8, gm: 0.4, trk: 1.6, strut: true, long: true, body: 0xf0eee6, stripe: 0xc12a30, accent: 0x1a1d21 },
+      model: { wing: 'high', tail: 'conv', tw: true, tm: -0.5, twY: 1.6, L0: -3.2, L1: 6.4, w: 0.7, h: 1.1, hb: 0.64, wy: 1.15, c0: 2.1, c1: 1.7, nr: 0.42, blades: 3, pr: 1.25, fin: 2.8, stabY: 0.5, stabSp: 2.3, gY: 1.25, gn: -1.8, gm: 0.4, trk: 1.6, strut: true, long: true, body: 0xf0eee6, stripe: 0xc12a30, accent: 0x1a1d21 },
       emptyMass: 1270, payload: 1000, fuelCap: 644, S: 30.15, b: 15.87, c: 1.9, P: 507e3, T0: 9500, D: 2.4, rpmMax: 2000, pitch: 'cs', eng: 'Pratt & Whitney PT6A-34 560 shp', retract: false, flaps: 3, turbo: true,
       sp: { vne: 85, vcruise: 60 }, eye: [0, 0.9, -0.9], chase: 16, stats: ['560 shp turboprop', 'STOL', 'Cruise 125 kt', 'Seats 10'], CD0: 0.036, price: 4500, rank: 0 },
     { id: 'draco', name: 'Draco Super STOL', cls: 'Super-STOL turboprop', blurb: 'A one-off backcountry monster: a 750 shp PT6 turning a five-blade 102-inch prop over a giant slotted wing and tundra tyres. It leaps off the ground in a few lengths and lands almost as short.',
@@ -7037,7 +7037,7 @@ function build(C, spec) {
    ['pa28', 'pa28f', 'Piper Cherokee 180 (floats)', 'A light low-wing trainer on floats: gentle and forgiving, but low on power.', 85, 1800],
    ['pc6', 'pc6f', 'Pilatus PC-6 Porter (floats)', 'The turboprop Porter on floats: a short water run even with a full load.', 140, 6200]].forEach(([src, id, name, blurb, dm, price]) => {
     const T = JSON.parse(JSON.stringify(SG.filter((q) => q.id === src)[0]));
-    T.id = id; T.name = name; T.cls = 'Floatplane'; T.blurb = blurb; T.emptyMass += dm; T.CD0 += 0.007; T.price = price; T.model.float = true; T.retract = false; T.rank = 0;
+    T.id = id; T.name = name; T.cls = 'Floatplane'; T.blurb = blurb; T.emptyMass += dm; T.CD0 += 0.007; T.price = price; T.model.float = true; delete T.model.tw; T.retract = false; T.rank = 0;
     T.stats = T.stats.slice(); T.stats[1] = 'Floats: water only'; SG.push(T);
   });
   SG.forEach((T) => {
@@ -7057,9 +7057,9 @@ function build(C, spec) {
     const sp = (nm, x, z, n) => ({ name: nm, pos: [x, gy, z], k: (n ? 28000 : 62000) * ky, c: (n ? 3000 : 6800) * ky, travel: n ? 0.22 : 0.24, steer: n ? 0.5 : undefined, steerFade: n ? 14 : undefined, brake: n ? undefined : true });
     s.gear = [sp('nose', 0, f.gn, true), sp('mainL', -f.trk, f.gm, false), sp('mainR', f.trk, f.gm, false)];
     if (f.tw) {                                    // tail-dragger: mains ahead of the CG, tail wheel at the back, 3-point rest attitude
-      const th = 11 * Math.PI / 180, mFwd = -f.gm, tBack = f.L1 - 0.6, H = f.gY;
+      const gmT = f.tm != null ? f.tm : f.gm, th = 11 * Math.PI / 180, mFwd = -gmT, tBack = f.L1 - 0.6, H = f.twY || f.gY;
       const mY = (-H - mFwd * Math.sin(th)) / Math.cos(th), tY = (-H + tBack * Math.sin(th)) / Math.cos(th);
-      const mn = (nm, x) => ({ name: nm, pos: [x, mY, f.gm], k: 62000 * ky, c: 6800 * ky, travel: 0.26, brake: true, rollMul: 1.4, lat: 0.6 });
+      const mn = (nm, x) => ({ name: nm, pos: [x, mY, gmT], k: 62000 * ky, c: 6800 * ky, travel: 0.26, brake: true, rollMul: 1.4, lat: 0.6 });
       s.gear = [{ name: 'tail', pos: [0, tY, tBack], k: 16000 * ky, c: 1700 * ky, travel: 0.12, steer: -0.45, steerFade: 10, lat: 0.9 }, mn('mainL', -f.trk), mn('mainR', f.trk)];
       s.restPitch = 11; s.thrustOffset = -0.05;
     }
