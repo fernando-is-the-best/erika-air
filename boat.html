@@ -273,6 +273,14 @@ B.TYPES = {
   f1: { name: 'Formula 1 Tunnel', cls: 'Pro', model: 'tunnel', price: 20000, rank: 4, blurb: '400 hp on 600 kg: 0 to 100 mph in four seconds, corners like a jet', mass: 600, power: .3e6, top: 72, acc: 9, lat: 44, turnR: 12, grip: 3.0, slide: .3, len: 6.0, beam: 2.1, col: ['#10161c', '#ffd400'], hum: 120 },
   super: { name: 'Class 1 Supercat', cls: 'Pro', model: 'cat', price: 30000, rank: 5, blurb: 'Fourteen metres and 2 x 1,400 hp: 155 knots in a straight line', mass: 5600, power: 2.1e6, top: 80, acc: 5.2, lat: 27, turnR: 38, grip: 1.7, slide: .5, len: 13.5, beam: 3.8, col: ['#c62828', '#f4f4f2'], hum: 44 },
   unl: { name: 'Unlimited Hydroplane', cls: 'World Series', model: 'hydro', turbine: true, price: 45000, rank: 6, blurb: 'A 3,000 hp helicopter turbine: 180 knots and a huge rooster tail', mass: 3000, power: 2.3e6, top: 92, acc: 6.5, lat: 32, turnR: 34, grip: 1.4, slide: .7, len: 9.5, beam: 4.2, col: ['#f4f4f2', '#7b3fe4'], hum: 150 },
+  standup: { name: 'Stand-Up Ski', cls: 'Club', model: 'pwc', price: 700, rank: 0, blurb: 'A 160 hp stand-up ski: tiny, twitchy and turns inside its own length. Waves throw it everywhere', mass: 260, power: .12e6, top: 30, acc: 7.5, lat: 36, turnR: 4.5, grip: 3.1, slide: .5, len: 2.7, beam: .85, col: ['#ffd400', '#10161c'], hum: 150, hump: .45, ride: 1.4, bank: 1.9 },
+  bass: { name: 'Bass Boat', cls: 'Club', model: 'bass', price: 1500, rank: 0, blurb: 'Metal-flake fishing rocket with a 250 hp outboard: low, flat and surprisingly quick', mass: 1250, power: .19e6, top: 33, acc: 4.6, lat: 22, turnR: 16, grip: 2.3, slide: .4, len: 6.2, beam: 2.3, col: ['#c8102e', '#c9ced4'], hum: 98 },
+  f4: { name: 'Formula 4 Tunnel', cls: 'Club', model: 'tunnel', price: 2200, rank: 0, blurb: 'The junior tunnel boat: 60 hp on 380 kg, light, nimble and a great teacher', mass: 380, power: .06e6, top: 34, acc: 6.2, lat: 32, turnR: 10, grip: 2.8, slide: .3, len: 4.3, beam: 1.8, col: ['#1d4fd6', '#ffd400'], hum: 128 },
+  hover: { name: 'Racing Hovercraft', cls: 'Regional', model: 'hover', airProp: true, price: 3800, rank: 1, blurb: 'Rides on a cushion of air behind a ducted fan: barely touches the water and drifts through every corner', mass: 600, power: .09e6, top: 31, acc: 4.4, lat: 12, turnR: 10, grip: .55, slide: 1.25, len: 4.3, beam: 2.1, col: ['#ff3d7f', '#10161c'], hum: 140, hump: .15, ride: .45, eye: 2.4 },
+  interceptor: { name: 'Interceptor RIB', cls: 'Regional', model: 'rib', price: 5200, rank: 1, blurb: 'A 10 m coastguard RIB with 2 x 450 hp: unstoppable in rough water', mass: 3200, power: .68e6, top: 50, acc: 4.6, lat: 24, turnR: 20, grip: 2.3, slide: .32, len: 10, beam: 3.0, col: ['#2b3035', '#6b7a52'], hum: 86, ride: .8 },
+  e1: { name: 'Electric RaceBird', cls: 'National', model: 'foil', foil: 15, price: 7000, rank: 2, blurb: 'Silent battery-electric foiler: instant torque, then it lifts out of the water at 30 knots', mass: 1150, power: .26e6, top: 36, acc: 6.0, lat: 32, turnR: 15, grip: 2.8, slide: .2, len: 7.0, beam: 2.2, col: ['#f4f4f2', '#2fd4c4'], hum: 230, ride: .3, bank: 1.6 },
+  gofast: { name: 'Go-Fast 42', cls: 'National', model: 'vee', open: true, price: 8500, rank: 2, blurb: 'Thirteen metres of yellow muscle with twin 1,100 hp V8s: huge in a straight line, a bus in the turns', mass: 6200, power: 1.5e6, top: 60, acc: 4.0, lat: 20, turnR: 30, grip: 1.9, slide: .42, len: 12.8, beam: 2.7, col: ['#ffd400', '#10161c'], hum: 46, ride: .8 },
+  vintage: { name: 'Vintage Piston Hydro', cls: 'National', model: 'hydro', price: 9500, rank: 2, blurb: 'A 1950s three-pointer with a 2,000 hp V12 from a fighter plane: thunderous, fast and a handful', mass: 2800, power: 1.3e6, top: 70, acc: 4.8, lat: 24, turnR: 36, grip: 1.15, slide: .85, len: 9.0, beam: 3.6, col: ['#f2e3c4', '#0f6a3a'], hum: 62 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
 // a boat's spec with the player's upgrades applied (engine: top speed and power, prop: acceleration, hull: cornering)
@@ -690,6 +698,49 @@ B.World.prototype.makeBoat = function (type, cols, num) {
     const fl = add(new THREE.PlaneGeometry(.55, .36), M(ac, { side: THREE.DoubleSide }), -L / 2 - .2, 1.5, 0); fl.rotation.y = 0;
     numbers(L * .2, .6, edge(h, L * .2)[2] + .04, .5);
     driver(L * .04, 1.15, -.5); driver(L * .04, 1.15, .5);
+  } else if (md === 'bass') {
+    // bass boat: a low, wide metal-flake hull with flat carpeted casting decks fore and aft, a side console with a small screen,
+    // two pedestal seats, a big outboard on a jack plate and an electric trolling motor folded on the bow
+    const flake = M(hc, { roughness: .18, metalness: .55 }), carpet = M(0x3a3f45, { roughness: .95 });
+    const h = B.hull({ L, B: Bm, D: .42, dead: .22, rise: .22, fine: .55 }, [bottomM, flake, accM, carpet]); body.add(h);
+    for (const sd of [-1, 1]) { const st = add(new THREE.BoxGeometry(L * .8, .06, .02), accM, -L * .05, .2, sd * (edge(h, -L * .05)[2] + .01)); st.rotation.y = 0; }   // side stripes
+    add(new THREE.BoxGeometry(L * .3, .05, Bm * .78), carpet, L * .26, .5, 0);                         // bow casting deck
+    add(new THREE.BoxGeometry(L * .22, .05, Bm * .82), carpet, -L * .36, .5, 0);                       // stern deck
+    add(new THREE.BoxGeometry(.75, .55, .55), flake, L * .02, .72, Bm * .26);                          // console (starboard)
+    const ws = add(new THREE.BoxGeometry(.04, .26, .55), glass, L * .02 + .34, 1.05, Bm * .26); ws.rotation.z = -.6;
+    for (const [x, z] of [[-L * .1, Bm * .26], [-L * .1, -Bm * .22], [L * .3, 0]]) {                // pedestal seats
+      add(new THREE.CylinderGeometry(.04, .04, .42, 8), metal, x, .72, z);
+      add(new THREE.BoxGeometry(.42, .1, .42), M(0xe9ecef, { roughness: .6 }), x, .95, z);
+      add(new THREE.BoxGeometry(.08, .34, .4), M(0xe9ecef, { roughness: .6 }), x - .2, 1.12, z);
+    }
+    const tm = add(new THREE.BoxGeometry(.9, .1, .12), dark, L * .44, .62, -Bm * .22); tm.rotation.y = .2;   // trolling motor, stowed
+    add(new THREE.BoxGeometry(.22, .16, .16), dark, L * .42 - .42, .66, -Bm * .22 + .08);
+    outboard(-L / 2 - .1, 0, 1.25);
+    numbers(L * .22, .32, edge(h, L * .22)[2] + .03, .45);
+    driver(-L * .1, 1.3, Bm * .26);
+  } else if (md === 'hover') {
+    // racing hovercraft: a black rubber skirt all round, a flat fibreglass deck, the driver sitting astride in the middle, a small
+    // lift fan ahead of the seat and a big ducted thrust fan at the back with twin air rudders behind it. g.userData.fan spins
+    const skirtM = M(0x15181b, { roughness: .9 });
+    const skirt = add(new THREE.TorusGeometry(1, .32, 10, 40), skirtM, 0, .18, 0); skirt.rotation.x = Math.PI / 2; skirt.scale.set(L * .4, Bm * .36, 1);
+    const fill = add(new THREE.CylinderGeometry(1, 1, .3, 32), skirtM, 0, .15, 0); fill.scale.set(L * .4, 1, Bm * .36);
+    const deck = add(new THREE.CylinderGeometry(1, 1, .16, 32), hullM, 0, .46, 0); deck.scale.set(L * .46, 1, Bm * .44);
+    add(new THREE.BoxGeometry(L * .6, .02, .22), accM, L * .04, .55, 0);
+    const nose = add(new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), hullM, L * .22, .5, 0); nose.scale.set(L * .2, .22, Bm * .3);
+    const lift = add(new THREE.CylinderGeometry(.34, .34, .12, 18), dark, L * .2, .62, 0);              // lift fan grille
+    add(new THREE.BoxGeometry(.9, .26, .4), dark, -L * .02, .68, 0);                                    // saddle
+    driver(-L * .02, 1.05, 0);
+    for (const sd of [-1, 1]) rod([L * .14, .62, sd * .14], [L * .08, 1.05, sd * .3], .025, metal);     // handlebars
+    rod([L * .08, 1.05, -.3], [L * .08, 1.05, .3], .02, metal);
+    const fy = 1.05, fx = -L * .36;
+    const duct = add(new THREE.CylinderGeometry(.72, .72, .45, 28, 1, true), accM, fx, fy, 0); duct.rotation.z = Math.PI / 2;
+    const fan = new THREE.Group(); fan.position.set(fx, fy, 0); body.add(fan); g.userData.fan = fan;
+    for (let k = 0; k < 5; k++) { const bl = add(new THREE.BoxGeometry(.05, .62, .14), dark, 0, 0, 0, fan); bl.rotation.x = k / 5 * Math.PI * 2; bl.position.set(0, Math.cos(k / 5 * 6.283) * .31, Math.sin(k / 5 * 6.283) * .31); bl.rotation.set(k / 5 * 6.283, .4, 0); }
+    add(new THREE.CylinderGeometry(.12, .12, .3, 12), metal, fx + .05, fy, 0).rotation.z = Math.PI / 2;
+    const disc = add(new THREE.CircleGeometry(.7, 28), M(0xd8dde2, { transparent: true, opacity: .1, depthWrite: false }), fx, fy, 0); disc.rotation.y = Math.PI / 2;
+    for (const sd of [-1, 1]) rod([fx + .1, .55, sd * .55], [fx, fy - .55, sd * .45], .035, metal);     // duct struts
+    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.35, 1.0, .04), hullM, fx - .4, fy, sd * .3);   // air rudders
+    numbers(L * .05, .48, Bm * .44 + .01, .4);
   } else if (md === 'airboat') {
     // airboat: a flat-bottomed aluminium punt, a driver's seat high on a frame, a car V8 driving a two-blade aircraft propeller in a
     // round wire cage, and twin air rudders behind it. g.userData.fan spins in the race
@@ -954,12 +1005,20 @@ B.EVENTS = [
   { id: 'atollski', name: 'Atoll Jet Ski Cup', course: 'atoll', laps: 2, skill: .92, rank: 0, allow: ['pwc', 'rib'], purse: 1300 },
   { id: 'lagoonclub', name: 'Lagoon Club Sprint', course: 'lagoon', laps: 3, skill: .94, rank: 0, allow: ['rib', 'jet'], purse: 1600 },
   { id: 'concours', name: 'Canal Concours', course: 'canal', laps: 2, skill: .94, rank: 0, allow: ['runabout', 'jet'], purse: 1700 },
+  { id: 'skisprint', name: 'Stand-Up Ski Sprint', course: 'lagoon', laps: 3, skill: .93, rank: 0, allow: ['standup', 'pwc'], purse: 1400 },
+  { id: 'bassclassic', name: 'Bass Classic', course: 'mist', laps: 2, skill: .93, rank: 0, allow: ['bass', 'runabout', 'jet'], purse: 1500 },
+  { id: 'f4cup', name: 'Formula 4 Junior Cup', course: 'canal', laps: 3, skill: .95, rank: 0, allow: ['f4'], purse: 1800 },
   { id: 'reefrun', name: 'Reef Run', course: 'reef', laps: 3, skill: .96, rank: 1, allow: ['rib', 'jet', 'vee'], purse: 2600 },
   { id: 'canyonrun', name: 'Canyon River Run', course: 'canyon', laps: 2, skill: .96, rank: 1, allow: ['airboat', 'jet', 'pwc'], purse: 2900 },
   { id: 'laketrophy', name: 'Lake Trophy', course: 'lake', laps: 4, skill: .97, rank: 1, allow: ['jet', 'vee', 'f2'], purse: 3000 },
+  { id: 'hovercup', name: 'Hovercraft Grand Prix', course: 'canyon', laps: 2, skill: .96, rank: 1, allow: ['hover', 'airboat'], purse: 3200 },
+  { id: 'coastguard', name: 'Coastguard Challenge', course: 'coast', laps: 2, skill: .97, rank: 1, allow: ['interceptor', 'vee', 'rib'], purse: 3400 },
   { id: 'fjordclassic', name: 'Fjord Classic', course: 'fjord', laps: 3, skill: .97, rank: 2, allow: ['vee', 'f2', 'hydro'], purse: 4800 },
   { id: 'misttrophy', name: 'Misty Lake Trophy', course: 'mist', laps: 3, skill: .97, rank: 2, allow: ['airboat', 'vee', 'f2'], purse: 5000 },
   { id: 'sunsetgp', name: 'Sunset Grand Prix', course: 'harbour', laps: 5, skill: .99, rank: 2, allow: ['f2', 'hydro'], purse: 5500 },
+  { id: 'eseries', name: 'E-Foil Series', course: 'atoll', laps: 3, skill: .98, rank: 2, allow: ['e1', 'foil'], purse: 5200 },
+  { id: 'heritage', name: 'Heritage Hydro Regatta', course: 'lake', laps: 4, skill: .98, rank: 2, allow: ['vintage', 'hydro'], purse: 5800 },
+  { id: 'pokerrun', name: 'Go-Fast Poker Run', course: 'offshore', laps: 2, skill: .98, rank: 2, allow: ['gofast', 'vee', 'c2'], purse: 6000 },
   { id: 'glacier', name: 'Glacier Challenge', course: 'glacier', laps: 3, skill: .98, rank: 3, allow: ['vee', 'hydro', 'cat'], purse: 7500 },
   { id: 'foilcup', name: 'Atoll Foil Cup', course: 'atoll', laps: 4, skill: .99, rank: 3, allow: ['foil', 'hydro', 'cat'], purse: 8000 },
   { id: 'marathon', name: 'Archipelago Marathon', course: 'archipelago', laps: 2, skill: .98, rank: 3, allow: ['hydro', 'cat'], purse: 8500 },
@@ -1279,7 +1338,7 @@ B.Game = function () {
         for (const sd of [-1, 1]) { const out = 2 + v * .09 + R() * 2, along = T.len * (.15 - R() * .2);
           sp.emit(b.x + f[0] * along + s[0] * sd * T.beam * .5, b.y + .2, b.z + f[1] * along + s[1] * sd * T.beam * .5, vx * .5 + s[0] * sd * out, 1.5 + v * .05 + R() * 1.5, vz * .5 + s[1] * sd * out, .6 + v * .012, .8 + R() * .5, .5); }
       }
-      const rt = T.model === 'hydro' ? 1 : T.model === 'tunnel' ? .65 : T.model === 'jet' || T.model === 'pwc' ? .8 : T.model === 'airboat' ? .1 : T.foil ? .3 * (1 - b.foilUp) + .05 : .35;
+      const rt = T.model === 'hydro' ? 1 : T.model === 'tunnel' ? .65 : T.model === 'jet' || T.model === 'pwc' ? .8 : T.model === 'airboat' ? .1 : T.model === 'hover' ? .03 : T.foil ? .3 * (1 - b.foilUp) + .05 : .35;
       if (v > 10) for (let m = rt * v * .9 * dt * q; m > 0; m--) {
         if (m < 1 && R() > m) break;
         const up = v * (.12 + .14 * rt) * (.7 + R() * .5), sx = (R() - .5) * 3;
