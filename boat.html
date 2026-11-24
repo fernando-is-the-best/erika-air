@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Erika Boats</title>
-<meta name="description" content="Powerboat racing round buoy courses: twenty-four boats, thirteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
+<meta name="description" content="Powerboat racing round buoy courses: twenty-four boats, fourteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -192,6 +192,16 @@ B.COURSES = {
     pts: [[0, 0], [500, -100], [1000, -60], [1300, 120], [1250, 360], [950, 420], [700, 380], [480, 470], [260, 640], [0, 640], [-180, 480], [-200, 220]] },
   mist: { name: 'Misty Lake', blurb: '4.0 km on a glassy mountain lake in the fog: the next buoy appears late', calm: .15, sky: 'mist', land: 'green',
     pts: [[0, 0], [400, -120], [800, -60], [1000, 160], [860, 400], [1040, 620], [960, 860], [640, 900], [480, 700], [200, 760], [-60, 620], [-40, 380], [-220, 200], [-180, 40]] },
+  // lane: lane width (m), gate: gate spacing on the straights (m), buoy: buoy and gantry size, clear: islands kept this far from the
+  // centre line (m), assist: the player's boat steers itself along the lane when you are not steering
+  erika: { name: 'Erika Speedway', blurb: '24.6 km giant oval on glassy water, made for the Erika 2000: a 300 m wide lane, gentle bends, nothing to hit, and the boat steers itself until you steer', calm: .08, sky: 'day', land: 'sand',
+    lane: 300, gate: 1500, buoy: 5, clear: 900, assist: true,
+    pts: (() => { const o = [], R = 2000, S = 6000, n = Math.round(S / 150), m = Math.round(Math.PI * R / 150);
+      for (let i = 0; i < n; i++) o.push([i * S / n, 0]);
+      for (let i = 0; i < m; i++) { const a = -Math.PI / 2 + Math.PI * i / m; o.push([S + R * Math.cos(a), R + R * Math.sin(a)]); }
+      for (let i = 0; i < n; i++) o.push([S - i * S / n, 2 * R]);
+      for (let i = 0; i < m; i++) { const a = Math.PI / 2 + Math.PI * i / m; o.push([R * Math.cos(a), R + R * Math.sin(a)]); }
+      return o; })() },
   coast: { name: 'Riviera Endurance', blurb: '7.4 km coastal loop past rocky capes in a Mediterranean swell', calm: 1.05, sky: 'med', land: 'rock',
     pts: [[0, 0], [800, -200], [1600, -150], [2200, 100], [2400, 600], [2000, 900], [1500, 800], [1100, 1100], [600, 1300], [0, 1200], [-500, 900], [-600, 400], [-350, 100]] },
 };
@@ -222,7 +232,7 @@ B.buildCourse = function (key) {
   S.forEach((p, i) => { let d = S[(i + 3) % N].h - S[(i - 3 + N) % N].h; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; p.k = d / (6 * ds); });
   // gates every ~180 m (a bit closer where it turns); gate 0 is the start/finish line
   const gates = []; let acc = 0;
-  for (let i = 0; i < N; i++) { const turn = Math.abs(S[i].k) > 1 / 120; acc += ds; if (i === 0 || acc > (turn ? 120 : 190)) { gates.push(i); acc = 0; } }
+  for (let i = 0; i < N; i++) { const turn = Math.abs(S[i].k) > 1 / 120; acc += ds; if (i === 0 || acc > (turn ? 120 : C.gate || 190)) { gates.push(i); acc = 0; } }
   if (N - gates[gates.length - 1] < 25) gates.pop();
   // islands: placed off the course lane
   const r = rng(key.length * 7919), islands = [];
@@ -236,18 +246,18 @@ B.buildCourse = function (key) {
     if (first) { x = cx; z = cz; }
     else if (C.hug) { const p = S[Math.floor(r() * N)], sd = r() < .5 ? -1 : 1; want = 50 + r() * 110; const off = 62 + want + r() * 25; x = p.x + p.rx * sd * off; z = p.z + p.rz * sd * off; }   // just off the lane
     else { x = lerp(x0 - 500, x1 + 500, r()); z = lerp(z0 - 500, z1 + 500, r()); }
-    const d = near(x, z), rad = first ? Math.min(d - 70, 220) : Math.min(d - 60, C.hug ? want : 40 + r() * 140);
+    const clr = C.clear || 60, d = near(x, z), rad = first ? Math.min(d - clr - 10, 220) : Math.min(d - clr, C.hug ? want : 40 + r() * 140);
     if (rad < 30 || islands.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + rad + (C.hug ? 8 : 20))) continue;
     const h = land === 'mesa' ? Math.min(140, rad * (.5 + r() * .35) + 25) : land === 'city' ? 2.5 : land === 'sand' ? 2 + rad * (.03 + r() * .03)
       : rad * (rocky ? .55 + r() * .3 : land === 'green' ? .25 + r() * .2 : .16 + r() * .12);
     islands.push({ x, z, r: rad, h, rocky });
   }
-  return { key, name: C.name, calm: C.calm, wind: C.wind != null ? C.wind : (key.length * 1.37) % 6.283, sky: C.sky, land: C.land || 'palm', P: S, N, L, ds, gates, islands, laneW: 46 };
+  return { key, name: C.name, calm: C.calm, wind: C.wind != null ? C.wind : (key.length * 1.37) % 6.283, sky: C.sky, land: C.land || 'palm', P: S, N, L, ds, gates, islands, laneW: C.lane || 46, buoy: C.buoy || 1, assist: !!C.assist };
 };
 B.locate = function (c, x, z, hint) {
   const P = c.P, N = c.N; let best = -1, bd = 1e18;
   const scan = (a, b) => { for (let k = a; k <= b; k++) { const i = (k + N) % N, d = (P[i].x - x) ** 2 + (P[i].z - z) ** 2; if (d < bd) { bd = d; best = i; } } };
-  if (hint == null) scan(0, N - 1); else { scan(hint - 30, hint + 30); if (bd > 3600) scan(0, N - 1); }
+  if (hint == null) scan(0, N - 1); else { scan(hint - 30, hint + 30); if (bd > Math.max(3600, c.laneW * c.laneW * .3)) scan(0, N - 1); }
   const p = P[best]; return { i: best, d: (x - p.x) * p.rx + (z - p.z) * p.rz, p };
 };
 B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.floor(f) % N, u = f - Math.floor(f), a = c.P[i], b = c.P[(i + 1) % N]; let dh = b.h - a.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; const h = a.h + dh * u; return { x: lerp(a.x, b.x, u), z: lerp(a.z, b.z, u), h, rx: -Math.sin(h), rz: Math.cos(h), k: lerp(a.k, b.k, u), i }; };
@@ -257,7 +267,8 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 // price in credits and the licence rank needed to buy (index into B.RANKS); the Race RIB is free.
 // Optional: hump (how hard the hull ploughs before planing, 1 = normal), ride (how hard waves throw it, 1 = normal), bank (how far it
 // leans into turns), airProp (an air propeller: still pushes when airborne), foil (speed in m/s where it lifts onto hydrofoils),
-// eye (on-board camera height, m; default 2.1), brk (hardest braking, m/s2; default: power-limited).
+// eye (on-board camera height, m; default 2.1), eyeX (on-board camera position along the boat, fraction of length; default -.15), brk (hardest braking, m/s2; default: power-limited), yawMax (fastest turn, rad/s),
+// fun (quick races in it pay no credits or licence points).
 B.TYPES = {
   rib: { name: 'Race RIB', cls: 'Club', model: 'rib', price: 0, rank: 0, blurb: 'Rigid inflatable, 2 x 300 hp: forgiving and turns on a coin', mass: 1700, power: .45e6, top: 44, acc: 4.8, lat: 26, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
   pwc: { name: 'Race Jet Ski', cls: 'Club', model: 'pwc', price: 900, rank: 0, blurb: 'A 310 hp racing jet ski ridden standing: turns inside anything and bucks over every wave', mass: 420, power: .23e6, top: 36, acc: 7.2, lat: 34, turnR: 6, grip: 3.0, slide: .45, len: 3.4, beam: 1.2, col: ['#1fbf5f', '#10161c'], hum: 135, hump: .5, ride: 1.1, bank: 1.6 },
@@ -281,7 +292,7 @@ B.TYPES = {
   e1: { name: 'Electric RaceBird', cls: 'National', model: 'foil', foil: 15, price: 7000, rank: 2, blurb: 'Silent battery-electric foiler: instant torque, then it lifts out of the water at 30 knots', mass: 1150, power: .26e6, top: 36, acc: 6.0, lat: 32, turnR: 15, grip: 2.8, slide: .2, len: 7.0, beam: 2.2, col: ['#f4f4f2', '#2fd4c4'], hum: 230, ride: .3, bank: 1.6 },
   gofast: { name: 'Go-Fast 42', cls: 'National', model: 'vee', open: true, price: 8500, rank: 2, blurb: 'Thirteen metres of yellow muscle with twin 1,100 hp V8s: huge in a straight line, a bus in the turns', mass: 6200, power: 1.5e6, top: 60, acc: 4.0, lat: 20, turnR: 30, grip: 1.9, slide: .42, len: 12.8, beam: 2.7, col: ['#ffd400', '#10161c'], hum: 46, ride: .8 },
   vintage: { name: 'Vintage Piston Hydro', cls: 'National', model: 'hydro', price: 9500, rank: 2, blurb: 'A 1950s three-pointer with a 2,000 hp V12 from a fighter plane: thunderous, fast and a handful', mass: 2800, power: 1.3e6, top: 70, acc: 4.8, lat: 24, turnR: 36, grip: 1.15, slide: .85, len: 9.0, beam: 3.6, col: ['#f2e3c4', '#0f6a3a'], hum: 62 },
-  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Brake early: it needs kilometres to turn', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 250, turnR: 30, grip: 2.2, slide: .5, brk: 150, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
+  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Just for fun: its races pay no prizes', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, eye: 1.45, eyeX: .3, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
 // list them cheapest first within each licence level (the garage and boat pickers show them in this order)
@@ -316,8 +327,8 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   this.u += F / T.mass * dt;
   this.plane += (clamp((uAbs - 9) / 7, 0, 1) - this.plane) * Math.min(1, dt * 1.5);   // 0 ploughing .. 1 up on the plane
   // turning: the rudder / drives give a yaw rate up to v / turning radius; planing hulls slide out (sideways speed v)
-  const turnR = Math.max(T.turnR, uAbs * uAbs / T.lat), rTarget = this.steer * (uAbs / turnR) * (this.u >= 0 ? 1 : -1) * clamp(uAbs / 5, .25, 1) * (this.air ? (T.airProp ? .5 : .1) : 1);   // air rudders still steer
-  this.r += (rTarget - this.r) * Math.min(1, dt * 2.6);
+  const turnR = Math.max(T.turnR, uAbs * uAbs / T.lat), rTarget = this.steer * (uAbs / turnR) * (this.u >= 0 ? 1 : -1) * clamp(uAbs / 5, .25, 1) * (this.air ? (T.airProp ? .5 : .1) : 1), rT = T.yawMax ? clamp(rTarget, -T.yawMax, T.yawMax) : rTarget;   // air rudders still steer
+  this.r += (rT - this.r) * Math.min(1, dt * 2.6);
   this.v += (-this.u * this.r * T.slide * .35) * dt;                  // centrifugal push out of the turn
   this.v -= this.v * Math.min(1, dt * T.grip * (1 + (1 - this.plane) * 1.5) * wet);   // keel / chines bite back
   this.u -= Math.abs(this.v) * .06 * Math.sign(this.u) * dt * 10 * wet; // sliding scrubs speed
@@ -551,15 +562,15 @@ B.World.prototype.build = function (c) {
       const body = new THREE.Mesh(bGeo, mats[sd < 0 ? 0 : 1]); body.position.y = .9; g.add(body);
       const tp = new THREE.Mesh(cap, mats[sd < 0 ? 0 : 1]); tp.position.y = 2.8; g.add(tp);
       const bd = new THREE.Mesh(band, white); bd.position.y = 1.5; g.add(bd);
-      g.position.set(x, 0, z); R.add(g); this.buoys.push({ g, x, z, x0: x, z0: z, gate: n });
+      g.position.set(x, 0, z); g.scale.setScalar(c.buoy); R.add(g); this.buoys.push({ g, x, z, x0: x, z0: z, gate: n, rad: 2.6 * c.buoy });
     }
     if (n === 0) {   // start / finish gantry on two pontoons
-      const gt = new THREE.Group(); gt.position.set(p.x, 0, p.z); gt.rotation.y = -p.h; R.add(gt);
+      const gt = new THREE.Group(), q = c.buoy; gt.position.set(p.x, 0, p.z); gt.rotation.y = -p.h; R.add(gt);
       const steel = new THREE.MeshStandardMaterial({ color: 0x2b3238, roughness: .6, metalness: .4 });
-      for (const sd of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(.6, 9, .6), steel); post.position.set(0, 4.5, sd * (c.laneW / 2 + 3)); gt.add(post);
-        const pont = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 4), new THREE.MeshStandardMaterial({ color: 0xe8e8e4, roughness: .7 })); pont.position.set(0, .2, sd * (c.laneW / 2 + 3)); gt.add(pont); }
+      for (const sd of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(.6 * q, 9 * q, .6 * q), steel); post.position.set(0, 4.5 * q, sd * (c.laneW / 2 + 3 * q)); gt.add(post);
+        const pont = new THREE.Mesh(new THREE.BoxGeometry(4 * q, 1 * q, 4 * q), new THREE.MeshStandardMaterial({ color: 0xe8e8e4, roughness: .7 })); pont.position.set(0, .2 * q, sd * (c.laneW / 2 + 3 * q)); gt.add(pont); }
       const ck = document.createElement('canvas'); ck.width = 256; ck.height = 32; const kx = ck.getContext('2d'); for (let i = 0; i < 32; i++) for (let j = 0; j < 4; j++) { kx.fillStyle = (i + j) % 2 ? '#111' : '#f4f4f2'; kx.fillRect(i * 8, j * 8, 8, 8); }
-      const ban = new THREE.Mesh(new THREE.BoxGeometry(.3, 1.6, c.laneW + 6), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(ck), roughness: .7 })); ban.position.y = 8.4; gt.add(ban);
+      const ban = new THREE.Mesh(new THREE.BoxGeometry(.3 * q, 1.6 * q, c.laneW + 6 * q), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(ck), roughness: .7 })); ban.position.y = 8.4 * q; gt.add(ban);
     }
   });
   this.boats = [];
@@ -1076,7 +1087,7 @@ B.Career = (function () {
   };
   const mult = (s) => (s <= .93 ? .7 : s <= .975 ? 1 : 1.4);
   // what a quick-race win pays: longer races and tougher rivals pay more
-  C.quote = (course, laps, skill) => ({ credits: r50(C.km(course) * laps * 110 * mult(skill)), pts: Math.max(2, Math.round(PTS[0] * .4 * mult(skill) * C.km(course) * laps / 9)) });
+  C.quote = (course, laps, skill, boat) => B.TYPES[boat] && B.TYPES[boat].fun ? { credits: 0, pts: 0 } : ({ credits: r50(C.km(course) * laps * 110 * mult(skill)), pts: Math.max(2, Math.round(PTS[0] * .4 * mult(skill) * C.km(course) * laps / 9)) });
   // pay out a finished race (position 1..6) and add the licence points
   C.award = (rc, pos) => {
     const d = C.lic(), before = C.rank(d.pts).index, ev = rc.event; let credits, bonus = 0, pts;
@@ -1084,7 +1095,7 @@ B.Career = (function () {
       credits = r50(ev.purse * PAY[pos - 1]); pts = Math.round(PTS[pos - 1] * (1 + ev.rank * .35));
       if (pos === 1 && d.events[ev.id] !== 1) bonus = r50(ev.purse * .5);   // first win in this event
       d.events[ev.id] = Math.min(d.events[ev.id] || 9, pos);
-    } else { const q = C.quote(rc.course, rc.laps, rc.skill); credits = r50(q.credits * PAY[pos - 1]); pts = Math.max(1, Math.round(q.pts * PAY[pos - 1])); }
+    } else { const q = C.quote(rc.course, rc.laps, rc.skill, rc.boat); credits = r50(q.credits * PAY[pos - 1]); pts = q.pts ? Math.max(1, Math.round(q.pts * PAY[pos - 1])) : 0; }
     d.pts += pts; d.races++; if (pos === 1) d.wins++; store.set('licence', d); C.add(credits + bonus);
     const after = C.rank(d.pts);
     return { pos, credits, bonus, pts, rank: after, rankUp: after.index > before ? after.name : null };
@@ -1180,7 +1191,7 @@ B.Game = function () {
     // quick race: only boats you own
     $('segBoat').innerHTML = Object.entries(B.TYPES).filter(([k]) => Cr.owned(k)).map(([k, T]) => `<button type="button" data-v="${k}">${T.name}<small>${T.cls} &middot; ${kn(B.spec(k, Cr.levels(k)).top)} kn</small></button>`).join('');
     mark('segBoat', c.boat); mark('segCourse', c.course); mark('segLaps', c.laps); mark('segAi', c.skill);
-    const q = Cr.quote(c.course, c.laps, c.skill); $('prizeLine').textContent = 'A win pays ' + fmt(q.credits) + ' and ' + q.pts + ' licence points (less for lower places).';
+    const q = Cr.quote(c.course, c.laps, c.skill, c.boat); $('prizeLine').textContent = q.credits ? 'A win pays ' + fmt(q.credits) + ' and ' + q.pts + ' licence points (less for lower places).' : 'Just for fun: races in the ' + B.TYPES[c.boat].name + ' pay no prize money or licence points.';
     const best = store.get('best.' + c.course + '.' + c.boat, null); $('bestLine').textContent = best ? 'Best lap here: ' + fmtT(best) : '';
     // career: rank and events
     const pct = rk.next ? Math.round((rk.pts - rk.floor) / (rk.nextPts - rk.floor) * 100) : 100;
@@ -1219,7 +1230,7 @@ B.Game = function () {
   };
   P._profile = function () {
     const c = this.course, T = B.TYPES[this.rc.boat], v = new Array(c.N);
-    for (let i = 0; i < c.N; i++) { const k = Math.abs(c.P[i].k) + 1e-6; v[i] = Math.min(T.top * .97, Math.sqrt(T.lat * Math.max(1 / k, T.turnR)) * .97 + 2, T.airProp ? B.cornerSpeed(this.rc.boat, Math.max(1 / k, T.turnR * 1.3)) * 1.06 : Infinity); }   // airboats slide: rivals corner only as fast as a real airboat can (+6% for the perfect line)
+    for (let i = 0; i < c.N; i++) { const k = Math.abs(c.P[i].k) + 1e-6; v[i] = Math.min(T.top * .97, Math.sqrt(T.lat * Math.max(1 / k, T.turnR)) * .97 + 2, T.airProp ? B.cornerSpeed(this.rc.boat, Math.max(1 / k, T.turnR * 1.3)) * 1.06 : Infinity, T.yawMax ? T.yawMax * .95 / k : Infinity); }   // airboats slide: rivals corner only as fast as a real airboat can (+6% for the perfect line)
     for (let pass = 0; pass < 2; pass++) for (let n = 0; n < c.N * 2; n++) { const i = (c.N * 2 - n) % c.N, j = (i + 1) % c.N; v[i] = Math.min(v[i], Math.sqrt(v[j] * v[j] + 2 * 8 * c.ds)); }
     return v;
   };
@@ -1248,11 +1259,18 @@ B.Game = function () {
   // ------------------------------------------------ simulation
   P._stepPlayer = function (dt, inp) {
     const b = this.player, c = this.course, run = this.mode === 'run' && !this.finished;
-    b.step(dt, { thr: run ? inp.thr : 0, brk: run ? inp.brk : (this.finished ? .4 : 0), steer: inp.steer }, this.clock, c.calm);
+    let steer = inp.steer * (c.assist ? clamp(150 / Math.max(Math.abs(b.u), 1), .15, 1) : 1);   // gentler steering at very high speed on assisted courses
+    if (c.assist && Math.abs(steer) < .05 && this.pIdx != null && b.u > 2) {   // steering assist: steer for a point on the centre line ahead
+      const L0 = B.locate(c, b.x, b.z, this.pIdx), u = b.u, Ld = u * 1.2 + 60, q = c.P[(L0.i + Math.round(Ld / c.ds)) % c.N];
+      let e = Math.atan2(q.z - b.z, q.x - b.x) - b.h; while (e > Math.PI) e -= 2 * Math.PI; while (e < -Math.PI) e += 2 * Math.PI;
+      const T = b.T, rMax = Math.min(T.yawMax || 9, u / Math.max(T.turnR, u * u / T.lat) * clamp(u / 5, .25, 1));
+      steer = clamp(2 * u * Math.sin(e) / Ld / rMax, -1, 1);
+    }
+    b.step(dt, { thr: run ? inp.thr : 0, brk: run ? inp.brk : (this.finished ? .4 : 0), steer }, this.clock, c.calm);
     // islands: you run aground and stop hard
     for (const I of c.islands) { const dx = b.x - I.x, dz = b.z - I.z, d = Math.hypot(dx, dz), R = I.r * 1.02 + 2; if (d < R) { b.x = I.x + dx / d * R; b.z = I.z + dz / d * R; b.u *= .3; b.v = 0; this.flash('Aground!', 1.2, 'R to get back on course'); } }
     // buoys: a knock and a slowdown
-    for (const y of this.world.buoys) { const dx = b.x - y.x, dz = b.z - y.z, d = Math.hypot(dx, dz); if (d < 2.6 && d > .01) { y.x -= dx / d * (2.6 - d); y.z -= dz / d * (2.6 - d); b.u *= Math.exp(-dt * 1.5); } }   // you shove the buoy aside
+    for (const y of this.world.buoys) { const dx = b.x - y.x, dz = b.z - y.z, d = Math.hypot(dx, dz); if (d < y.rad && d > .01) { y.x -= dx / d * (y.rad - d); y.z -= dz / d * (y.rad - d); b.u *= Math.exp(-dt * 1.5); } }   // you shove the buoy aside
     const L = B.locate(c, b.x, b.z, this.pIdx); this.pIdx = L.i; this.pS = L.i * c.ds;
     // gates in order: crossing a gate line inside the buoys counts it; passing it outside is a miss (+5 s)
     const gi = c.gates[this.nextGate % c.gates.length], prev = this.prevI;
@@ -1307,7 +1325,7 @@ B.Game = function () {
       let blocked = false; for (const o of others) { const gap = o.d - myD; if (gap > 0 && gap < 26 && Math.abs(o.o - A.o) < 6) { blocked = true; A.o += Math.sign(A.o - o.o || 1) * 4 * dt; vt = Math.min(vt, A.v); } }
       if (!blocked) A.o *= Math.exp(-dt * .3);
       A.o = clamp(A.o, -c.laneW / 2 + 5, c.laneW / 2 - 5);
-      A.v += clamp(vt - A.v, -9 * dt, 4.5 * dt); A.s += A.v * dt;
+      const ak = Math.max(1, A.boat.T.acc / 10); A.v += clamp(vt - A.v, -9 * dt * ak, 4.5 * dt * ak); A.s += A.v * dt;
       if (A.s >= L) { A.s -= L; A.lap++; if (A.lap >= this.rc.laps && A.done == null) A.done = this.clock; }
       // pose: on the course line, riding the waves like a real boat
       const q = B.at(c, A.s), b = A.boat; b.x = q.x + q.rx * A.o; b.z = q.z + q.rz * A.o; b.h = q.h; b.u = A.v; b.r = q.k * A.v;
@@ -1377,7 +1395,7 @@ B.Game = function () {
       this._cp = this._cp || { x: tx, z: tz, y: 5 }; const k = 1 - Math.exp(-dt * (5 + Math.max(0, b.speed - 120) * .1)); this._cp.x += (tx - this._cp.x) * k; this._cp.z += (tz - this._cp.z) * k; this._cp.y += (Math.max(b.y, 0) + 4.6 - this._cp.y) * k;
       cam.position.set(this._cp.x, this._cp.y, this._cp.z); cam.lookAt(b.x + f[0] * 10, b.y + 1.2, b.z + f[1] * 10); cam.fov = 62 + Math.min(12, b.speed * .15);
     } else {   // on board, behind the driver
-      cam.position.set(b.x - f[0] * b.T.len * .15, b.y + (b.T.eye || 2.1) + b.pitch * 3, b.z - f[1] * b.T.len * .15); cam.lookAt(b.x + f[0] * 30, b.y + 1.2, b.z + f[1] * 30); cam.fov = 72;
+      const ex = b.T.eyeX != null ? b.T.eyeX : -.15; cam.position.set(b.x + f[0] * b.T.len * ex, b.y + (b.T.eye || 2.1) + b.pitch * 3, b.z + f[1] * b.T.len * ex); cam.lookAt(b.x + f[0] * 30, b.y + 1.2, b.z + f[1] * 30); cam.fov = 72;
     }
     cam.updateProjectionMatrix();
     // the water grid is centred under the camera; spray sizes are in metres
