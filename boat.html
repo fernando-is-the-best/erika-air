@@ -283,6 +283,8 @@ B.TYPES = {
   vintage: { name: 'Vintage Piston Hydro', cls: 'National', model: 'hydro', price: 9500, rank: 2, blurb: 'A 1950s three-pointer with a 2,000 hp V12 from a fighter plane: thunderous, fast and a handful', mass: 2800, power: 1.3e6, top: 70, acc: 4.8, lat: 24, turnR: 36, grip: 1.15, slide: .85, len: 9.0, beam: 3.6, col: ['#f2e3c4', '#0f6a3a'], hum: 62 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
+// list them cheapest first within each licence level (the garage and boat pickers show them in this order)
+B.TYPES = Object.fromEntries(Object.entries(B.TYPES).sort((a, b) => a[1].rank - b[1].rank || a[1].price - b[1].price));
 // a boat's spec with the player's upgrades applied (engine: top speed and power, prop: acceleration, hull: cornering)
 B.spec = function (type, lv) {
   const T = Object.assign({}, B.TYPES[type] || B.TYPES.rib); if (!lv) return T;
@@ -739,7 +741,7 @@ B.World.prototype.makeBoat = function (type, cols, num) {
     add(new THREE.CylinderGeometry(.12, .12, .3, 12), metal, fx + .05, fy, 0).rotation.z = Math.PI / 2;
     const disc = add(new THREE.CircleGeometry(.7, 28), M(0xd8dde2, { transparent: true, opacity: .1, depthWrite: false }), fx, fy, 0); disc.rotation.y = Math.PI / 2;
     for (const sd of [-1, 1]) rod([fx + .1, .55, sd * .55], [fx, fy - .55, sd * .45], .035, metal);     // duct struts
-    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.35, 1.0, .04), hullM, fx - .4, fy, sd * .3);   // air rudders
+    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.3, .8, .03), dark, fx - .36, fy, sd * .26);   // air rudders
     numbers(L * .05, .48, Bm * .44 + .01, .4);
   } else if (md === 'airboat') {
     // airboat: a flat-bottomed aluminium punt, a driver's seat high on a frame, a car V8 driving a two-blade aircraft propeller in a
