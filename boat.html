@@ -268,7 +268,8 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 // Optional: hump (how hard the hull ploughs before planing, 1 = normal), ride (how hard waves throw it, 1 = normal), bank (how far it
 // leans into turns), airProp (an air propeller: still pushes when airborne), foil (speed in m/s where it lifts onto hydrofoils),
 // brk (hardest braking, m/s2; default: power-limited), yawMax (fastest turn, rad/s),
-// fun (quick races in it pay no credits or licence points).
+// fun (quick races in it pay no credits or licence points),
+// silent (no engine sound).
 B.TYPES = {
   rib: { name: 'Race RIB', cls: 'Club', model: 'rib', price: 0, rank: 0, blurb: 'Rigid inflatable, 2 x 300 hp: forgiving and turns on a coin', mass: 1700, power: .45e6, top: 44, acc: 4.8, lat: 26, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
   pwc: { name: 'Race Jet Ski', cls: 'Club', model: 'pwc', price: 900, rank: 0, blurb: 'A 310 hp racing jet ski ridden standing: turns inside anything and bucks over every wave', mass: 420, power: .23e6, top: 36, acc: 7.2, lat: 34, turnR: 6, grip: 3.0, slide: .45, len: 3.4, beam: 1.2, col: ['#1fbf5f', '#10161c'], hum: 135, hump: .5, ride: 1.1, bank: 1.6 },
@@ -292,7 +293,7 @@ B.TYPES = {
   e1: { name: 'Electric RaceBird', cls: 'National', model: 'foil', foil: 15, price: 7000, rank: 2, blurb: 'Silent battery-electric foiler: instant torque, then it lifts out of the water at 30 knots', mass: 1150, power: .26e6, top: 36, acc: 6.0, lat: 32, turnR: 15, grip: 2.8, slide: .2, len: 7.0, beam: 2.2, col: ['#f4f4f2', '#2fd4c4'], hum: 230, ride: .3, bank: 1.6 },
   gofast: { name: 'Go-Fast 42', cls: 'National', model: 'vee', open: true, price: 8500, rank: 2, blurb: 'Thirteen metres of yellow muscle with twin 1,100 hp V8s: huge in a straight line, a bus in the turns', mass: 6200, power: 1.5e6, top: 60, acc: 4.0, lat: 20, turnR: 30, grip: 1.9, slide: .42, len: 12.8, beam: 2.7, col: ['#ffd400', '#10161c'], hum: 46, ride: .8 },
   vintage: { name: 'Vintage Piston Hydro', cls: 'National', model: 'hydro', price: 9500, rank: 2, blurb: 'A 1950s three-pointer with a 2,000 hp V12 from a fighter plane: thunderous, fast and a handful', mass: 2800, power: 1.3e6, top: 70, acc: 4.8, lat: 24, turnR: 36, grip: 1.15, slide: .85, len: 9.0, beam: 3.6, col: ['#f2e3c4', '#0f6a3a'], hum: 62 },
-  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Just for fun: its races pay no prizes', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
+  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Just for fun: its races pay no prizes', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, silent: true, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
 // list them cheapest first within each licence level (the garage and boat pickers show them in this order)
@@ -1097,19 +1098,24 @@ B.Sound.prototype.init = function () {
 B.Sound.prototype.update = function (b, on) {
   const c = this.ctx; if (!c) return; const t = c.currentTime, S = (p, v, k) => p.setTargetAtTime(v, t, k || .05);
   const rpm = .25 + .75 * Math.min(1, Math.abs(b.u) / b.T.top) * .8 + b.thr * .25 + (b.air ? .25 * b.thr : 0), f = b.T.hum * (1 + rpm * 1.6);
-  S(this.o1.frequency, f); S(this.o2.frequency, f * .501); S(this.lp.frequency, 400 + 1600 * b.thr); S(this.eg.gain, on ? .06 + .1 * b.thr : 0);
+  S(this.o1.frequency, f); S(this.o2.frequency, f * .501); S(this.lp.frequency, 400 + 1600 * b.thr); S(this.eg.gain, on && !b.T.silent ? .06 + .1 * b.thr : 0);
   S(this.wg.gain, on && !b.air ? Math.min(.28, b.speed / 120) : 0); S(this.wf.frequency, 300 + b.speed * 18);
 };
 
 // ---------------------------------------------------------------- the Erika 2000's song
 // erika.mp3 (next to this page) loops at full volume while you drive the Erika 2000 from the on-board camera.
 B.music = {
-  el: null, failed: false, busy: false,
-  update(on) {
+  // the song file, next to boat.html; the other names are tried in turn if it is missing (GitHub Pages names are case-sensitive)
+  files: ['erika.mp3', 'Erika.mp3', 'ERIKA.mp3', 'erika.m4a', 'erika.ogg', 'erika.wav', 'Erika.m4a', 'Erika.ogg', 'Erika.wav'],
+  el: null, k: 0, failed: false, busy: false, warned: false,
+  update(on, game) {
     if (!on || document.hidden) { if (this.el && !this.el.paused) this.el.pause(); return; }
-    if (this.failed) return;
-    if (!this.el) { this.el = new Audio('erika.mp3'); this.el.loop = true; this.el.volume = 1; this.el.addEventListener('error', () => { this.failed = true; console.warn('Erika 2000: erika.mp3 not found next to boat.html'); }); }
-    if (this.el.paused && !this.busy) { this.busy = true; const p = this.el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { this.busy = false; }); }
+    if (this.failed) { if (!this.warned && game && game.mode === 'run') { this.warned = true; game.flash('No song file', 4, 'Upload erika.mp3 next to boat.html to hear the music'); } return; }
+    if (!this.el) {
+      this.el = new Audio(this.files[this.k]); this.el.loop = true; this.el.volume = 1;
+      this.el.addEventListener('error', () => { this.el = null; this.busy = false; if (++this.k >= this.files.length) { this.failed = true; console.warn('Erika 2000: no song file (erika.mp3) next to boat.html'); } });
+    }
+    if (this.el && this.el.paused && !this.busy) { const el = this.el; this.busy = true; const p = el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { if (this.el === el) this.busy = false; }); }
   },
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && B.music.el) B.music.el.pause(); });
@@ -1452,7 +1458,7 @@ B.Game = function () {
     this.spray.update(dtF); this.trails.update(this.clock);
     this._render(dtF); this._hud(dtF);
     this.sound.update(this.player, live && this.mode !== 'menu');
-    B.music.update(live && this.camMode === 1 && this.rc && this.rc.boat === 'erika');
+    B.music.update(live && this.camMode === 1 && this.rc && this.rc.boat === 'erika', this);
   };
   // wakes and spray, once per frame: a foam trail from every transom, sheets of spray off the chines, rooster tails from the props
   P._fx = function (dt) {
