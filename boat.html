@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Erika Boats</title>
-<meta name="description" content="Powerboat racing round buoy courses: fifteen boats, thirteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
+<meta name="description" content="Powerboat racing round buoy courses: twenty-four boats, thirteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -257,7 +257,7 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 // price in credits and the licence rank needed to buy (index into B.RANKS); the Race RIB is free.
 // Optional: hump (how hard the hull ploughs before planing, 1 = normal), ride (how hard waves throw it, 1 = normal), bank (how far it
 // leans into turns), airProp (an air propeller: still pushes when airborne), foil (speed in m/s where it lifts onto hydrofoils),
-// eye (on-board camera height, m; default 2.1).
+// eye (on-board camera height, m; default 2.1), brk (hardest braking, m/s2; default: power-limited).
 B.TYPES = {
   rib: { name: 'Race RIB', cls: 'Club', model: 'rib', price: 0, rank: 0, blurb: 'Rigid inflatable, 2 x 300 hp: forgiving and turns on a coin', mass: 1700, power: .45e6, top: 44, acc: 4.8, lat: 26, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
   pwc: { name: 'Race Jet Ski', cls: 'Club', model: 'pwc', price: 900, rank: 0, blurb: 'A 310 hp racing jet ski ridden standing: turns inside anything and bucks over every wave', mass: 420, power: .23e6, top: 36, acc: 7.2, lat: 34, turnR: 6, grip: 3.0, slide: .45, len: 3.4, beam: 1.2, col: ['#1fbf5f', '#10161c'], hum: 135, hump: .5, ride: 1.1, bank: 1.6 },
@@ -281,6 +281,7 @@ B.TYPES = {
   e1: { name: 'Electric RaceBird', cls: 'National', model: 'foil', foil: 15, price: 7000, rank: 2, blurb: 'Silent battery-electric foiler: instant torque, then it lifts out of the water at 30 knots', mass: 1150, power: .26e6, top: 36, acc: 6.0, lat: 32, turnR: 15, grip: 2.8, slide: .2, len: 7.0, beam: 2.2, col: ['#f4f4f2', '#2fd4c4'], hum: 230, ride: .3, bank: 1.6 },
   gofast: { name: 'Go-Fast 42', cls: 'National', model: 'vee', open: true, price: 8500, rank: 2, blurb: 'Thirteen metres of yellow muscle with twin 1,100 hp V8s: huge in a straight line, a bus in the turns', mass: 6200, power: 1.5e6, top: 60, acc: 4.0, lat: 20, turnR: 30, grip: 1.9, slide: .42, len: 12.8, beam: 2.7, col: ['#ffd400', '#10161c'], hum: 46, ride: .8 },
   vintage: { name: 'Vintage Piston Hydro', cls: 'National', model: 'hydro', price: 9500, rank: 2, blurb: 'A 1950s three-pointer with a 2,000 hp V12 from a fighter plane: thunderous, fast and a handful', mass: 2800, power: 1.3e6, top: 70, acc: 4.8, lat: 24, turnR: 36, grip: 1.15, slide: .85, len: 9.0, beam: 3.6, col: ['#f2e3c4', '#0f6a3a'], hum: 62 },
+  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Brake early: it needs kilometres to turn', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 250, turnR: 30, grip: 2.2, slide: .5, brk: 150, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
 // list them cheapest first within each licence level (the garage and boat pickers show them in this order)
@@ -305,7 +306,7 @@ B.Boat.prototype.step = function (dt, inp, t, calm) {
   const uAbs = Math.abs(this.u), wet = this.air ? 0 : 1;
   // propulsion: power over speed, with a static-thrust cap; reverse is weak
   const push = T.airProp ? (this.air ? .35 : 1) : wet;   // an airboat's propeller still pushes in the air (less: no water to grip)
-  let F = this.thr * Math.min(T.power * .82 / Math.max(uAbs, 1), T.mass * T.acc) * push - back * T.power / 18 * push * (this.u > -4 ? 1 : 0);
+  let F = this.thr * Math.min(T.power * .82 / Math.max(uAbs, 1), T.mass * T.acc) * push - back * Math.min(T.power / 18, T.mass * (T.brk || 1e9)) * push * (this.u > -4 ? 1 : 0);
   // hydrofoils: lift the hull out between foil and foil + 6 m/s; until then the foils and the hull both drag
   if (T.foil) this.foilUp += (clamp((uAbs - T.foil) / 6, 0, 1) - this.foilUp) * Math.min(1, dt * 1.2);
   const fx = T.foil ? 1 + 1.2 * (1 - this.foilUp) : 1;
@@ -994,6 +995,19 @@ B.Sound.prototype.update = function (b, on) {
   S(this.wg.gain, on && !b.air ? Math.min(.28, b.speed / 120) : 0); S(this.wf.frequency, 300 + b.speed * 18);
 };
 
+// ---------------------------------------------------------------- the Erika 2000's song
+// erika.mp3 (next to this page) loops at full volume while you drive the Erika 2000 from the on-board camera.
+B.music = {
+  el: null, failed: false, busy: false,
+  update(on) {
+    if (!on || document.hidden) { if (this.el && !this.el.paused) this.el.pause(); return; }
+    if (this.failed) return;
+    if (!this.el) { this.el = new Audio('erika.mp3'); this.el.loop = true; this.el.volume = 1; this.el.addEventListener('error', () => { this.failed = true; console.warn('Erika 2000: erika.mp3 not found next to boat.html'); }); }
+    if (this.el.paused && !this.busy) { this.busy = true; const p = this.el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { this.busy = false; }); }
+  },
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden && B.music.el) B.music.el.pause(); });
+
 // ---------------------------------------------------------------- career: credits, racing licence, boats, upgrades and events
 B.RANKS = [['Novice', 0], ['Club', 150], ['Regional', 400], ['National', 850], ['International', 1500], ['Pro', 2400], ['World Series', 3600], ['Champion', 5200]];
 B.UPGRADES = [
@@ -1325,12 +1339,13 @@ B.Game = function () {
     this.spray.update(dtF); this.trails.update(this.clock);
     this._render(dtF); this._hud(dtF);
     this.sound.update(this.player, live && this.mode !== 'menu');
+    B.music.update(live && this.camMode === 1 && this.rc && this.rc.boat === 'erika');
   };
   // wakes and spray, once per frame: a foam trail from every transom, sheets of spray off the chines, rooster tails from the props
   P._fx = function (dt) {
     const t = this.clock, sp = this.spray, R = Math.random, boats = [[this.player, this.trP, 1]].concat(this.ai.map((A) => [A.boat, A.tr, .6]));
     for (const [b, tr, q] of boats) {
-      const T = b.T, f = [Math.cos(b.h), Math.sin(b.h)], s = [-f[1], f[0]], v = b.speed;
+      const T = b.T, f = [Math.cos(b.h), Math.sin(b.h)], s = [-f[1], f[0]], v = Math.min(b.speed, 130);
       if (v > 1.5) this.trails.push(tr, b.x - f[0] * T.len * .48, b.z - f[1] * T.len * .48, b.h, t, v, b.air);
       if (b.splash > 0) { for (let k = 0; k < 40; k++) { const a = R() * 6.283, u = 2 + R() * 6; sp.emit(b.x + f[0] * T.len * .2, b.y, b.z + f[1] * T.len * .2, Math.cos(a) * u + f[0] * v * .3, 2 + R() * 7 * b.splash, Math.sin(a) * u + f[1] * v * .3, 1.4, 1.4, .8); } b.splash = 0; }
       if (b.air || v < 5) continue;
@@ -1359,7 +1374,7 @@ B.Game = function () {
     if (this.preview) { const a = this.clock * .12; cam.position.set(b.x + Math.cos(a) * 26, 7, b.z + Math.sin(a) * 26); cam.lookAt(b.x, 1.5, b.z); cam.fov = 50; }
     else if (this.camMode === 0) {   // chase
       const back = b.T.len * 1.6 + 6 + b.speed * .06, tx = b.x - f[0] * back, tz = b.z - f[1] * back;
-      this._cp = this._cp || { x: tx, z: tz, y: 5 }; const k = 1 - Math.exp(-dt * 5); this._cp.x += (tx - this._cp.x) * k; this._cp.z += (tz - this._cp.z) * k; this._cp.y += (Math.max(b.y, 0) + 4.6 - this._cp.y) * k;
+      this._cp = this._cp || { x: tx, z: tz, y: 5 }; const k = 1 - Math.exp(-dt * (5 + Math.max(0, b.speed - 120) * .1)); this._cp.x += (tx - this._cp.x) * k; this._cp.z += (tz - this._cp.z) * k; this._cp.y += (Math.max(b.y, 0) + 4.6 - this._cp.y) * k;
       cam.position.set(this._cp.x, this._cp.y, this._cp.z); cam.lookAt(b.x + f[0] * 10, b.y + 1.2, b.z + f[1] * 10); cam.fov = 62 + Math.min(12, b.speed * .15);
     } else {   // on board, behind the driver
       cam.position.set(b.x - f[0] * b.T.len * .15, b.y + (b.T.eye || 2.1) + b.pitch * 3, b.z - f[1] * b.T.len * .15); cam.lookAt(b.x + f[0] * 30, b.y + 1.2, b.z + f[1] * 30); cam.fov = 72;
