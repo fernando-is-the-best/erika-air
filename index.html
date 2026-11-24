@@ -2077,6 +2077,102 @@ SIM.flatEnv = function (groundY) {
     crashSink: 4.0, hardSink: 2.0, eye: [0.6, 0.85, -7.9], chase: 30,
     stats: ['Cruise 160 kt, 9,700 shp', 'Tandem rotors, no tail rotor', 'Lifts 10 tonnes', 'Crew of 3 plus 33'],
   });
+
+  heli({
+    id: 'r22', name: 'Robinson R22 Beta II', cls: 'Two-seat piston helicopter', model: 'heli_r22',
+    blurb: 'The little two-seat trainer: a light, low-inertia two-blade rotor and a twitchy cyclic. Fun and quick, but the rotor RPM decays fast if you lose power.',
+    emptyMass: 395, payload: 175, fuelCap: 81, fuelDefault: 0.7, inertia: [700, 650, 280],
+    engine: { type: 'piston', name: 'Lycoming O-360-J2A (131 hp)', P: 98000, rpmIdle: 1000, rpmMax: 2652, T0: 1, D: 1, Vopt: 45, etaMax: 0.8, pitch: 'fixed' },
+    heli: { R: 3.835, nb: 2, chord: 0.183, rpm: 530, twist: -8 * D, coll: [4.5 * D, 18 * D], Kb: 0, maxTilt: 11 * D, Ir: 220, kfb: 0.25, lag: 0.08,
+      Pmax: 98000, piston: true, engRpm: 2652, rotors: [{ pos: [0, 1.95, -0.05], dir: 1 }], tr: { arm: 4.45, y: 0.45, R: 0.535, Tmax: 700 },
+      f: [2.3, 3.2, 0.45], Sh: 0.2, lh: 4.1, Sv: 0.3, lv: 4.4 },
+    gear: skids(0.95, -0.95, -1.0, 0.75),
+    hardpoints: rotorPts(3.835, 1.95, -0.05, 4.45, 0.45, 0.535).concat([{ name: 'Tail', pos: [0, 0.1, 4.35], soft: true }, { name: 'Nose', pos: [0, -0.45, -1.7] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 27, vne: 52.5, vfe: 52.5, vno: 46, vcruise: 46, vref: 14 },
+    crashSink: 3.0, hardSink: 1.5, eye: [0.27, 0.57, -0.85], chase: 11,
+    stats: ['Cruise 90 kt, 131 hp piston', 'Two seats, 622 kg loaded', 'Light rotor: little stored energy', 'Very lively on the cyclic'],
+  });
+
+  heli({
+    id: 'b206', name: 'Bell 206B-3 JetRanger III', cls: 'Light turbine helicopter', model: 'heli_b206',
+    blurb: 'The classic five-seat turbine helicopter: news, police, training and tours. A heavy two-blade rotor makes it smooth, steady and forgiving in an autorotation.',
+    emptyMass: 742, payload: 300, fuelCap: 276, fuelDefault: 0.6, inertia: [3600, 3300, 1100],
+    engine: { type: 'turboshaft', name: 'Rolls-Royce 250-C20J (420 shp)' },
+    heli: { R: 5.08, nb: 2, chord: 0.33, rpm: 394, twist: -10 * D, coll: [5 * D, 20 * D], Kb: 0, maxTilt: 11 * D, Ir: 900, kfb: 0.25, lag: 0.09,
+      Pmax: 236000, engRpm: 6016, rotors: [{ pos: [0, 2.05, -0.1], dir: 1 }], tr: { arm: 5.95, y: 0.95, R: 0.825, Tmax: 1600 },
+      f: [3.8, 5.5, 0.95], Sh: 0.8, lh: 4.3, Sv: 0.8, lv: 5.7 },
+    gear: skids(1.0, -1.25, -1.3, 1.1),
+    hardpoints: rotorPts(5.08, 2.05, -0.1, 5.95, 0.95, 0.825).concat([{ name: 'Tail', pos: [0, 0.15, 6.0], soft: true }, { name: 'Nose', pos: [0, -0.55, -2.35] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 27, vne: 62.8, vfe: 62.8, vno: 57, vcruise: 57, vref: 15 },
+    crashSink: 3.3, hardSink: 1.7, eye: [0.42, 0.57, -1.45], chase: 13,
+    stats: ['Cruise 111 kt, 420 shp turboshaft', 'Two-blade teetering rotor', 'Seats five', 'Gentle, steady handling'],
+  });
+
+  heli({
+    id: 'uh1h', name: 'Bell UH-1H Iroquois "Huey"', cls: 'Utility turbine helicopter', model: 'heli_uh1h',
+    blurb: 'The Vietnam-era Huey: a big two-blade rotor with a stabiliser bar, one turbine and wide-open cabin doors. That famous wop-wop is the blade tips slapping the air.',
+    emptyMass: 2363, payload: 1000, fuelCap: 640, fuelDefault: 0.7, inertia: [19000, 18000, 4000],
+    engine: { type: 'turboshaft', name: 'Lycoming T53-L-13 (1,400 shp)' },
+    heli: { R: 7.32, nb: 2, chord: 0.53, rpm: 324, twist: -10 * D, coll: [6 * D, 22 * D], Kb: 0, maxTilt: 11 * D, Ir: 5800, kfb: 0.25, lag: 0.1,
+      Pmax: 820000, engRpm: 6600, rotors: [{ pos: [0, 2.55, -0.1], dir: 1 }], tr: { arm: 8.6, y: 1.55, R: 1.3, Tmax: 4500 },
+      f: [8, 13, 2.6], Sh: 1.4, lh: 6.2, Sv: 1.8, lv: 8.4 },
+    gear: skids(1.3, -1.55, -2.2, 1.2),
+    hardpoints: rotorPts(7.32, 2.55, -0.1, 8.6, 1.55, 1.3).concat([{ name: 'Tail', pos: [0, -0.55, 7.4], soft: true }, { name: 'Nose', pos: [0, -0.9, -4.5] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 31, vne: 64, vfe: 64, vno: 57, vcruise: 57, vref: 16 },
+    crashSink: 3.6, hardSink: 1.8, eye: [0.55, 0.77, -3.45], chase: 18,
+    stats: ['Cruise 110 kt, 1,400 shp', 'Two-blade rotor with stabiliser bar', 'Crew of 4 plus 11', 'Wide sliding cabin doors'],
+  });
+
+  heli({
+    id: 'h135', name: 'Airbus H135', cls: 'Light twin-turbine helicopter', model: 'heli_h135',
+    blurb: 'The air-ambulance and police twin: a stiff bearingless four-blade rotor that answers every input, and a Fenestron (a fan inside the tail fin) instead of a tail rotor.',
+    emptyMass: 1490, payload: 500, fuelCap: 560, fuelDefault: 0.6, inertia: [7000, 6400, 2200],
+    engine: { type: 'turboshaft', name: '2 x Safran Arrius 2B2 (~630 shp each)' },
+    heli: { R: 5.1, nb: 4, chord: 0.288, rpm: 395, twist: -10 * D, coll: [8 * D, 24 * D], Kb: 35000, maxTilt: 11 * D, Ir: 1200, kfb: 0.22, lag: 0.08,
+      Pmax: 820000, engRpm: 6000, rotors: [{ pos: [0, 1.85, -0.1], dir: -1 }], tr: { arm: 5.55, y: 0.95, R: 0.5, Tmax: 5800 },
+      f: [5, 8, 1.3], Sh: 1.0, lh: 4.8, Sv: 1.4, lv: 5.6 },
+    gear: skids(1.15, -1.2, -1.4, 1.0),
+    hardpoints: rotorPts(5.1, 1.85, -0.1, 0, 0, 0).concat([{ name: 'Tail', pos: [0, 0.3, 5.9], soft: true }, { name: 'Nose', pos: [0, -0.55, -2.85] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 33, vne: 79.7, vfe: 79.7, vno: 70, vcruise: 70, vref: 16 },
+    crashSink: 3.4, hardSink: 1.7, eye: [0.45, 0.52, -1.6], chase: 14,
+    stats: ['Cruise 137 kt, two turbines', 'Bearingless four-blade rotor', 'Fenestron fan-in-fin tail', 'Crisp, precise handling'],
+  });
+
+  heli({
+    id: 'aw139', name: 'Leonardo AW139', cls: 'Medium twin-turbine helicopter', model: 'heli_aw139',
+    blurb: 'A fast, modern medium twin for search and rescue and offshore work: five blades, retractable wheels and plenty of power in reserve.',
+    emptyMass: 3622, payload: 1600, fuelCap: 1250, fuelDefault: 0.6, inertia: [24000, 23000, 6000],
+    engine: { type: 'turboshaft', name: '2 x Pratt & Whitney PT6C-67C (1,531 shp each)' },
+    heli: { R: 6.9, nb: 5, chord: 0.4, rpm: 297, twist: -16 * D, coll: [12 * D, 30 * D], Kb: 60000, maxTilt: 12 * D, Ir: 6500, kfb: 0.22, lag: 0.1, shaft: 3 * D,
+      Pmax: 1900000, engRpm: 30000, ctsMax: 0.14, rotors: [{ pos: [0, 2.3, -0.2], dir: 1 }], tr: { arm: 8.3, y: 1.9, R: 1.35, Tmax: 12000 },
+      f: [9, 15, 2.4], Sh: 2.2, lh: 7.3, Sv: 2.0, lv: 8.3 },
+    gear: [
+      { name: 'nose', pos: [0, -1.55, -3.4], k: 200000, c: 40000, travel: 0.25, castor: true, lat: 0.5 },
+      { name: 'mainL', pos: [-1.5, -1.6, 0.9], k: 350000, c: 60000, travel: 0.3, brake: true, lat: 0.9 },
+      { name: 'mainR', pos: [1.5, -1.6, 0.9], k: 350000, c: 60000, travel: 0.3, brake: true, lat: 0.9 }],
+    hardpoints: rotorPts(6.9, 2.3, -0.2, 8.3, 1.9, 1.35).concat([{ name: 'Nose', pos: [0, -0.9, -5.2] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 38, vne: 86, vfe: 86, vno: 79, vcruise: 79, vref: 18 },
+    crashSink: 4.0, hardSink: 2.0, eye: [0.55, 0.77, -3.25], chase: 19,
+    stats: ['Cruise 154 kt, 3,060 shp', 'Five-blade articulated rotor', 'Crew of 2 plus 15', 'Search and rescue, offshore'],
+  });
+
+  heli({
+    id: 'mi8', name: 'Mil Mi-8MTV (Mi-17)', cls: 'Medium-heavy twin-turbine helicopter', model: 'heli_mi8',
+    blurb: 'The most-built twin-turbine helicopter in the world: a huge five-blade rotor that turns clockwise, a tail rotor on the left, and room for 24 people or 4 tonnes of cargo.',
+    emptyMass: 7400, payload: 2500, fuelCap: 1900, fuelDefault: 0.7, inertia: [110000, 105000, 22000],
+    engine: { type: 'turboshaft', name: '2 x Klimov TV3-117VM (1,950 shp each)' },
+    heli: { R: 10.65, nb: 5, chord: 0.52, rpm: 192, twist: -5 * D, coll: [3 * D, 18 * D], Kb: 30000, maxTilt: 10 * D, Ir: 30000, kfb: 0.2, lag: 0.12, shaft: 3 * D,
+      Pmax: 2900000, engRpm: 15000, ctsMax: 0.14, rotors: [{ pos: [0, 2.7, -0.15], dir: -1 }], tr: { arm: 12.6, y: 2.6, R: 1.95, Tmax: 14000 },
+      f: [20, 34, 5.5], Sh: 2.0, lh: 10.5, Sv: 3.0, lv: 12.4 },
+    gear: [
+      { name: 'nose', pos: [0, -2.05, -5.0], k: 600000, c: 100000, travel: 0.3, castor: true, lat: 0.6 },
+      { name: 'mainL', pos: [-2.25, -2.15, 0.6], k: 900000, c: 150000, travel: 0.3, brake: true, lat: 0.9 },
+      { name: 'mainR', pos: [2.25, -2.15, 0.6], k: 900000, c: 150000, travel: 0.3, brake: true, lat: 0.9 }],
+    hardpoints: rotorPts(10.65, 2.7, -0.15, 12.6, 2.6, 1.95).concat([{ name: 'Nose', pos: [0, -1.3, -7.7] }]),
+    speeds: { vs0: 0, vs1: 0, vr: 0, vy: 33, vne: 69, vfe: 69, vno: 64, vcruise: 64, vref: 18 },
+    crashSink: 4.0, hardSink: 2.0, eye: [-0.6, 0.87, -6.4], chase: 30,
+    stats: ['Cruise 124 kt, 3,900 shp', 'Five-blade rotor turning clockwise', 'Tail rotor on the left', 'Carries 24 people'],
+  });
 })();
 
 // ---------- airliner_types.js : data for the Boeing / Airbus family (real dimensions, masses and thrust; SI units) ----------
@@ -6025,6 +6121,202 @@ SIM.Models = (function () {
     panel(g, [0, spec.eye[1] - 0.52, spec.eye[2] - 1.0], 2.4);
     return finish(g, a, [mainRotor({ R: 9.14, nb: 3, chord: 0.81, hub: 0.55, pos: [0, 2.4, -6.1], dir: 1, cone: 0.04 }), mainRotor({ R: 9.14, nb: 3, chord: 0.81, hub: 0.55, pos: [0, 3.3, 5.9], dir: -1, cone: 0.04 })], null);
   });
+
+  // ===================================================================== Robinson R22: the small two-seat bubble, red with a white cheat line
+  M.reg('r22', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0xb3202a, { r: 0.3, m: 0.12 }), stripe = K.mat(0xf3f1ea, { r: 0.35 }), dark = K.mat(0x2a2c30, { r: 0.6 }), metal = K.mat(0xb9bcc0, { r: 0.3, m: 0.7 });
+    const glass = K.mat(0x9cc2d8, { r: 0.05, m: 0.1, tr: 0.32, ei: 1.0 });
+    const st = [{ z: -1.8, w: 0.04, t: -0.05, b: -0.13, n: 2 }, { z: -1.6, w: 0.42, t: 0.4, b: -0.5, n: 2.2 }, { z: -1.12, w: 0.55, t: 0.75, b: -0.6, n: 2.5 },
+      { z: -0.48, w: 0.56, t: 0.78, b: -0.6, n: 2.6 }, { z: 0.12, w: 0.5, t: 0.72, b: -0.54, n: 2.6 }, { z: 0.56, w: 0.32, t: 0.5, b: -0.27, n: 2.2 }, { z: 1.0, w: 0.12, t: 0.28, b: 0.05, n: 2 }];
+    cabin(g, st, body, glass, -1.7, -0.2, 1.75);
+    a.eyePilot = pilot(g, 0.27, 0.0, -0.75); pilot(g, -0.27, 0.0, -0.75, 0x2f5a3a);
+    g.add(K.fuselage(st, stripe, { z0: -1.62, z1: 0.5, th0: 1.95, th1: 2.15, off: 0.015, step: 0.1, segs: 2 }));
+    g.add(K.fuselage(st, stripe, { z0: -1.62, z1: 0.5, th0: -2.15, th1: -1.95, off: 0.015, step: 0.1, segs: 2 }));
+    [-0.75, -0.2].forEach((z) => [-1, 1].forEach((sd) => g.add(K.strut([sd * 0.55, -0.5, z], [sd * 0.57, 0.68, z], 0.025, 0.04, body))));
+    const bay = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.55, 0.7), dark); bay.position.set(0, 0.1, 0.7); g.add(bay);
+    { const mf = K.lathe([[-0.4, 0.05], [-0.25, 0.25], [0.25, 0.24], [0.55, 0.1]], body, 16); mf.position.set(0, 1.0, 0.3); g.add(mf); }
+    g.add(K.round([0, 0.75, -0.05], [0, 1.95, -0.05], 0.07, 0.055, metal, 10));   // mast
+    g.add(K.round([0, 0.3, 1.0], [0, 0.45, 4.5], 0.17, 0.06, body, 14));          // tail boom
+    g.add(K.strut([0, 0.45, 4.2], [0, 1.15, 4.7], 0.035, 0.32, body));
+    g.add(K.strut([0, 0.45, 4.3], [0, -0.1, 4.55], 0.035, 0.24, body));
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.035, 0.26), body); hs.position.set(0, 0.5, 4.15); g.add(hs);
+    g.add(K.round([0, -0.1, 4.5], [0, -0.32, 4.62], 0.015, 0.015, metal, 6));
+    skids(g, 0.95, -0.95, -1.0, 0.75, metal, -0.5);
+    navLights(g, a, [-0.58, 0.05, -0.5], [0.58, 0.05, -0.5], [0, 1.17, 4.72]);
+    panel(g, [0, spec.eye[1] - 0.48, spec.eye[2] - 0.55], 0.8);
+    return finish(g, a, [mainRotor({ R: 3.835, nb: 2, chord: 0.183, hub: 0.14, pos: [0, 1.95, -0.05], dir: 1, cone: 0.035 })],
+      tailRotor({ R: 0.535, nb: 2, pos: [-0.1, 0.45, 4.45] }));
+  });
+
+  // ===================================================================== Bell 206 JetRanger: rounded nose, engine fairing behind the mast, long boom, endplate stabiliser
+  M.reg('b206', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0xf3f1ea, { r: 0.28, m: 0.1 }), navy = K.mat(0x1d2f5e, { r: 0.35 }), gold = K.mat(0xc9a13b, { r: 0.35, m: 0.3 }), dark = K.mat(0x26282c, { r: 0.6 }), metal = K.mat(0xb0b3b8, { r: 0.3, m: 0.7 });
+    const glass = K.mat(0x7fa6bd, { r: 0.05, m: 0.1, tr: 0.38, ei: 1.0 });
+    const st = [{ z: -2.4, w: 0.05, t: -0.2, b: -0.35, n: 2 }, { z: -2.15, w: 0.55, t: 0.3, b: -0.7, n: 2.2 }, { z: -1.6, w: 0.68, t: 0.72, b: -0.78, n: 2.6 },
+      { z: -0.5, w: 0.7, t: 0.8, b: -0.78, n: 2.8 }, { z: 0.6, w: 0.66, t: 0.78, b: -0.72, n: 2.8 }, { z: 1.15, w: 0.45, t: 0.62, b: -0.25, n: 2.4 }, { z: 1.7, w: 0.2, t: 0.45, b: 0.1, n: 2 }];
+    cabin(g, st, body, glass, -2.3, -1.05, 2.2);
+    a.eyePilot = pilot(g, 0.42, 0.0, -1.35); pilot(g, -0.42, 0.0, -1.35, 0x5a4a3a);
+    [-1, 1].forEach((sd) => g.add(K.fuselage(st, glass, { z0: -0.85, z1: 0.35, th0: sd > 0 ? 0.8 : -1.7, th1: sd > 0 ? 1.7 : -0.8, off: 0.012, step: 0.1, segs: 6 })));
+    g.add(K.fuselage(st, navy, { z0: -2.25, z1: 1.2, th0: 2.3, th1: 2.85, off: 0.012, step: 0.1, segs: 4 }));
+    g.add(K.fuselage(st, navy, { z0: -2.25, z1: 1.2, th0: -2.85, th1: -2.3, off: 0.012, step: 0.1, segs: 4 }));
+    g.add(K.fuselage(st, gold, { z0: -2.2, z1: 1.2, th0: 2.2, th1: 2.28, off: 0.014, step: 0.1, segs: 2 }));
+    g.add(K.fuselage(st, gold, { z0: -2.2, z1: 1.2, th0: -2.28, th1: -2.2, off: 0.014, step: 0.1, segs: 2 }));
+    const cw = [{ z: -0.6, w: 0.05, t: 0.82, b: 0.76, n: 2 }, { z: -0.35, w: 0.42, t: 1.2, b: 0.76, n: 2.4 }, { z: 0.9, w: 0.46, t: 1.25, b: 0.76, n: 2.6 }, { z: 1.8, w: 0.3, t: 1.05, b: 0.6, n: 2.2 }, { z: 2.15, w: 0.08, t: 0.9, b: 0.65, n: 2 }];
+    g.add(K.fuselage(cw, body, { step: 0.1, segs: 24 }));
+    g.add(K.round([0, 1.15, 1.5], [0, 1.45, 1.7], 0.12, 0.14, dark, 10));          // exhaust stack
+    g.add(K.round([0, 1.2, -0.1], [0, 2.05, -0.1], 0.1, 0.08, metal, 10));          // mast
+    g.add(K.round([0, 0.4, 1.6], [0, 0.7, 6.05], 0.24, 0.09, body, 14));            // tail boom
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.05, 0.38), navy); hs.position.set(0, 0.58, 4.3); g.add(hs);
+    [-1, 1].forEach((sd) => g.add(K.strut([sd * 0.95, 0.35, 4.3], [sd * 0.95, 0.85, 4.38], 0.04, 0.36, navy)));
+    g.add(K.strut([0, 0.7, 5.6], [0, 1.65, 6.2], 0.05, 0.5, body));
+    g.add(K.strut([0, 0.65, 5.7], [0, 0.0, 6.0], 0.05, 0.34, body));
+    g.add(K.round([0, 0.0, 6.0], [0, -0.22, 6.12], 0.02, 0.02, metal, 6));
+    skids(g, 1.0, -1.25, -1.3, 1.1, metal, -0.75);
+    navLights(g, a, [-0.98, 0.6, 4.3], [0.98, 0.6, 4.3], [0, 1.66, 6.22]);
+    panel(g, [0, spec.eye[1] - 0.5, spec.eye[2] - 0.55], 1.0);
+    return finish(g, a, [mainRotor({ R: 5.08, nb: 2, chord: 0.33, hub: 0.24, pos: [0, 2.05, -0.1], dir: 1, cone: 0.035, bladeCol: 0x2e3034 })],
+      tailRotor({ R: 0.825, nb: 2, pos: [-0.16, 0.95, 5.95] }));
+  });
+
+  // ===================================================================== Bell UH-1H Huey: olive drab, big doors, stabiliser bar, tail rotor high on the fin
+  M.reg('uh1h', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0x4b5233, { r: 0.8, m: 0.04 }), dark = K.mat(0x22251a, { r: 0.85 }), metal = K.mat(0x8c8f93, { r: 0.4, m: 0.6 });
+    const glass = K.mat(0x55707e, { r: 0.05, m: 0.2, tr: 0.45, ei: 1.0 });
+    const st = [{ z: -4.5, w: 0.08, t: -0.3, b: -0.5, n: 2 }, { z: -4.2, w: 0.75, t: 0.35, b: -1.05, n: 2.3 }, { z: -3.4, w: 1.15, t: 0.95, b: -1.2, n: 2.8 },
+      { z: -2.2, w: 1.25, t: 1.05, b: -1.2, n: 3.4 }, { z: 1.0, w: 1.25, t: 1.05, b: -1.2, n: 3.4 }, { z: 1.8, w: 0.9, t: 0.95, b: -0.6, n: 2.8 }, { z: 2.6, w: 0.5, t: 0.8, b: 0.0, n: 2.2 }];
+    cabin(g, st, body, glass, -4.4, -3.05, 2.1, { step: 0.15 });
+    a.eyePilot = pilot(g, 0.55, 0.2, -3.35, 0x4a5236); pilot(g, -0.55, 0.2, -3.35, 0x4a5236);
+    // chin windows and the open cabin door openings
+    [-1, 1].forEach((sd) => {
+      g.add(K.fuselage(st, glass, { z0: -4.15, z1: -3.45, th0: sd > 0 ? 2.25 : -2.75, th1: sd > 0 ? 2.75 : -2.25, off: 0.012, step: 0.08, segs: 3 }));
+      g.add(K.fuselage(st, dark, { z0: -1.9, z1: 0.6, th0: sd > 0 ? 0.55 : -2.1, th1: sd > 0 ? 2.1 : -0.55, off: 0.01, step: 0.12, segs: 6 }));
+    });
+    const tf = [{ z: -2.4, w: 0.1, t: 1.06, b: 1.0, n: 2 }, { z: -1.9, w: 0.65, t: 1.6, b: 1.0, n: 2.6 }, { z: 1.4, w: 0.7, t: 1.7, b: 1.0, n: 2.8 }, { z: 2.4, w: 0.45, t: 1.4, b: 0.9, n: 2.4 }, { z: 2.9, w: 0.1, t: 1.0, b: 0.9, n: 2 }];
+    g.add(K.fuselage(tf, body, { step: 0.12, segs: 24 }));
+    g.add(K.round([0, 1.35, 2.7], [0, 1.45, 3.15], 0.3, 0.32, dark, 12));            // exhaust
+    g.add(K.round([0, 1.6, -0.1], [0, 2.55, -0.1], 0.14, 0.12, metal, 10));          // mast
+    g.add(K.round([0, 0.35, 2.5], [0, 0.85, 8.1], 0.45, 0.2, body, 16));            // tail boom
+    g.add(K.strut([0, 0.8, 7.6], [0, 2.0, 8.65], 0.15, 0.8, body));                 // fin
+    const el = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.07, 0.6), body); el.position.set(0, 0.6, 6.1); g.add(el);   // synchronised elevator
+    g.add(K.round([0, 0.4, 7.2], [0, -0.55, 7.45], 0.04, 0.04, metal, 6));         // tail skid
+    g.add(K.round([0.0, 1.0, -0.6], [0, 1.8, -0.6], 0.05, 0.05, metal, 6));         // antenna
+    skids(g, 1.3, -1.55, -2.2, 1.2, metal, -1.2);
+    navLights(g, a, [-1.3, 0.2, -2.3], [1.3, 0.2, -2.3], [0, 2.02, 8.7]);
+    panel(g, [0, spec.eye[1] - 0.52, spec.eye[2] - 0.65], 1.4);
+    const rotor = mainRotor({ R: 7.32, nb: 2, chord: 0.53, hub: 0.35, pos: [0, 2.55, -0.1], dir: 1, cone: 0.035 });
+    // the Bell stabiliser bar, across the blades, with a weight on each end
+    rotor.spin.add(K.round([0, 0.32, -1.25], [0, 0.32, 1.25], 0.03, 0.03, metal, 6));
+    [-1, 1].forEach((sd) => { const w = K.ellipsoid(0.07, 0.06, 0.22, metal, 8); w.position.set(0, 0.32, sd * 1.3); rotor.spin.add(w); });
+    return finish(g, a, [rotor], tailRotor({ R: 1.3, nb: 2, pos: [-0.22, 1.55, 8.6] }));
+  });
+
+  // ===================================================================== Airbus H135: air-ambulance colours, big glazing, clamshell tail, Fenestron fan in the fin
+  M.reg('h135', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0xf2f2ee, { r: 0.25, m: 0.12 }), red = K.mat(0xd12b2b, { r: 0.3 }), dark = K.mat(0x26282c, { r: 0.6 }), metal = K.mat(0xb0b3b8, { r: 0.3, m: 0.7 });
+    const glass = K.mat(0x6f93a8, { r: 0.05, m: 0.1, tr: 0.4, ei: 1.0 });
+    const st = [{ z: -2.9, w: 0.06, t: -0.3, b: -0.45, n: 2 }, { z: -2.6, w: 0.65, t: 0.35, b: -0.85, n: 2.2 }, { z: -1.9, w: 0.85, t: 0.85, b: -0.9, n: 2.6 },
+      { z: -0.4, w: 0.88, t: 0.92, b: -0.9, n: 2.8 }, { z: 1.0, w: 0.85, t: 0.9, b: -0.85, n: 2.8 }, { z: 1.8, w: 0.6, t: 0.8, b: -0.5, n: 2.4 }, { z: 2.4, w: 0.28, t: 0.62, b: 0.0, n: 2 }];
+    cabin(g, st, body, glass, -2.75, -1.2, 2.3);
+    a.eyePilot = pilot(g, 0.45, -0.05, -1.5, 0x2a3a52); pilot(g, -0.45, -0.05, -1.5, 0x2a3a52);
+    [-1, 1].forEach((sd) => g.add(K.fuselage(st, glass, { z0: -1.0, z1: 0.6, th0: sd > 0 ? 0.7 : -1.75, th1: sd > 0 ? 1.75 : -0.7, off: 0.012, step: 0.1, segs: 6 })));
+    g.add(K.fuselage(st, red, { z0: -2.55, z1: 2.3, th0: 2.4, th1: 2.9, off: 0.012, step: 0.12, segs: 4 }));
+    g.add(K.fuselage(st, red, { z0: -2.55, z1: 2.3, th0: -2.9, th1: -2.4, off: 0.012, step: 0.12, segs: 4 }));
+    const cw = [{ z: -0.8, w: 0.05, t: 0.95, b: 0.88, n: 2 }, { z: -0.5, w: 0.55, t: 1.38, b: 0.88, n: 2.4 }, { z: 1.4, w: 0.6, t: 1.42, b: 0.88, n: 2.6 }, { z: 2.3, w: 0.3, t: 1.1, b: 0.7, n: 2.2 }, { z: 2.6, w: 0.06, t: 0.95, b: 0.75, n: 2 }];
+    g.add(K.fuselage(cw, body, { step: 0.1, segs: 24 }));
+    [-1, 1].forEach((sd) => g.add(K.round([sd * 0.3, 1.15, 2.1], [sd * 0.36, 1.25, 2.45], 0.1, 0.12, dark, 10)));   // two exhausts
+    g.add(K.round([0, 1.35, -0.1], [0, 1.85, -0.1], 0.11, 0.09, metal, 10));          // mast
+    g.add(K.round([0, 0.35, 2.3], [0, 0.72, 5.2], 0.3, 0.14, body, 14));            // tail boom
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.05, 0.42), body); hs.position.set(0, 0.62, 4.55); g.add(hs);
+    [-1, 1].forEach((sd) => g.add(K.strut([sd * 1.0, 0.4, 4.55], [sd * 1.0, 0.95, 4.65], 0.04, 0.4, red)));
+    // Fenestron: a shrouded fan inside the fin, a swept fin above it and a small ventral fin below
+    const fy = 0.95, fz = 5.55;
+    const shroud = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.26, 28, 1, true), body); shroud.rotation.z = Math.PI / 2; shroud.position.set(0, fy, fz); g.add(shroud);
+    [-1, 1].forEach((sd) => { const lip = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.06, 6, 28), red); lip.rotation.y = Math.PI / 2; lip.position.set(sd * 0.13, fy, fz); g.add(lip); });
+    g.add(K.strut([0, fy + 0.55, fz - 0.2], [0, fy + 1.3, fz + 0.4], 0.12, 0.75, body));    // fin above
+    g.add(K.strut([0, fy - 0.55, fz - 0.1], [0, fy - 0.85, fz + 0.15], 0.1, 0.5, body));   // ventral fin
+    g.add(K.strut([0, fy - 0.3, fz - 0.7], [0, fy + 0.3, fz - 0.7], 0.2, 0.25, body));      // shroud root
+    skids(g, 1.15, -1.2, -1.4, 1.0, metal, -0.75);
+    navLights(g, a, [-1.03, 0.62, 4.55], [1.03, 0.62, 4.55], [0, fy + 1.32, fz + 0.42]);
+    panel(g, [0, spec.eye[1] - 0.5, spec.eye[2] - 0.7], 1.2);
+    return finish(g, a, [mainRotor({ R: 5.1, nb: 4, chord: 0.288, hub: 0.3, pos: [0, 1.85, -0.1], dir: -1, cone: 0.03 })],
+      tailRotor({ R: 0.5, nb: 10, pos: [0, fy, fz] }));
+  });
+
+  // ===================================================================== Leonardo AW139: long nose, sponsons for the wheels, engines either side on top, five blades
+  M.reg('aw139', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0x22345a, { r: 0.3, m: 0.15 }), white = K.mat(0xf2f2ee, { r: 0.3 }), orange = K.mat(0xff7a1a, { r: 0.35 }), dark = K.mat(0x23262b, { r: 0.7 }), metal = K.mat(0x9a9da2, { r: 0.35, m: 0.6 });
+    const glass = K.mat(0x55707e, { r: 0.05, m: 0.2, tr: 0.45, ei: 1.0 }), tire = K.mat(0x1a1a1a, { r: 0.9 });
+    const st = [{ z: -5.2, w: 0.06, t: -0.3, b: -0.6, n: 2 }, { z: -4.8, w: 0.6, t: 0.1, b: -0.95, n: 2.2 }, { z: -3.8, w: 1.0, t: 0.85, b: -1.05, n: 2.6 },
+      { z: -2.6, w: 1.1, t: 1.0, b: -1.1, n: 3.0 }, { z: 1.2, w: 1.1, t: 1.0, b: -1.05, n: 3.0 }, { z: 2.4, w: 0.75, t: 0.9, b: -0.4, n: 2.6 }, { z: 3.4, w: 0.42, t: 0.75, b: 0.05, n: 2.2 }];
+    cabin(g, st, body, glass, -4.7, -3.15, 2.2, { step: 0.15 });
+    a.eyePilot = pilot(g, 0.55, 0.2, -3.15, 0x1f3550); pilot(g, -0.55, 0.2, -3.15, 0x1f3550);
+    [-1, 1].forEach((sd) => {
+      g.add(K.fuselage(st, glass, { z0: -2.5, z1: -1.6, th0: sd > 0 ? 0.7 : -1.45, th1: sd > 0 ? 1.45 : -0.7, off: 0.012, step: 0.1, segs: 4 }));
+      g.add(K.fuselage(st, glass, { z0: -1.2, z1: 0.9, th0: sd > 0 ? 0.7 : -1.45, th1: sd > 0 ? 1.45 : -0.7, off: 0.012, step: 0.1, segs: 4 }));
+      const sp = [{ z: -0.9, w: 0.05, t: -0.55, b: -0.9, n: 2 }, { z: -0.5, w: 0.38, t: -0.35, b: -1.15, n: 2.4 }, { z: 1.6, w: 0.38, t: -0.35, b: -1.15, n: 2.4 }, { z: 2.1, w: 0.05, t: -0.55, b: -0.9, n: 2 }];
+      const m = K.fuselage(sp, body, { step: 0.15, segs: 16 }); m.position.x = sd * 1.12; g.add(m);
+      const e = K.lathe([[-1.0, 0.06], [-0.92, 0.34], [0.7, 0.36], [1.3, 0.22]], white, 16); e.position.set(sd * 0.7, 1.4, 0.3); g.add(e);
+      g.add(K.round([sd * 0.75, 1.45, 1.5], [sd * 1.0, 1.55, 1.9], 0.17, 0.19, dark, 10));
+    });
+    g.add(K.fuselage(st, white, { z0: -4.6, z1: 3.3, th0: 2.5, th1: 2.75, off: 0.012, step: 0.15, segs: 2 }));
+    g.add(K.fuselage(st, white, { z0: -4.6, z1: 3.3, th0: -2.75, th1: -2.5, off: 0.012, step: 0.15, segs: 2 }));
+    const tf = [{ z: -2.0, w: 0.1, t: 1.0, b: 0.95, n: 2 }, { z: -1.5, w: 0.5, t: 1.6, b: 0.95, n: 2.6 }, { z: 0.9, w: 0.5, t: 1.65, b: 0.95, n: 2.8 }, { z: 2.0, w: 0.1, t: 1.05, b: 0.95, n: 2 }];
+    g.add(K.fuselage(tf, white, { step: 0.12, segs: 24 }));
+    g.add(K.round([0, 1.6, -0.2], [0, 2.3, -0.2], 0.16, 0.13, metal, 10));          // mast
+    g.add(K.round([0, 0.25, 3.3], [0, 0.75, 8.0], 0.42, 0.2, body, 16));            // tail boom
+    g.add(K.strut([0, 0.7, 7.6], [0, 2.55, 8.55], 0.16, 0.9, body));                // fin
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.07, 0.6), body); hs.position.set(0, 0.95, 7.25); g.add(hs);
+    [-1, 1].forEach((sd) => { const tip = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.071, 0.61), orange); tip.position.set(sd * 1.2, 0.95, 7.25); g.add(tip); });
+    // gear: nose wheel and two mains under the sponsons
+    g.add(K.strut([0, -0.9, -3.4], [0, -1.3, -3.4], 0.08, 0.08, metal)); { const w = K.wheel(0.22, 0.14, tire, metal); w.position.set(0, -1.33, -3.4); g.add(w); }
+    [-1, 1].forEach((sd) => { g.add(K.strut([sd * 1.3, -1.1, 0.9], [sd * 1.5, -1.3, 0.9], 0.1, 0.1, metal)); const w = K.wheel(0.3, 0.18, tire, metal); w.position.set(sd * 1.5, -1.3, 0.9); g.add(w); });
+    navLights(g, a, [-1.4, 0.95, 7.25], [1.4, 0.95, 7.25], [0, 2.57, 8.6]);
+    panel(g, [0, spec.eye[1] - 0.52, spec.eye[2] - 0.7], 1.6);
+    return finish(g, a, [mainRotor({ R: 6.9, nb: 5, chord: 0.4, hub: 0.42, pos: [0, 2.3, -0.2], dir: 1, cone: 0.04 })],
+      tailRotor({ R: 1.35, nb: 4, pos: [0.22, 1.9, 8.3] }));
+  });
+
+  // ===================================================================== Mil Mi-8MTV: big pod, glazed nose, engines ahead of the mast, side fuel tanks, tail rotor on the left
+  M.reg('mi8', function (spec) {
+    const g = new THREE.Group(), a = new M.Anim();
+    const body = K.mat(0x8d969c, { r: 0.6, m: 0.08 }), blue = K.mat(0x2a4a8a, { r: 0.45 }), dark = K.mat(0x2a2d31, { r: 0.75 }), metal = K.mat(0x8c8f93, { r: 0.4, m: 0.6 });
+    const glass = K.mat(0x55707e, { r: 0.05, m: 0.2, tr: 0.45, ei: 1.0 }), tire = K.mat(0x1a1a1a, { r: 0.9 });
+    const st = [{ z: -7.8, w: 0.1, t: -0.4, b: -0.8, n: 2 }, { z: -7.4, w: 0.9, t: 0.4, b: -1.5, n: 2.3 }, { z: -6.4, w: 1.25, t: 1.05, b: -1.6, n: 2.8 },
+      { z: -5.0, w: 1.25, t: 1.1, b: -1.6, n: 3.4 }, { z: 2.5, w: 1.25, t: 1.1, b: -1.55, n: 3.4 }, { z: 3.6, w: 1.0, t: 1.0, b: -1.0, n: 2.8 }, { z: 4.5, w: 0.55, t: 0.85, b: -0.1, n: 2.2 }];
+    cabin(g, st, body, glass, -7.7, -6.1, 2.3, { step: 0.2, segs: 36 });
+    g.add(K.fuselage(st, glass, { z0: -7.6, z1: -6.9, th0: 2.4, th1: 3.9, off: 0.01, step: 0.1, segs: 6 }));   // glazed chin
+    a.eyePilot = pilot(g, -0.6, 0.3, -6.3, 0x3a4a5a); pilot(g, 0.6, 0.3, -6.3, 0x3a4a5a);
+    g.add(K.fuselage(st, blue, { z0: -7.3, z1: 4.4, th0: 1.95, th1: 2.15, off: 0.012, step: 0.2, segs: 2 }));
+    g.add(K.fuselage(st, blue, { z0: -7.3, z1: 4.4, th0: -2.15, th1: -1.95, off: 0.012, step: 0.2, segs: 2 }));
+    for (let i = 0; i < 5; i++) [-1, 1].forEach((sd) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 16), glass); w.rotation.z = Math.PI / 2; w.position.set(sd * 1.26, 0.45, -4.2 + i * 1.3); g.add(w); });
+    [-1, 1].forEach((sd) => {
+      const tank = K.ellipsoid(0.42, 0.42, 1.7, body, 16); tank.position.set(sd * 1.55, -0.95, -1.3); g.add(tank);
+      const e = K.lathe([[-1.5, 0.12], [-1.4, 0.4], [0.8, 0.44], [1.4, 0.3]], body, 16); e.position.set(sd * 0.68, 1.55, -2.6); g.add(e);
+      const intake = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.07, 6, 18), dark); intake.position.set(sd * 0.68, 1.55, -4.1); g.add(intake);
+      g.add(K.round([sd * 0.75, 1.6, -1.2], [sd * 1.25, 1.75, -0.6], 0.26, 0.28, dark, 10));   // exhausts
+    });
+    const tf = [{ z: -4.2, w: 0.1, t: 1.15, b: 1.05, n: 2 }, { z: -3.6, w: 1.0, t: 1.95, b: 1.05, n: 2.6 }, { z: 1.2, w: 0.95, t: 2.0, b: 1.05, n: 2.8 }, { z: 2.4, w: 0.4, t: 1.5, b: 1.0, n: 2.4 }, { z: 2.9, w: 0.1, t: 1.15, b: 1.0, n: 2 }];
+    g.add(K.fuselage(tf, body, { step: 0.15, segs: 24 }));
+    g.add(K.round([0, 1.9, -0.15], [0, 2.7, -0.15], 0.22, 0.18, metal, 10));          // mast
+    g.add(K.round([0, 0.3, 4.4], [0, 1.0, 11.4], 0.55, 0.3, body, 16));             // tail boom
+    g.add(K.strut([0, 0.9, 11.0], [0, 3.2, 12.65], 0.22, 1.2, body));               // tail-rotor pylon
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 0.8), body); hs.position.set(0, 0.85, 10.4); g.add(hs);
+    g.add(K.round([0, 0.4, 11.4], [0, -0.45, 11.8], 0.05, 0.05, metal, 6));         // tail bumper
+    // fixed tricycle gear: twin nose wheels, mains on outriggers
+    g.add(K.strut([0, -1.4, -5.0], [0, -1.75, -5.0], 0.12, 0.12, metal));
+    [-0.22, 0.22].forEach((dx) => { const w = K.wheel(0.3, 0.18, tire, metal); w.position.set(dx, -1.75, -5.0); g.add(w); });
+    [-1, 1].forEach((sd) => { g.add(K.strut([sd * 1.2, -1.2, 0.6], [sd * 2.25, -1.65, 0.6], 0.12, 0.12, metal)); g.add(K.strut([sd * 1.2, -0.4, 0.2], [sd * 2.25, -1.6, 0.6], 0.09, 0.09, metal));
+      const w = K.wheel(0.5, 0.3, tire, metal); w.position.set(sd * 2.25, -1.65, 0.6); g.add(w); });
+    navLights(g, a, [-1.42, 0.85, 10.4], [1.42, 0.85, 10.4], [0, 3.22, 12.7]);
+    panel(g, [0, spec.eye[1] - 0.52, spec.eye[2] - 0.7], 1.8);
+    return finish(g, a, [mainRotor({ R: 10.65, nb: 5, chord: 0.52, hub: 0.6, pos: [0, 2.7, -0.15], dir: -1, cone: 0.045 })],
+      tailRotor({ R: 1.95, nb: 3, pos: [-0.35, 2.6, 12.6] }));
+  });
 })();
 
 // ---------- models_airliners.js : parametric Boeing / Airbus builder (fuselage, swept wing, nacelles, tail, gear, liveries) ----------
@@ -7301,7 +7593,7 @@ function build(C, spec) {
     para: 800,
     b737: 4000, b762: 7500, b764: 10000, b779: 19000, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
     c152: 600, rv7: 2000, decathlon: 1600, c210: 2600, pa44: 2200, p2006: 2400, pa46: 5000,
-    r44: 1500, h125: 3500, uh60: 9000, ch47: 14000,
+    r44: 1500, h125: 3500, uh60: 9000, ch47: 14000, r22: 900, b206: 2800, h135: 6000, uh1h: 7000, aw139: 11000, mi8: 12000,
   };
   FREE.forEach((id) => { PRICE[id] = 0; });
   const GROUPS = [
@@ -7317,7 +7609,7 @@ function build(C, spec) {
     { id: 'dehavilland', name: 'de Havilland', ids: ['dhc2', 'dhc3', 'dhc6', 'comet4', 'trident'] },
     { id: 'supersonic', name: 'Supersonic', ids: ['concorde', 'xb1', 'tu144', 'overture', 'sr71', 'xb70'] },
     { id: 'fighter', name: 'Fighters', ids: ['t38', 'f86', 'f5', 'a10', 'mig21', 'f4', 'f104', 'f16', 'mig29', 'f18', 'f14', 'f15', 'f22', 'f35'] },
-    { id: 'heli', name: 'Helicopters', ids: ['r44', 'h125', 'uh60', 'ch47'] },
+    { id: 'heli', name: 'Helicopters', ids: ['r22', 'r44', 'b206', 'h125', 'h135', 'uh1h', 'uh60', 'aw139', 'mi8', 'ch47'] },
   ];
   SIM.FLEET = { PRICE, GROUPS, FREE };
   SIM.fleetRefresh = function () {
@@ -11653,7 +11945,7 @@ SIM.Challenges = (function () {
 })();
 // ---------- heli_challenges.js : helicopter missions (hover, helipad, pinnacle, autorotation) ----------
 (function () {
-  const U = SIM.U, C = SIM.Challenges, HELIS = ['r44', 'h125', 'uh60', 'ch47'];
+  const U = SIM.U, C = SIM.Challenges, HELIS = ['r22', 'r44', 'b206', 'h125', 'h135', 'uh1h', 'uh60', 'aw139', 'mi8', 'ch47'];
   const fmtT = (t) => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
   // a painted helipad: white disc with a yellow ring and a big H, on a low plinth so it never sinks into the ground
   function padMarker(THREE, x, y, z, r, hdg) {
