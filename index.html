@@ -2384,7 +2384,8 @@ SIM.AIRLINER_TYPES = [
       let c; if (x <= x0) c = cr; else if (x <= xk) c = cr + (ck - cr) * (x - x0) / (xk - x0); else c = ck + (ct - ck) * (x - xk) / (semi - xk);
       return { x, y: yRoot + Math.max(0, x - x0) * tanD, z: zr + Math.max(0, x - x0) * tanS, c };
     };
-    const bottom = -Rv, G = bottom - 1.45 * Math.pow(T.dia / 3.76, 0.6) - (T.legExtra || 0);   // ground contact height
+    const bottom = -Rv, G0 = bottom - 1.45 * Math.pow(T.dia / 3.76, 0.6) - (T.legExtra || 0);   // ground contact height
+    let G = G0;
     const wide = T.dia > 5.5;
     const noseZ = -L / 2 + (wide ? 0.17 : 0.14) * L, mainZ = 0.03 * L + (T.mount === 'rear' || T.mount === 'rear3' ? 0.02 * L : 0), track = 0.082 * b * (T.deck === 'full' ? 0.95 : 1);
     const bodyZ = mainZ + 0.034 * L, bodyX = T.deck === 'hump' ? 2.2 + (T.id === 'b748' ? 0.1 : 0) : (T.deck === 'full' ? 2.65 : 0);
@@ -2403,9 +2404,13 @@ SIM.AIRLINER_TYPES = [
       [1, -1].forEach((sd) => engines.push({ x: sd * (R + Rn + 0.18), y: R * 0.32, z: zIn, sd }));
       if (T.n === 4) [1, -1].forEach((sd) => engines.push({ x: sd * (R + 3 * Rn + 0.4), y: R * 0.22, z: zIn + 0.6, sd }));
     }
+    // big fans under a short gear: keep at least ~0.6 m between the nacelles and the ground with the legs extended, so a
+    // heavy aircraft squatting on its struts (or rocking in a crosswind) does not drag an engine on the take-off run
+    const engLow = engines.length ? Math.min(...engines.map((e) => e.y - Rn)) : Infinity;
+    if (engLow - G < 0.62) G = engLow - 0.62;
     const tailStrike = (T.tailStrike || 11) * D;
-    const tailZ = L / 2 - 0.2, tailY = G + Math.tan(tailStrike) * (tailZ - mainZ);
-    const finTopY = T.tailH + G;
+    const tailZ = L / 2 - 0.2, tailY = G0 + Math.tan(tailStrike) * (tailZ - mainZ);
+    const finTopY = T.tailH + G0;
     const tip = wing(semi);
     return { L, R, Rv, hs, b, semi, x0, xk, cr, ck, ct, wing, G, bottom, noseZ, mainZ, track, bodyZ, bodyX, engines, nacL, Rn, tailZ, tailY, finTopY, tip, zr, yRoot };
   };
