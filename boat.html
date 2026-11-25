@@ -161,6 +161,7 @@ const B = {};
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
 const fmtT = (t) => { if (t == null || !isFinite(t)) return '--'; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(3); };
 const store = { get(k, d) { try { const v = localStorage.getItem('erikaboats.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('erikaboats.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } } };
+function smoothstep(a, b, x) { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
 function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
 
 // ---------------------------------------------------------------- waves (the same function drives the water shader and the boats)
@@ -556,12 +557,104 @@ B.World.prototype.water = function (c) {
       }` });
   this.waterMesh = new THREE.Mesh(geo, this.waterMat); this.waterMesh.frustumCulled = false; this.root.add(this.waterMesh);
 };
+// natural islands: a polar terrain mesh whose coastline is the same wobbly outline the water shader draws its shallows and surf
+// round. A sandy shelf runs out under the water; above it a beach (wet sand at the waterline, dry sand above), then hills shaped
+// by the kind of land: gentle palm islands and sandy cays, rolling wooded hills, steep rocky islands with cliffs, icebergs.
+// Colours follow height, slope and a little noise: rock where it is steep, snow high on rocky and icy ground.
+B.World.prototype.terrain = function (I, c, r, veg) {
+  const land = c.land || 'palm', rocky = I.rocky || land === 'rock', ice = land === 'ice', green = land === 'green', sand = land === 'sand';
+  const Rw = I.r * (1 - .9 / (I.h + 2)), shoreR = (a) => Rw * (1 + .12 * Math.sin(a * 3 + I.x) + .08 * Math.sin(a * 7 + I.z));
+  const s1 = I.x * .013, s2 = I.z * .017, nz = (x, z) => Math.sin(x * .031 + s1) * Math.sin(z * .027 + s2) * .5 + Math.sin(x * .071 + z * .053 + s2) * .3 + Math.sin(x * .17 - z * .13 + s1) * .2;
+  const pw = ice ? .35 : rocky ? .5 : green ? .75 : sand ? 1.4 : 1.0;
+  // height (m) at a point d metres from the centre in direction a
+  const H = (d, a) => {
+    const x = Math.cos(a) * d, z = Math.sin(a) * d, rho = d / shoreR(a), u = 1 - rho, n = nz(x, z);
+    if (u < 0) return -Math.min(ice ? 9 : rocky ? 7 : 4, -u * Rw * (rocky || ice ? .35 : .12));            // the shelf under the water
+    if (ice) return Math.max(.3, I.h * Math.pow(smoothstep(0, .18, u), .6) * (.85 + .15 * n));            // sheer-sided berg, rounded top
+    const beach = (rocky ? .5 : 1.1) * smoothstep(0, rocky ? .04 : .12, u);
+    return beach + Math.max(0, I.h - 1.1) * Math.pow(smoothstep(rocky ? .02 : .1, 1, u), pw) * (1 + (rocky ? .45 : .3) * n);
+  };
+  const RINGS = [0, .15, .3, .42, .52, .6, .67, .73, .78, .83, .87, .9, .93, .955, .975, .99, 1, 1.015, 1.04, 1.08, 1.14, 1.22], NS = 56;
+  const pos = [], idx = [];
+  for (let i = 0; i < RINGS.length; i++) for (let k = 0; k < NS; k++) { const a = k / NS * Math.PI * 2, d = RINGS[i] * shoreR(a); pos.push(Math.cos(a) * d, H(d, a), Math.sin(a) * d); if (!i) break; }
+  const at = (i, k) => (i === 0 ? 0 : 1 + (i - 1) * NS + (k % NS));
+  for (let i = 1; i < RINGS.length; i++) for (let k = 0; k < NS; k++) {
+    if (i === 1) idx.push(0, at(1, k + 1), at(1, k)); else idx.push(at(i - 1, k), at(i - 1, k + 1), at(i, k), at(i - 1, k + 1), at(i, k + 1), at(i, k));
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  const N = geo.attributes.normal, col = [], mix3 = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
+  const C = { wet: [.55, .48, .36], sand: sand ? [.96, .93, .82] : [.88, .8, .6], pebble: [.52, .5, .46], grass: green ? [.2, .36, .16] : [.33, .5, .2], grass2: green ? [.13, .26, .12] : [.24, .42, .16],
+    scrub: [.5, .5, .32], rock: [.4, .39, .36], rock2: [.26, .25, .24], snow: [.94, .96, .99], ice: [.68, .82, .9], iceD: [.32, .5, .62] };
+  for (let v = 0; v < pos.length / 3; v++) {
+    const x = pos[v * 3], y = pos[v * 3 + 1], z = pos[v * 3 + 2], ny = N.getY(v), n = nz(x * 2.3, z * 2.3), t = y / Math.max(2, I.h);
+    let k;
+    if (ice) k = ny < .55 ? mix3(C.ice, C.iceD, smoothstep(.4, -.2, y) ) : y < .4 ? C.iceD : mix3(C.snow, C.ice, clamp(.3 - n * .3, 0, 1) * (1 - ny));
+    else if (y < .35) k = mix3(rocky ? C.rock2 : C.wet, C.sand, smoothstep(-.6, .35, y) * (rocky ? .2 : 1));
+    else if (y < (rocky ? .8 : 1.5) && ny > .8) k = rocky ? C.pebble : green ? mix3(C.pebble, C.sand, .4) : C.sand;
+    else if (rocky && t > .78 && I.h > 25 && ny > .6) k = C.snow;
+    else if (ny < (rocky ? .68 : .78)) k = mix3(C.rock, C.rock2, clamp(.5 + n * .5, 0, 1));
+    else if (rocky) k = mix3(mix3(C.grass2, C.scrub, clamp(.4 + n, 0, 1)), C.rock, clamp(.15 + t * .9 - n * .4 + (.85 - ny) * 2, 0, 1));   // moss and scrub low down, bare rock higher up
+    else k = mix3(sand ? C.scrub : C.grass, C.grass2, clamp(.5 + n * .7, 0, 1));
+    const j = 1 + n * .05; col.push(Math.pow(k[0], 1.7) * j, Math.pow(k[1], 1.7) * j, Math.pow(k[2], 1.7) * j);   // to linear-ish, so they read as these colours on screen
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .93, flatShading: rocky || ice })); m.position.set(I.x, 0, I.z); this.root.add(m);
+  // plants and boulders, placed on the terrain where they belong
+  const slope = (d, a) => { const e = 1.5, h0 = H(d, a); return Math.hypot(H(d + e, a) - h0, H(d, a + e / Math.max(d, 2)) - h0) / e; };
+  const place = (kind, n, uMin, uMax, maxSlope, yMin, sMin, sMax) => {
+    for (let q = 0; q < n * 3 && n > 0; q++) {
+      const a = r() * 6.2832, rr = Math.sqrt(r()), u = uMin + (uMax - uMin) * rr, d = (1 - u) * shoreR(a), y = H(d, a);
+      if (y < yMin || slope(d, a) > maxSlope) continue;
+      veg.add(kind, I.x + Math.cos(a) * d, y - .15, I.z + Math.sin(a) * d, sMin + r() * (sMax - sMin), r() * 6.28, r()); n--;
+    }
+  };
+  const area = Math.PI * Rw * Rw;
+  if (ice) return;
+  if (!rocky) place('rock', Math.round(Rw / 12), -.04, .06, 9, -1, .5, 1.6);          // boulders at the water's edge
+  if (land === 'palm' || sand) { place('palm', Math.round(area / (sand ? 900 : 380)), .06, .85, .5, .9, .85, 1.25); place('bush', Math.round(area / 300), .1, .95, .6, 1, .6, 1.3); }
+  else if (green) { place('pine', Math.round(area / 110), .14, 1, .75, 1.6, .7, 1.4); place('bush', Math.round(area / 400), .08, .4, .7, 1, .6, 1.2); }
+  else if (rocky) { place('rock', Math.round(Rw / 6), -.05, .2, 9, -1.5, .8, 3.2); place('pine', Math.round(area / 260), .15, .75, .7, 2, .6, 1.2); place('bush', Math.round(area / 300), .06, .7, .8, .8, .5, 1.1); }
+};
+// shared plant and boulder models, gathered over every island and drawn as one instanced mesh per part
+B.World.prototype.vegKit = function () {
+  const parts = {}, mk = (name, geo, mat) => (parts[name] = { geo, mat, list: [] });
+  const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .9 }, o || {}));
+  // palm: a curved, tapering trunk and a crown of drooping fronds
+  const tg = new THREE.CylinderGeometry(.16, .26, 7, 7, 6); tg.translate(0, 3.5, 0); const tp = tg.attributes.position;
+  for (let i = 0; i < tp.count; i++) { const y = tp.getY(i); tp.setX(i, tp.getX(i) + .045 * y * y); }
+  tg.computeVertexNormals(); mk('palmTrunk', tg, M(0x8a6a48));
+  const fp = [], fronds = 8; for (let k = 0; k < fronds; k++) { const a = k / fronds * 6.283 + (k % 2) * .2, ca = Math.cos(a), sa = Math.sin(a);
+    for (let j = 0; j < 6; j++) { const s0 = j / 6 * 3.6, s1 = (j + 1) / 6 * 3.6, w0 = .5 * (1 - j / 6) + .08, w1 = .5 * (1 - (j + 1) / 6) + .08, y0 = -.16 * s0 * s0 + .45 * s0, y1 = -.16 * s1 * s1 + .45 * s1;
+      const P = (sx, y, w) => [ca * sx - sa * w, y, sa * sx + ca * w];
+      const A = P(s0, y0, -w0), Bq = P(s0, y0, w0), Cq = P(s1, y1, w1), D = P(s1, y1, -w1); fp.push(...A, ...Bq, ...Cq, ...A, ...Cq, ...D); } }
+  const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.computeVertexNormals(); fg.translate(.045 * 49, 7, 0);
+  mk('palmCrown', fg, M(0x2f6b2a, { side: THREE.DoubleSide, roughness: .8 }));
+  // pine: trunk and two stacked cones
+  const pt = new THREE.CylinderGeometry(.14, .22, 3, 6); pt.translate(0, 1.5, 0); mk('pineTrunk', pt, M(0x5a4030));
+  const pc = new THREE.ConeGeometry(2.4, 6, 8); pc.translate(0, 5.5, 0); const pc2 = new THREE.ConeGeometry(1.7, 4.5, 8); pc2.translate(0, 8.5, 0);
+  mk('pineA', pc, M(0x1d4426, { flatShading: true })); mk('pineB', pc2, M(0x23502c, { flatShading: true }));
+  const bg = new THREE.IcosahedronGeometry(1.1, 1); bg.scale(1.3, .75, 1.1); bg.translate(0, .5, 0); mk('bush', bg, M(0x2c5a26, { flatShading: true }));
+  const rg = new THREE.IcosahedronGeometry(1, 0); const rp = rg.attributes.position; for (let i = 0; i < rp.count; i++) rp.setY(i, rp.getY(i) * .7); rg.computeVertexNormals(); mk('rock', rg, M(0x6b6760, { flatShading: true }));
+  const KIND = { palm: ['palmTrunk', 'palmCrown'], pine: ['pineTrunk', 'pineA', 'pineB'], bush: ['bush'], rock: ['rock'] };
+  return { parts, add(kind, x, y, z, s, rot, t) { for (const p of KIND[kind]) parts[p].list.push([x, y, z, s, rot, t]); } };
+};
+B.World.prototype.vegDone = function (veg) {
+  const o = new THREE.Object3D(), tint = new THREE.Color();
+  for (const p of Object.values(veg.parts)) {
+    if (!p.list.length) continue; const im = new THREE.InstancedMesh(p.geo, p.mat, p.list.length);
+    p.list.forEach(([x, y, z, sc, rot, t], i) => { o.position.set(x, y, z); o.rotation.set(0, rot, 0); o.scale.set(sc, sc * (.85 + t * .3), sc); o.updateMatrix(); im.setMatrixAt(i, o.matrix);
+      im.setColorAt(i, tint.setRGB(.85 + t * .3, .85 + t * .3, .85 + t * .3)); });
+    im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; this.root.add(im);
+  }
+};
 B.World.prototype.build = function (c) {
   this.root.clear(); B.setSea(c.calm, c.wind); this.sky(c.sky); this.water(c);
   const R = this.root, r = rng(c.N);
   // islands: beach ring, grass or rock, trees. Mesas are steep layered sandstone; city blocks are low stone quays with buildings
   const mesa = c.land === 'mesa', city = c.land === 'city', blocks = city ? [0xd8c7a8, 0xb5654a, 0xe0d6c4, 0x9c8f80, 0xc98e5a, 0x8a5a48].map((c) => ({ c, p: [], n: [], u: [] })) : null;
+  const veg = mesa || city ? null : this.vegKit();
   for (const I of c.islands) {
+    if (veg) { this.terrain(I, c, r, veg); continue; }
     const seg = 28, geo = new THREE.CylinderGeometry(I.r * (mesa ? .82 : city ? .99 : .55), I.r, I.h + 2, seg, mesa ? 8 : 3); geo.translate(0, (I.h + 2) / 2 - 2, 0);
     const P = geo.attributes.position, col = [];
     for (let k = 0; k < P.count; k++) {
@@ -585,6 +678,7 @@ B.World.prototype.build = function (c) {
     if (city) this.buildings(I, r, blocks);
   }
   if (city) this.city(blocks);
+  if (veg) this.vegDone(veg);
   // buoys: red on the left of each gate, yellow on the right; the start/finish gate is a floating gantry
   this.buoys = [];
   const bGeo = new THREE.CylinderGeometry(.9, 1.2, 2.6, 14), cap = new THREE.ConeGeometry(.9, 1.2, 14), band = new THREE.CylinderGeometry(1.02, 1.08, .4, 14);
@@ -1105,7 +1199,7 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
     driver(-.45, 1.2, -.32); driver(-.45, 1.2, .32);
   }
   if (mine && g.userData.eye) this.cockpit(g, body, T, md, M, accM, dark, metal);
-  if (g.userData.eye && g.userData.ck && g.userData.ck.eyeUp) g.userData.eye.position.y += g.userData.ck.eyeUp;   // sit up to see over the cockpit edge
+  if (g.userData.eye) g.userData.eye.position.y += (g.userData.ck && g.userData.ck.eyeUp || 0) + (mine ? .1 : 0);   // sit up to see the water ahead over the dash and the cockpit edge
   g.userData.body = body; this.root.add(g); return g;
 };
 // the player's cockpit, laid out from the driver's eye: a steering wheel (or the handlebars' own gauge pod), a dashboard with a speed
@@ -1120,7 +1214,7 @@ B.World.prototype.cockpit = function (g, body, T, md, M, accM, dark, metal) {
   g.userData.dash = { cv, tex, top: T.top * 1.944, t: 0 };
   const trim = M(0x2c3238, { roughness: .6 }), rubber = M(0x101214, { roughness: .85 });
   if (kind === 'wheel') {
-    const w = ck.wheel || [.4, -.38], d = ck.dash || [.62, -.33];
+    const w0 = ck.wheel || [.4, -.38], d0 = ck.dash || [.62, -.33], w = [w0[0], w0[1] - .1], d = [d0[0] + .04, d0[1] - .12];   // kept low, so you see the water ahead over them
     const wg = new THREE.Group(); wg.position.set(e.x + w[0], e.y + w[1], e.z); wg.rotation.z = .5; body.add(wg);
     const wheel = new THREE.Group(); wg.add(wheel); g.userData.wheel = wheel;
     add(new THREE.TorusGeometry(.17, .019, 8, 28), rubber, 0, 0, 0, wheel).rotation.y = Math.PI / 2;
@@ -1128,9 +1222,9 @@ B.World.prototype.cockpit = function (g, body, T, md, M, accM, dark, metal) {
     add(new THREE.CylinderGeometry(.045, .045, .05, 14), accM, .01, 0, 0, wheel).rotation.z = Math.PI / 2;
     add(new THREE.CylinderGeometry(.03, .035, .3, 10), trim, .17, 0, 0, wg).rotation.z = Math.PI / 2;     // column
     const dg = new THREE.Group(); dg.position.set(e.x + d[0], e.y + d[1], e.z); dg.rotation.z = -.6; body.add(dg);
-    add(new THREE.BoxGeometry(.08, .2, .66), trim, 0, 0, 0, dg);
-    add(new THREE.BoxGeometry(.07, .02, .7), trim, -.05, .11, 0, dg);                                       // glare lip
-    add(new THREE.PlaneGeometry(.58, .18), face, -.042, 0, 0, dg).rotation.y = -Math.PI / 2;
+    add(new THREE.BoxGeometry(.08, .16, .58), trim, 0, 0, 0, dg);
+    add(new THREE.BoxGeometry(.07, .02, .62), trim, -.05, .09, 0, dg);                                       // glare lip
+    add(new THREE.PlaneGeometry(.5, .15), face, -.042, 0, 0, dg).rotation.y = -Math.PI / 2;
     const th = new THREE.Group(); th.position.set(e.x + .3, e.y - .55, e.z + .3); body.add(th); g.userData.throttle = th;   // throttle by your right hand
     add(new THREE.BoxGeometry(.16, .06, .08), trim, e.x + .3, e.y - .57, e.z + .3);                         // quadrant
     add(new THREE.CylinderGeometry(.012, .012, .2, 8), metal, 0, .1, 0, th); add(new THREE.SphereGeometry(.03, 10, 8), accM, 0, .2, 0, th);
@@ -1803,7 +1897,7 @@ B.Game = function () {
       this._jolt = Math.max((this._jolt || 0) * Math.exp(-dt * 4), b.landing > 1 ? Math.min(1, b.landing / 6) : 0);
       const t = this.clock, sh = Math.min(1, b.speed / 45) * .0035 + this._jolt * .03 + (b.air ? 0 : Math.min(.01, Math.abs(b.vy) * .002));
       this._look = (this._look || 0) + (clamp(b.r * .35, -.3, .3) - (this._look || 0)) * Math.min(1, dt * 3);
-      Q.e.set(-.05 + ((m.userData.ck || {}).pitch || 0) + Math.sin(t * 31) * Math.sin(t * 7.3) * sh, -Math.PI / 2 - this._look + Math.sin(t * 23.1) * sh * .5, Math.sin(t * 17.7) * sh * .6);
+      Q.e.set(-.03 + ((m.userData.ck || {}).pitch || 0) + Math.sin(t * 31) * Math.sin(t * 7.3) * sh, -Math.PI / 2 - this._look + Math.sin(t * 23.1) * sh * .5, Math.sin(t * 17.7) * sh * .6);
       cam.quaternion.copy(Q.a).multiply(Q.t.setFromEuler(Q.e)); cam.fov = 75;
       const D = m.userData.dash; if (D && (D.t -= dt) <= 0) { D.t = .08; B.drawDash(D, b); }
       if (m.userData.wheel) m.userData.wheel.rotation.x = -b.steer * 1.6;
