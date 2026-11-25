@@ -1287,13 +1287,13 @@ B.Sound.prototype.update = function (b, on) {
 // erika.mp3 (next to this page) loops at full volume while you drive the Erika 2000 from the on-board camera.
 B.music = {
   // the song file, next to boat.html; the other names are tried in turn if it is missing (GitHub Pages names are case-sensitive)
-  files: ['erika.mp3', 'Erika.mp3', 'ERIKA.mp3', 'erika.m4a', 'erika.ogg', 'erika.wav', 'Erika.m4a', 'Erika.ogg', 'Erika.wav'],
+  files: ['erika.mp3', 'Erika..mp3', 'Erika.mp3', "German Soldier's Song - _Erika_ (with English Subtitles) (128).mp3", 'ERIKA.mp3', 'erika.m4a', 'erika.ogg', 'erika.wav', 'Erika.m4a', 'Erika.ogg', 'Erika.wav'],
   el: null, k: 0, failed: false, busy: false, warned: false,
   update(on, game) {
     if (!on || document.hidden) { if (this.el && !this.el.paused) this.el.pause(); return; }
     if (this.failed) { if (!this.warned && game && game.mode === 'run') { this.warned = true; game.flash('No song file', 4, 'Upload erika.mp3 next to boat.html to hear the music'); } return; }
     if (!this.el) {
-      this.el = new Audio(this.files[this.k]); this.el.loop = true; this.el.volume = 1;
+      this.el = new Audio(encodeURIComponent(this.files[this.k])); this.el.loop = true; this.el.volume = 1;
       this.el.addEventListener('error', () => { this.el = null; this.busy = false; if (++this.k >= this.files.length) { this.failed = true; console.warn('Erika 2000: no song file (erika.mp3) next to boat.html'); } });
     }
     if (this.el && this.el.paused && !this.busy) { const el = this.el; this.busy = true; const p = el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { if (this.el === el) this.busy = false; }); }
