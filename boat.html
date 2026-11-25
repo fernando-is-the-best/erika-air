@@ -247,7 +247,7 @@ B.COURSES = {
     pts: [[0, 0], [400, -120], [800, -60], [1000, 160], [860, 400], [1040, 620], [960, 860], [640, 900], [480, 700], [200, 760], [-60, 620], [-40, 380], [-220, 200], [-180, 40]] },
   // lane: lane width (m), gate: gate spacing on the straights (m), buoy: buoy and gantry size, clear: islands kept this far from the
   // centre line (m), assist: the player's boat steers itself along the lane when you are not steering
-  erika: { name: 'Erika Speedway', blurb: '24.6 km giant oval on glassy water, made for the Erika 2000: a 300 m wide lane, gentle bends, nothing to hit, and the boat steers itself until you steer', calm: .08, sky: 'day', land: 'sand',
+  erika: { name: 'Erika Speedway', blurb: '24.6 km giant oval on glassy water, made for the Erika 2000: a 300 m wide lane, gentle bends, nothing to hit, and every boat but the Erika 2000 steers itself until you steer', calm: .08, sky: 'day', land: 'sand',
     lane: 300, gate: 1500, buoy: 5, clear: 900, assist: true,
     pts: (() => { const o = [], R = 2000, S = 6000, n = Math.round(S / 150), m = Math.round(Math.PI * R / 150);
       for (let i = 0; i < n; i++) o.push([i * S / n, 0]);
@@ -322,7 +322,7 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 // leans into turns), airProp (an air propeller: still pushes when airborne), foil (speed in m/s where it lifts onto hydrofoils),
 // brk (hardest braking, m/s2; default: power-limited), yawMax (fastest turn, rad/s),
 // fun (quick races in it pay no credits or licence points),
-// silent (no engine sound).
+// silent (no engine sound), noAssist (no steering assist on assisted courses).
 B.TYPES = {
   rib: { name: 'Race RIB', cls: 'Club', model: 'rib', price: 0, rank: 0, blurb: 'Rigid inflatable, 2 x 300 hp: forgiving and turns on a coin', mass: 1700, power: .45e6, top: 44, acc: 4.8, lat: 26, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
   pwc: { name: 'Race Jet Ski', cls: 'Club', model: 'pwc', price: 900, rank: 0, blurb: 'A 310 hp racing jet ski ridden standing: turns inside anything and bucks over every wave', mass: 420, power: .23e6, top: 36, acc: 7.2, lat: 34, turnR: 6, grip: 3.0, slide: .45, len: 3.4, beam: 1.2, col: ['#1fbf5f', '#10161c'], hum: 135, hump: .5, ride: 1.1, bank: 1.6 },
@@ -354,7 +354,7 @@ B.TYPES = {
   cc: { name: 'Centre Console 33', cls: 'Regional', model: 'cc', price: 4800, rank: 1, blurb: 'A 10 m sport-fishing centre console with three 350 hp outboards and a T-top: 60 knots to the fishing grounds', mass: 5600, power: .78e6, top: 30.5, acc: 4.3, lat: 21, turnR: 24, grip: 2.1, slide: .4, len: 10, beam: 3.1, col: ['#e9eef2', '#0f6a8a'], hum: 68, ride: .75 },
   patrol: { name: 'Patrol Interceptor', cls: 'International', model: 'cruiser', patrol: true, price: 12000, rank: 3, blurb: 'A 13 m patrol boat with a closed wheelhouse and three 600 hp outboards: 52 knots in any sea', mass: 10500, power: 1.35e6, top: 27, acc: 3.2, lat: 16, turnR: 34, grip: 2.1, slide: .38, len: 13, beam: 3.6, col: ['#3d4650', '#ff7a1a'], hum: 54, ride: .6, bank: .7 },
   topfuel: { name: 'Top Fuel Drag Hydro', cls: 'World Series', model: 'hydro', blower: true, price: 50000, rank: 6, blurb: 'A supercharged 8,000 hp V8 on nitromethane, on a three-point hull: 200 knots in seconds, and it hates corners', mass: 1200, power: 6e6, top: 103, acc: 13, lat: 20, turnR: 70, grip: 1.0, slide: .95, len: 7.6, beam: 3.2, col: ['#10161c', '#ffd400'], hum: 95 },
-  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Quick races in it pay no prizes; the Erika 2000 Grand Finale does', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, silent: true, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
+  erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Quick races in it pay no prizes; the Erika 2000 Grand Finale does', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, silent: true, noAssist: true, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
 // list them cheapest first within each licence level (the garage and boat pickers show them in this order)
@@ -1881,8 +1881,9 @@ B.Game = function () {
   // R: the racer (the game object for player 1, this.p2 for player 2): boat in R.player, progress and timing on R
   P._stepPlayer = function (dt, inp, R) {
     R = R || this; const b = R.player, c = this.course, run = this.mode === 'run' && !R.finished;
-    let steer = inp.steer * (c.assist ? clamp(150 / Math.max(Math.abs(b.u), 1), .15, 1) : 1);   // gentler steering at very high speed on assisted courses
-    if (c.assist && Math.abs(steer) < .05 && R.pIdx != null && b.u > 2) {   // steering assist: steer for a point on the centre line ahead
+    const assist = c.assist && !b.T.noAssist;   // the Erika 2000 is steered by hand, even here
+    let steer = inp.steer * (assist ? clamp(150 / Math.max(Math.abs(b.u), 1), .15, 1) : 1);   // gentler steering at very high speed on assisted courses
+    if (assist && Math.abs(steer) < .05 && R.pIdx != null && b.u > 2) {   // steering assist: steer for a point on the centre line ahead
       const L0 = B.locate(c, b.x, b.z, R.pIdx), u = b.u, Ld = u * 1.2 + 60, q = c.P[(L0.i + Math.round(Ld / c.ds)) % c.N];
       let e = Math.atan2(q.z - b.z, q.x - b.x) - b.h; while (e > Math.PI) e -= 2 * Math.PI; while (e < -Math.PI) e += 2 * Math.PI;
       const T = b.T, rMax = Math.min(T.yawMax || 9, u / Math.max(T.turnR, u * u / T.lat) * clamp(u / 5, .25, 1));
