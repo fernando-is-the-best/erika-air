@@ -2328,6 +2328,7 @@ SIM.AIRLINER_TYPES = [
   add('b763', { id: 'b762', name: 'Boeing 767-200ER', len: 48.5, oew: 82400, mtow: 179200, fuel: 73000, thr: 262e3, vref: 70, blurb: 'The short, stubby 767: a big wing on a small body, so it leaps off the runway and climbs like a fighter.', stats: ['2 x CF6-80C2', 'Vref ~136 kt', 'Cruise M0.80', 'Ceiling FL430'] });
   add('b763', { id: 'b764', name: 'Boeing 767-400ER', len: 61.4, span: 51.9, S: 290.7, oew: 103900, mtow: 204100, fuel: 73000, thr: 282e3, tips: 'raked', vref: 77, blurb: 'The stretched 767 with raked wingtips and a 777-style cockpit: long, heavy and fast on final.', stats: ['2 x CF6-80C2B8F', 'Vref ~150 kt', 'Cruise M0.80', 'Ceiling FL430'] });
   add('b777', { id: 'b779', name: 'Boeing 777-9', cls: 'Next-generation widebody twin', len: 76.7, span: 71.8, S: 517, oew: 181400, mtow: 351500, fuel: 159000, thr: 467e3, fanR: 1.6, legExtra: 0.4, vref: 76, blurb: 'The longest twinjet ever: a folding-tip carbon wing and the largest jet engines ever built.', stats: ['2 x GE9X', 'Vref ~148 kt', 'Cruise M0.84', 'Ceiling FL431'] });
+  add('b777', { id: 'b778', name: 'Boeing 777-8', cls: 'Next-generation widebody twin', len: 70.9, span: 71.8, S: 517, oew: 175000, mtow: 351500, fuel: 159000, thr: 467e3, fanR: 1.6, legExtra: 0.4, vref: 74, blurb: 'The shorter, longest-range 777X: the same folding-tip carbon wing and giant GE9X engines on a 777-200-length body. It goes almost anywhere non-stop.', stats: ['2 x GE9X', 'Vref ~144 kt', 'Cruise M0.84', 'Ceiling FL431'] });
   add('b789', { id: 'b78x', name: 'Boeing 787-10 Dreamliner', len: 68.3, oew: 135500, mtow: 254000, thr: 340e3, vref: 76, blurb: 'The longest Dreamliner: the same flexing composite wing with a much longer cabin. Watch the tail on rotation.', stats: ['2 x Trent 1000 TEN', 'Vref ~148 kt', 'Cruise M0.85', 'Ceiling FL410'] });
   add('b744', { id: 'b74sp', name: 'Boeing 747SP', cls: 'Short-body jumbo', len: 56.3, span: 59.6, S: 511, oew: 152000, mtow: 315700, fuel: 150000, thr: 223e3, fanR: 1.2, tips: 'none', humpLong: false, vref: 70, blurb: 'The stubby Special Performance jumbo: 14 metres shorter, a taller tail and enormous range. Lighter and livelier than any other 747.', stats: ['4 x JT9D-7J', 'Vref ~136 kt', 'Cruise M0.86', 'Ceiling FL450'] });
   add('a333', { id: 'a339', name: 'Airbus A330-900neo', len: 63.7, span: 64.0, S: 465, oew: 135000, mtow: 251000, fuel: 111000, thr: 320e3, fanR: 1.4, tips: 'shark', vref: 72, blurb: 'The re-engined A330: huge Trent 7000 fans, a longer wing with sharklets and the same gentle handling.', stats: ['2 x Trent 7000', 'Vref ~140 kt', 'Cruise M0.82', 'Ceiling FL410'] });
@@ -7871,7 +7872,7 @@ function build(C, spec) {
     bn58: 3500, pa34: 2500, c310: 3000, da42: 3000, kg350: 7000, bn2: 2800, dhc6: 6500,
     t38: 2500, a10: 4000, f5: 3500, f4: 6000, f18: 9000, f15: 12000, f14: 11000, f22: 20000, f35: 24000,
     para: 800,
-    b737: 4000, b762: 7500, b764: 10000, b779: 19000, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
+    b737: 4000, b762: 7500, b764: 10000, b779: 19000, b778: 17500, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
     c152: 600, rv7: 2000, decathlon: 1600, c210: 2600, pa44: 2200, p2006: 2400, pa46: 5000,
     c177: 2300, sr20: 2400, da20: 900, pc21: 9000, edge540: 3200, a321xlr: 8000, b38m10: 8000, b753: 8500, b733: 3800, crj1000: 4800, il96: 10500,
     r44: 1500, h125: 3500, uh60: 9000, ch47: 14000, r22: 900, b206: 2800, h135: 6000, uh1h: 7000, aw139: 11000, mi8: 12000,
@@ -7881,7 +7882,7 @@ function build(C, spec) {
   const GROUPS = [
     { id: 'light', name: 'Light & sport', ids: ['c172', 'c208', 'c337', 'extra', 'glider', 'para', 'pa34', 'bn58', 'c310', 'da42', 'bn2', 'kg350', 'pa28', 'c182', 'da40', 'm20', 'a36', 'sr22', 'pc12', 'tbm9', 'c206', 'pa32', 'dr400', 'c152', 'rv7', 'decathlon', 'c210', 'pa44', 'p2006', 'pa46', 'c177', 'sr20', 'da20', 'pc21', 'edge540'] },
     { id: 'stol', name: 'Bush & STOL', ids: ['cub', 'ccub', 'husky', 'm7', 'c185', 'helio', 'wilga', 'pc6', 'kodiak', 'draco'] },
-    { id: 'boeing', name: 'Boeing', ids: ['b707', 'b717', 'b727', 'b732', 'b733', 'b737', 'b738', 'b738m', 'b38m10', 'b739', 'b747', 'b744', 'b74sp', 'b748', 'b752', 'b753', 'b762', 'b763', 'b764', 'b772', 'b777', 'b779', 'b788', 'b789', 'b78x'] },
+    { id: 'boeing', name: 'Boeing', ids: ['b707', 'b717', 'b727', 'b732', 'b733', 'b737', 'b738', 'b738m', 'b38m10', 'b739', 'b747', 'b744', 'b74sp', 'b748', 'b752', 'b753', 'b762', 'b763', 'b764', 'b772', 'b777', 'b778', 'b779', 'b788', 'b789', 'b78x'] },
     { id: 'airbus', name: 'Airbus', ids: ['a220', 'a223', 'a300', 'a310', 'a318', 'a319', 'a320', 'a20n', 'a321', 'a321xlr', 'a332', 'a333', 'a339', 'a343', 'a346', 'a359', 'a35k', 'a388'] },
     { id: 'mdd', name: 'McDonnell Douglas & classics', ids: ['dc9', 'md82', 'dc8', 'md90', 'dc10', 'l1011', 'il62', 'md11'] },
     { id: 'regional', name: 'Regional & classic', ids: ['crj2', 'crj7', 'f100', 'crj9', 'crj1000', 'tu154', 'yak42', 'vc10'] },
