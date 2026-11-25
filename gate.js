@@ -90,6 +90,12 @@
   // items given or taken) and 'blocked' (items this player may not have or buy). Each grant is applied once in this browser,
   // and the game reports its wallet back ('status') so the desk can show what the player has.
   let ctl = { grants: {}, blocked: [] }, adapter = null, lastRep = '', repT = null;
+  // the admin, signed in on this browser, plays without a code. Their own grants come from the admin desk's "My own games"
+  // panel through this browser's storage (same site), and what they have is written back there for the desk to show
+  let selfMode = false;
+  const SELF = 'erika.self.' + GAME, SELF_DONE = 'erika.selfdone.' + GAME, SELF_STATUS = 'erika.selfstatus.' + GAME;
+  const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } } };
+  window.addEventListener('storage', (e) => { if (selfMode && e.key === SELF) syncControl(); });
   const appliedKey = () => 'erika.applied.' + GAME + '.' + (codeHash || '').slice(0, 16);
   const getApplied = () => { try { return JSON.parse(localStorage.getItem(appliedKey()) || '[]'); } catch (e) { return []; } };
   const setApplied = (a) => { try { localStorage.setItem(appliedKey(), JSON.stringify(a.slice(-400))); } catch (e) { /* storage unavailable */ } };
@@ -106,24 +112,27 @@
     clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 7000);
   }
   function syncControl() {
-    if (!adapter || !codeHash || (adapter.ready && !adapter.ready())) return;
-    const done = getApplied(), msgs = [], name = (id) => (adapter.name ? adapter.name(id) : id) || id;
+    if (!adapter || (!codeHash && !selfMode) || (adapter.ready && !adapter.ready())) return;
+    const grants = selfMode ? (ls.get(SELF, {}).grants || {}) : (ctl.grants || {}), done = selfMode ? ls.get(SELF_DONE, []) : getApplied(), msgs = [], name = (id) => (adapter.name ? adapter.name(id) : id) || id;
     let changed = false;
-    Object.entries(ctl.grants || {}).filter(([gid, g]) => g && done.indexOf(gid) < 0).sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).forEach(([gid, g]) => {
+    Object.entries(grants).filter(([gid, g]) => g && done.indexOf(gid) < 0).sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).forEach(([gid, g]) => {
       if (typeof g.set === 'number') { adapter.setCredits(Math.max(0, Math.round(g.set))); msgs.push('your credits are now ' + Math.round(g.set).toLocaleString()); }
       if (typeof g.credits === 'number' && g.credits) { const was = adapter.credits(), now = Math.max(0, Math.round(was + g.credits)), d = now - was; adapter.setCredits(now); if (d) msgs.push((d > 0 ? '+' : '\u2212') + Math.abs(d).toLocaleString() + ' credits'); }   // the real change (a take stops at 0)
       (g.give || []).forEach((id) => { adapter.give(id); msgs.push('you now have the ' + name(id)); });
       (g.take || []).forEach((id) => { adapter.take(id); msgs.push('the ' + name(id) + ' was taken away'); });
+      (g.career || []).forEach(([track, level]) => { const t = adapter.setCareer ? adapter.setCareer(track, level) : null; if (t) msgs.push(t); });   // a career rank or licence, set directly
       done.push(gid); changed = true;
     });
     // blocked items are taken away and stay unavailable
-    (ctl.blocked || []).forEach((id) => { if (adapter.ownedIds().indexOf(id) >= 0) { adapter.take(id); changed = true; } });
-    if (changed) { setApplied(done); if (adapter.save) adapter.save(); if (adapter.refresh) adapter.refresh(); }
+    if (!selfMode) (ctl.blocked || []).forEach((id) => { if (adapter.ownedIds().indexOf(id) >= 0) { adapter.take(id); changed = true; } });
+    if (changed) { if (selfMode) ls.set(SELF_DONE, done.slice(-400)); else setApplied(done); if (adapter.save) adapter.save(); if (adapter.refresh) adapter.refresh(); }
     if (msgs.length) toast(msgs.join(' \u00B7 '));
     report();
   }
   // tell the desk what this player has (only when it changes, at most every 15 s)
   function report() {
+    if (selfMode && adapter && !(adapter.ready && !adapter.ready())) {
+      ls.set(SELF_STATUS, { credits: Math.round(adapter.credits() || 0), owned: adapter.ownedIds().slice(0, 400), career: adapter.career ? adapter.career() : null, at: Date.now() }); return; }
     if (!adapter || !codeHash || repT) return;
     repT = setTimeout(() => {
       repT = null; if (adapter.ready && !adapter.ready()) return;
@@ -267,7 +276,7 @@
 
   busy(true); say('Checking access…');
   firstUser.then(async (u) => {
-    if (await isAdmin(u)) { gate.remove(); release(); adminButton(); return null; }
+    if (await isAdmin(u)) { selfMode = true; gate.remove(); release(); adminButton(); syncControl(); return null; }
     return u || (await auth.signInAnonymously()).user;
   }).then(async (user) => {
     if (!user) return;

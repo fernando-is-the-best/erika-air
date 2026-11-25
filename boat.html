@@ -1691,6 +1691,9 @@ B.Game = function () {
     give: (id) => { if (!B.TYPES[id]) return; const w = Cr.wallet(); if (w.owned.indexOf(id) < 0) w.owned.push(id); store.set('wallet', w); },
     take: (id) => { const w = Cr.wallet(); w.owned = w.owned.filter((x) => x !== id); store.set('wallet', w); },
     name: (id) => (B.TYPES[id] ? B.TYPES[id].name : id),
+    // career: the racing licence (set by its points)
+    career: () => [{ id: 'licence', name: 'Racing licence', levels: B.RANKS.map((r) => r[0]), level: Cr.rank().index }],
+    setCareer: (t, lvl) => { if (t !== 'licence' || !B.RANKS[lvl]) return null; const d = store.get('licence', null) || {}; d.pts = B.RANKS[lvl][1]; store.set('licence', d); return 'racing licence: ' + B.RANKS[lvl][0]; },
     refresh: () => {
       if (!Cr.owned(this.cfg.boat)) { this.cfg.boat = Object.keys(B.TYPES).find((k) => Cr.owned(k)) || 'rib'; store.set('cfg', this.cfg); }
       if (!Cr.owned(this.gSel) && !B.TYPES[this.gSel]) this.gSel = this.cfg.boat;

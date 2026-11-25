@@ -13811,6 +13811,11 @@ SIM.Game = (function () {
       give: (id) => { if (!SIM.AIRCRAFT[id]) return; const w = Shop._w(); if (w.owned.indexOf(id) < 0) w.owned.push(id); SIM.store.set('wallet', w); },
       take: (id) => { const w = Shop._w(); w.owned = w.owned.filter((x) => x !== id); SIM.store.set('wallet', w); },
       name: (id) => (SIM.AIRCRAFT[id] ? SIM.AIRCRAFT[id].name : id),
+      // career: airline and air-wing ranks (set by their points; joins the first airline or wing if not in one yet)
+      career: () => { const C = SIM.Career; return ['airline', 'wing'].map((br) => ({ id: br, name: br === 'airline' ? 'Airline career' : 'Air wing career', levels: C.RANKS[br].map((r) => r[0]), level: C.enrolled(br) ? C.rank(br).index : -1 })); },
+      setCareer: (br, lvl) => { const C = SIM.Career, R = C.RANKS[br]; if (!R || !R[lvl]) return null; const d = C.get();
+        if (br === 'airline' && !d.airline) d.airline = C.AIRLINES[0].id; if (br === 'wing' && !d.wing) d.wing = C.WINGS[0].id;
+        d.pts[br] = R[lvl][1]; C.save(d); return (br === 'airline' ? 'airline rank: ' : 'air wing rank: ') + R[lvl][0]; },
       refresh: () => { try { paintWallet(); buildHangar(); buildChallenges(); buildTrips(); } catch (e) { /* menu not built yet */ } },
     });
     // blocking a free aircraft leaves the wallet as it was, so no refresh is asked for: repaint the menus when the block list changes

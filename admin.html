@@ -129,6 +129,15 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
 .mg input[type=search] { margin-bottom: 2px }
 @media (max-width: 560px) { .mg .it { grid-template-columns: 1fr } .mg .it .b { justify-content: flex-start } }
 @media (prefers-reduced-motion: reduce) { .dot { animation: none } * { transition: none !important } }
+/* my own games: the admin's own credits, items and career ranks, on this browser */
+.self { display: grid; gap: 14px }
+.self .wal { display: flex; gap: 10px 22px; flex-wrap: wrap; padding: 12px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; color: var(--dim) }
+.self .wal b { font: 700 24px/1 var(--f-display); color: var(--accent); font-variant-numeric: tabular-nums }
+.self .crow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center } .self .crow input { flex: 1 1 140px; width: auto } .self .crow > span { flex: 1 1 160px; font-weight: 600 }
+.self .grp { display: grid; gap: 6px }
+.self .it { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; padding: 7px 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--line) }
+.self .it .n { font-weight: 600 } .self .it .n small { font-weight: 400; color: var(--dim); margin-left: 6px } .self .it.own { border-left: 3px solid var(--ok) }
+.self .it .b { display: flex; gap: 6px } .self .it .b button { padding: 5px 10px; font-size: 13px } #selfItems { display: grid; gap: 6px; max-height: 420px; overflow: auto }
 </style>
 </head>
 <body>
@@ -158,6 +167,17 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
         <div class="clock" id="pClock"></div>
       </div>
       <div class="acts"><a href="./"><button type="button" class="main">Play the game</button></a><button id="btnOut" type="button">Sign out</button></div>
+    </section>
+
+    <section class="card self" id="self" aria-labelledby="selfH">
+      <h2 id="selfH">My own games</h2>
+      <p>Give yourself credits, planes, cars or boats, and career ranks. This works in <b>this browser</b>, where you are signed in as the admin and play without a code: open the game here and the changes arrive within a few seconds.</p>
+      <div class="row"><div class="fix" style="flex-basis:200px"><label for="selfGame">Game</label><select id="selfGame"><option value="air">Erika Air (flight)</option><option value="race">Erika Racing</option><option value="boat">Erika Boats</option></select></div></div>
+      <div class="wal" id="selfWal"></div>
+      <div class="grp"><span class="lbl">Credits</span><div class="crow"><input id="selfCr" type="number" min="0" step="1000" placeholder="Amount" aria-label="Amount of credits"><button type="button" class="main" data-self="add">Give me</button><button type="button" data-self="set">Set my credits to</button></div></div>
+      <div class="grp"><span class="lbl">Career</span><div id="selfCareer" class="grp"></div></div>
+      <div class="grp"><span class="lbl" id="selfItemsLbl">Items</span><div class="crow"><input type="search" id="selfFind" placeholder="Search" aria-label="Search items"><button type="button" data-self="all">Give me everything</button></div><div id="selfItems"></div></div>
+      <div class="msg" id="selfMsg" role="status" aria-live="polite"></div>
     </section>
 
     <section class="gauges" aria-label="Code readouts">
@@ -436,6 +456,51 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
     });
   }
   setInterval(() => { if (docs.length && !editing) paintList(); if (alerts.length) paintAlerts(); }, 60000);   // keep times fresh
+
+  // ---- my own games: grants for the admin's own play on this browser. The desk queues them in this browser's storage
+  // (erika.self.<game>); the game (gate.js) applies each once and writes back what you have (erika.selfstatus.<game>)
+  const SELF_CAREER = {
+    air: [{ id: 'airline', name: 'Airline career', levels: ['Cadet', 'Second Officer', 'First Officer', 'Captain', 'Senior Captain', 'Chief Pilot'] },
+      { id: 'wing', name: 'Air wing career', levels: ['Cadet', 'Lieutenant', 'Captain', 'Major', 'Lt Colonel', 'Colonel', 'Brigadier', 'General'] }],
+    race: [{ id: 'lic', name: 'Licences', levels: ['No licence', 'National B', 'National A', 'Super licence'] }],
+    boat: [{ id: 'licence', name: 'Racing licence', levels: ['Novice', 'Club', 'Regional', 'National', 'International', 'Pro', 'World Series', 'Champion'] }],
+  };
+  const SELF_HOW = { air: '', race: ' In Erika Racing, open your save first: changes go to the save that is open.', boat: '' };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  function selfPush(g, what) {
+    const game = $('selfGame').value, k = 'erika.self.' + game, q = lsGet(k, {}); q.grants = q.grants || {};
+    q.grants['g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)] = Object.assign({ at: Date.now() }, g);
+    const ids = Object.keys(q.grants).sort((a, b) => q.grants[a].at - q.grants[b].at); while (ids.length > 150) delete q.grants[ids.shift()];
+    try { localStorage.setItem(k, JSON.stringify(q)); say('selfMsg', what + '. It arrives next time Erika ' + { air: 'Air', race: 'Racing', boat: 'Boats' }[game] + ' is open in this browser (within a few seconds if it is open now).' + SELF_HOW[game], 'ok'); }
+    catch (e) { say('selfMsg', 'This browser will not save it (storage is blocked).', 'bad'); }
+  }
+  function paintSelf() {
+    const game = $('selfGame').value, st = lsGet('erika.selfstatus.' + game, null), owned = st ? st.owned || [] : [], f = $('selfFind').value.trim().toLowerCase();
+    const n = CATALOG[game].reduce((a, [, l]) => a + l.length, 0);
+    $('selfWal').innerHTML = st ? '<span><b>' + (st.credits || 0).toLocaleString() + '</b> credits</span><span><b>' + owned.length + '</b> of ' + n + ' ' + ITEM[game] + '</span>'
+      + (st.career || []).map((t) => '<span>' + esc(t.name) + ': <b style="font-size:18px">' + (t.level >= 0 ? esc(t.levels[t.level]) : 'not joined') + '</b></span>').join('') + '<span>as of ' + new Date(st.at).toLocaleString() + '</span>'
+      : '<span>Play the game once in this browser (signed in as the admin) and what you have shows up here.</span>';
+    $('selfCareer').innerHTML = SELF_CAREER[game].map((t) => { const cur = st && st.career ? (st.career.find((c) => c.id === t.id) || {}).level : null;
+      return '<div class="crow"><span>' + t.name + '</span><select data-track="' + t.id + '" aria-label="' + t.name + ' rank">' + t.levels.map((l, i) => '<option value="' + i + '"' + (i === (cur != null && cur >= 0 ? cur : t.levels.length - 1) ? ' selected' : '') + '>' + l + '</option>').join('') + '</select><button type="button" data-car="' + t.id + '">Set my rank</button></div>'; }).join('');
+    $('selfItemsLbl').textContent = ITEM[game].charAt(0).toUpperCase() + ITEM[game].slice(1);
+    const rows = []; for (const [grp, l] of CATALOG[game]) for (const [id, nm] of l) if (!f || (nm + ' ' + grp).toLowerCase().indexOf(f) >= 0) rows.push([id, nm, grp]);
+    $('selfItems').innerHTML = rows.map(([id, nm, grp]) => { const own = owned.indexOf(id) >= 0;
+      return '<div class="it' + (own ? ' own' : '') + '"><div class="n">' + esc(nm) + '<small>' + esc(grp) + (own ? ' · yours' : '') + '</small></div><div class="b"><button type="button" class="main" data-give="' + id + '">Give me</button><button type="button" data-take="' + id + '">Take</button></div></div>'; }).join('') || '<p>Nothing matches.</p>';
+  }
+  $('selfGame').addEventListener('change', () => { $('selfFind').value = ''; say('selfMsg', ''); paintSelf(); });
+  $('selfFind').addEventListener('input', () => paintSelf());
+  window.addEventListener('storage', (e) => { if (e.key && e.key.indexOf('erika.selfstatus.') === 0) paintSelf(); });
+  $('self').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return; const game = $('selfGame').value, nm = (id) => nameOf(game, id);
+    if (b.dataset.self === 'add' || b.dataset.self === 'set') { const v = Math.round(+$('selfCr').value); if (!(v >= 0) || $('selfCr').value === '') { say('selfMsg', 'Type an amount first.', 'bad'); return; }
+      if (b.dataset.self === 'add') selfPush({ credits: v }, '+' + v.toLocaleString() + ' credits on the way'); else selfPush({ set: v }, 'Your credits will be set to ' + v.toLocaleString()); }
+    else if (b.dataset.self === 'all') { const all = CATALOG[game].flatMap(([, l]) => l.map((i) => i[0])); selfPush({ give: all }, 'All ' + all.length + ' ' + ITEM[game] + ' on the way'); }
+    else if (b.dataset.give) selfPush({ give: [b.dataset.give] }, 'The ' + nm(b.dataset.give) + ' is on the way');
+    else if (b.dataset.take) selfPush({ take: [b.dataset.take] }, 'The ' + nm(b.dataset.take) + ' will be taken away');
+    else if (b.dataset.car) { const t = SELF_CAREER[game].find((x) => x.id === b.dataset.car), lvl = +$('selfCareer').querySelector('[data-track="' + t.id + '"]').value; selfPush({ career: [[t.id, lvl]] }, t.name + ' set to ' + t.levels[lvl]); }
+  });
+  setTimeout(paintSelf, 0);   // after the catalog below is set up
 
   // ---- manage a player (or everyone in a game): credits, planes / cars / boats given or taken, and blocked items.
   // Changes are stored on the code as 'grants' (applied once by the game) and 'blocked' (kept away for good); the game
