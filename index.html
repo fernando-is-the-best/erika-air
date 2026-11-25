@@ -2363,6 +2363,9 @@ SIM.AIRLINER_TYPES = [
   add('b707', { id: 'dc8', name: 'McDonnell Douglas DC-8-63', maker: 'McDonnell Douglas', cls: 'First-generation jetliner', len: 57.1, dia: 3.76, span: 45.2, S: 267.7, oew: 71000, mtow: 158800, fuel: 70000, thr: 84e3, vref: 76, blurb: 'The long-fuselage DC-8: a swept wing, four podded engines and an elegant, graceful approach.', stats: ['4 x JT3D-7', 'Vref ~148 kt', 'Cruise M0.82', 'Ceiling FL420'] });
   add('b717', { id: 'md90', name: 'McDonnell Douglas MD-90', maker: 'McDonnell Douglas', cls: 'Regional twinjet', len: 46.5, dia: 3.34, span: 32.9, S: 118, sweep: 24, oew: 40100, mtow: 70760, fuel: 17500, thr: 111e3, fanR: 0.75, nac: 'hbp', tailH: 9.3, vref: 70, blurb: 'The quiet, modernised MD-80: V2500 engines on the rear fuselage and a new glass cockpit.', stats: ['2 x V2525-D5', 'Vref ~136 kt', 'Cruise M0.76', 'Ceiling FL370'] });
   add('b707', { id: 'il62', name: 'Ilyushin Il-62M', maker: 'Ilyushin', cls: 'Classic long-haul jet', len: 53.12, dia: 4.1, span: 43.2, S: 279.55, sweep: 35, oew: 69000, mtow: 165000, fuel: 80000, thr: 107e3, mount: 'rear', n: 4, fanR: 0.6, nac: 'lbp', eng: [], tail: 'T', tailH: 12.3, stab: 0.34, tailStrike: 9, vref: 76, blurb: 'The Soviet VC10: four engines paired on the tail, a T-tail and a long, tail-heavy fuselage that wants a careful rotation.', stats: ['4 x D-30KU', 'Vref ~148 kt', 'Cruise M0.80', 'Ceiling FL390'] });
+  // the Erika Titan: an imaginary giant, far bigger than anything ever built. Twice the A380's length, a 180 m wing and twenty
+  // 4-metre fans (ten under each wing). Same flight model as the real airliners, just scaled up
+  L.push({ id: 'titan', name: 'Erika Titan', maker: 'Erika Aerospace', cls: 'Imaginary super-giant', len: 140, dia: 11, hs: 1.25, span: 180, S: 5200, sweep: 33, taper: 0.22, dih: 6, oew: 1400000, mtow: 3200000, fuel: 1300000, thr: 560e3, n: 20, mount: 'wing', fanR: 2.0, nac: 'hbp', eng: [0.130, 0.204, 0.279, 0.353, 0.428, 0.502, 0.576, 0.651, 0.725, 0.800], tail: 'conv', tailH: 40, stab: 0.3, tips: 'shark', deck: 'full', gear: { main: 6, body: 2, bodyW: 6 }, cruiseM: 0.85, vref: 64, tsfc: 1.4e-5, doors: [0.08, 0.2, 0.33, 0.47, 0.61, 0.75, 0.88], blurb: 'The biggest plane imaginable: 140 m long, a 180 m wing, two full decks and twenty of the biggest jet engines ever, ten under each wing. 3,200 tonnes at take-off. Turn early, flare gently.', stats: ['20 x Erika E-200 superfans', 'Vref ~125 kt', 'Cruise M0.85', 'Ceiling FL410'] });
 })();
 
 // ---------- airliner_defs.js : turns SIM.AIRLINER_TYPES into flight-model specs (scaled from the tuned 737-800 / 747 templates) ----------
@@ -2482,6 +2485,7 @@ SIM.AIRLINER_TYPES = [
   }
   SIM.AIRLINER_TYPES.forEach((T) => { A[T.id] = gen(T); });
   A.b738.airliner = true;
+  if (A.titan) A.titan.landDist = 30000;   // the Titan starts its landing practice further out
 })();
 
 // ---------- fighter_defs.js : geometry tables + flight-model specs for the fighter branch (scaled from the tuned F-16) ----------
@@ -7872,7 +7876,7 @@ function build(C, spec) {
     bn58: 3500, pa34: 2500, c310: 3000, da42: 3000, kg350: 7000, bn2: 2800, dhc6: 6500,
     t38: 2500, a10: 4000, f5: 3500, f4: 6000, f18: 9000, f15: 12000, f14: 11000, f22: 20000, f35: 24000,
     para: 800,
-    b737: 4000, b762: 7500, b764: 10000, b779: 19000, b778: 17500, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
+    b737: 4000, b762: 7500, b764: 10000, b779: 19000, b778: 17500, titan: 60000, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
     c152: 600, rv7: 2000, decathlon: 1600, c210: 2600, pa44: 2200, p2006: 2400, pa46: 5000,
     c177: 2300, sr20: 2400, da20: 900, pc21: 9000, edge540: 3200, a321xlr: 8000, b38m10: 8000, b753: 8500, b733: 3800, crj1000: 4800, il96: 10500,
     r44: 1500, h125: 3500, uh60: 9000, ch47: 14000, r22: 900, b206: 2800, h135: 6000, uh1h: 7000, aw139: 11000, mi8: 12000,
@@ -7890,6 +7894,7 @@ function build(C, spec) {
     { id: 'water', name: 'Floatplanes', ids: ['pa28f', 'c182f', 'c206f', 'dhc2f', 'dhc3f', 'pc6f'] },
     { id: 'embraer', name: 'Embraer', ids: ['erj145', 'e170', 'e175', 'e190', 'e195'] },
     { id: 'dehavilland', name: 'de Havilland', ids: ['dhc2', 'dhc3', 'dhc6', 'comet4', 'trident'] },
+    { id: 'giant', name: 'Giants', ids: ['titan'] },
     { id: 'supersonic', name: 'Supersonic', ids: ['concorde', 'xb1', 'tu144', 'overture', 'sr71', 'xb70'] },
     { id: 'fighter', name: 'Fighters', ids: ['t38', 'f86', 'f5', 'a10', 'mig21', 'f4', 'f104', 'f16', 'mig29', 'f18', 'f14', 'f15', 'f22', 'f35'] },
     { id: 'heli', name: 'Helicopters', ids: ['r22', 'r44', 'md500', 'b206', 'b407', 'h125', 'h135', 'h145', 'uh1h', 's76', 'uh60', 'aw139', 'ah64', 'mi8', 'ch47'] },
