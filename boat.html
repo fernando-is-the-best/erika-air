@@ -33,8 +33,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 #gateArrow { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); text-align: center; font: 700 14px var(--f-display); letter-spacing: .12em; color: var(--warn); text-shadow: 0 2px 10px rgba(0,0,0,.6) }
 #gateArrow svg { width: 46px; height: 46px; display: block; margin: 0 auto 2px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)) }
 #mini { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: 180px; height: 180px; padding: 6px }
-#msg { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); font: 700 clamp(28px, 7vw, 60px)/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 3px 18px rgba(0,0,0,.6); text-align: center; white-space: nowrap }
-#msg small { display: block; font: 600 16px var(--f-body); letter-spacing: .04em; color: var(--dim); margin-top: 8px; text-transform: none }
+#msg, #msg2 { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); font: 700 clamp(28px, 7vw, 60px)/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 3px 18px rgba(0,0,0,.6); text-align: center; white-space: nowrap }
+#msg small, #msg2 small { display: block; font: 600 16px var(--f-body); letter-spacing: .04em; color: var(--dim); margin-top: 8px; text-transform: none }
 #topbtns { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: auto }
 .btn { pointer-events: auto; padding: 9px 15px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-solid); color: var(--text); font: 600 14px var(--f-body); cursor: pointer }
 .btn.main { background: var(--accent); color: var(--accent-ink); border-color: transparent }
@@ -91,6 +91,22 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 #gPaint { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 4px; background: #0d2531 }
 .swrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center } .sw { width: 30px; height: 30px; border-radius: 4px; border: 2px solid rgba(255,255,255,.18); cursor: pointer; padding: 0 }
 .sw[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px var(--accent) } .swrow input[type=color] { width: 44px; height: 32px; border: 1px solid var(--line); border-radius: 4px; background: none; cursor: pointer; padding: 0 }
+#pMulti .mpbox { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 4px; background: #0d2531 }
+#pMulti h3 { margin: 0; font: 700 20px var(--f-display); letter-spacing: .05em; text-transform: uppercase } #pMulti p { margin: 0 } #pMulti .sub { color: var(--dim); font-size: 13.5px } #pMulti .sub b { color: var(--text) }
+.mprow { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap } #pMulti label { display: grid; gap: 4px; color: var(--dim); font-size: 13px }
+#pMulti select, #pMulti input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: #0f2a38; color: var(--text); font: 500 15px var(--f-body); min-width: 0 }
+#mpCode { width: 120px; text-transform: uppercase; letter-spacing: .15em; font-family: var(--f-mono) } .code { font: 700 28px var(--f-mono); letter-spacing: .2em; color: var(--accent) }
+#mpPlayers { display: grid; gap: 4px } #mpPlayers div { display: flex; gap: 8px; align-items: center; font-size: 14px } #mpStatus.err { color: var(--warn) }
+/* two players on one computer: left half player 1 (WASD), right half player 2 (arrows) */
+#msg2, .pv, #splitLine { display: none }
+.split #msg { left: 25% } .split #msg2 { display: block; left: 75% } .split #msg, .split #msg2 { font-size: clamp(22px, 4vw, 44px) }
+.split #dash, .split #gateArrow, .split #timing { display: none }
+.split .pv { display: grid; gap: 2px; position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); min-width: 190px; padding: 8px 12px; font: 600 14px var(--f-body) }
+#pv1 { left: max(12px, env(safe-area-inset-left)) } #pv2 { left: calc(50% + 12px) }
+.pv .who { font: 700 13px var(--f-display); letter-spacing: .1em; color: var(--accent) } .pv .big { font: 700 32px/1 var(--f-display) } .pv .big small { font: 600 12px var(--f-body); color: var(--dim); margin-left: 4px }
+.pv .sub { color: var(--dim); font-size: 13px } .pv .arw { display: inline-block; color: var(--warn); margin-right: 4px }
+.split #splitLine { display: block; position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: rgba(5, 12, 18, .8) }
+.split #mini { width: 140px; height: 140px }
 #drops { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
 @media (max-width: 640px) { .tm { flex-direction: column; align-items: stretch } }
 @media (max-width: 640px) { .ev { flex-direction: column; align-items: stretch } .ev .evr { justify-content: space-between } .stat { grid-template-columns: 90px 1fr 60px } }
@@ -106,7 +122,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
   <div id="dash" class="box"><div id="thrBar"><i id="thrFill"></i></div><div><div class="big" id="kn">0</div><div class="u">KNOTS</div></div><div><div class="big" id="kmh" style="font-size:28px">0</div><div class="u">KM/H</div></div></div>
   <div id="gateArrow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 12h-4v8h-6v-8H5z"/></svg><span id="gateTxt">GATE 1</span></div>
   <canvas id="mini" class="box" width="360" height="360"></canvas>
-  <div id="msg"></div>
+  <div id="splitLine"></div><div id="pv1" class="box pv"></div><div id="pv2" class="box pv"></div>
+  <div id="msg"></div><div id="msg2"></div>
   <div id="topbtns"><button class="btn" id="btnPause" type="button">Pause</button><button class="btn" id="btnCam" type="button">Camera</button><button class="btn" id="btnQuit" type="button">Quit</button></div>
   <div id="touch" hidden><div class="pad" id="tL">◀</div><div class="pad" id="tR">▶</div><div class="pad" id="tB">BACK</div><div class="pad" id="tG">GAS</div></div>
 </div>
@@ -114,7 +131,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
   <div class="card" id="mainCard">
     <div class="top"><h1>Erika <b>Boats</b></h1><div class="wallet" id="wallet" title="Credits: win races to earn more"></div></div>
     <div class="lic" id="licLine"></div>
-    <div class="tabs" id="tabs" role="tablist"><button type="button" role="tab" data-tab="race">Quick race</button><button type="button" role="tab" data-tab="career">Career</button><button type="button" role="tab" data-tab="garage">Garage</button><button type="button" role="tab" data-tab="team">Team</button></div>
+    <div class="tabs" id="tabs" role="tablist"><button type="button" role="tab" data-tab="race">Quick race</button><button type="button" role="tab" data-tab="career">Career</button><button type="button" role="tab" data-tab="garage">Garage</button><button type="button" role="tab" data-tab="team">Team</button><button type="button" role="tab" data-tab="multi">Multiplayer</button></div>
     <div class="pane" id="pRace">
       <p>Powerboat racing round buoy courses between islands. Pass every gate in order: a missed gate costs 5 seconds. Win races for credits and licence points, then buy faster boats in the Garage.</p>
       <div><div class="lbl">Boat</div><div class="seg" id="segBoat"></div></div>
@@ -134,6 +151,23 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
       <div class="ggrid" id="gGrid"></div>
       <div id="gDetail"></div>
       <div id="gPaint"></div>
+    </div>
+    <div class="pane" id="pMulti" hidden>
+      <div class="mpbox">
+        <h3>Two players, one computer</h3>
+        <p class="sub">Split screen: player 1 on the left with <b>W A S D</b> (C camera, R back on course), player 2 on the right with the <b>arrow keys</b> (Enter back on course). A gamepad each works too. Course and laps come from the Quick race tab. Just for fun: no prizes.</p>
+        <div class="mprow"><label>Player 1 boat <select id="mpB1"></select></label><label>Player 2 boat <select id="mpB2"></select></label></div>
+        <div class="foot"><button class="btn main" id="btnSplit" type="button">Start 2-player race</button><span class="sub" id="mpCourse"></span></div>
+      </div>
+      <div class="mpbox">
+        <h3>Online</h3>
+        <p class="sub">Race friends on their own computers. One person hosts and shares the room code; the others join with it. Everyone races the boat they picked in Quick race, on the host's course and laps. Up to 6 players. Just for fun: no prizes.</p>
+        <div class="mprow"><label>Your name <input id="mpName" maxlength="16" autocomplete="nickname"></label></div>
+        <div class="mprow" id="mpIdle"><button class="btn main" id="btnHost" type="button">Host a race</button><span class="sub">or</span><label>Room code <input id="mpCode" maxlength="5" autocomplete="off" spellcheck="false"></label><button class="btn" id="btnJoin" type="button">Join</button></div>
+        <div id="mpRoom" hidden><div class="mprow"><span class="sub">Room code</span><b class="code" id="mpCodeShow"></b></div><div id="mpPlayers"></div>
+          <div class="foot"><button class="btn main" id="btnNetGo" type="button">Start race</button><button class="btn" id="btnLeave" type="button">Leave room</button></div></div>
+        <div class="sub" id="mpStatus" role="status"></div>
+      </div>
     </div>
     <div class="pane" id="pTeam" hidden>
       <div id="teamBox"></div>
@@ -1544,6 +1578,97 @@ B.Input.prototype.read = function () {
   this.just = {}; return o;
 };
 
+// ---------------------------------------------------------------- online races
+// Browser to browser over WebRTC, set up through PeerJS's free public broker (no server of our own). The host's room code is part of
+// its PeerJS id; everyone else connects to the host, which relays every message to the rest (a star). Messages: hi (a player's name,
+// boat and colours), lobby (who is in the room), start (course, laps and the players in grid order), s (a racer's state, 12 a second).
+B.Net = function (game) { this.g = game; this.role = null; this.conns = []; this.players = []; this.status = ''; this.err = false; this.t = 0; this.name = String(store.get('netName', 'Player')).slice(0, 16); };
+B.Net.CODE = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+B.Net.load = () => window.Peer ? Promise.resolve() : new Promise((res, rej) => {
+  const urls = ['https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'];
+  const next = (i) => { if (i >= urls.length) return rej(new Error('load')); const el = document.createElement('script'); el.src = urls[i]; el.onload = () => (window.Peer ? res() : next(i + 1)); el.onerror = () => next(i + 1); document.head.appendChild(el); };
+  next(0); });
+B.Net.clean = (q, id) => ({ id, name: String(q.name || 'Player').replace(/[<>&"]/g, '').slice(0, 16) || 'Player', boat: B.TYPES[q.boat] ? q.boat : 'rib',
+  col: Array.isArray(q.col) && q.col.length === 2 && q.col.every((c) => /^#[0-9a-f]{6}$/i.test(c)) ? q.col.slice() : ['#e63b2e', '#f4f4f2'] });
+B.Net.prototype.say = function (t, err) { this.status = t; this.err = !!err; this.g._paintNet(); };
+B.Net.prototype.me = function () { const g = this.g; return B.Net.clean({ name: this.name, boat: g.cfg.boat, col: B.Career.colsFor(g.cfg.boat) }, this.id); };
+B.Net.prototype.fail = function (e) {
+  const t = e && e.type, msg = t === 'peer-unavailable' ? 'No room with that code. Check it with the host.' : t === 'browser-incompatible' ? 'This browser cannot do online races.'
+    : t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed' ? 'Cannot reach the online service. Check your internet connection (some school or work networks block it).' : 'Connection problem' + (t ? ' (' + t + ')' : '') + '.';
+  if (t === 'unavailable-id' && this.role === 'host') { this.close(); return this.host(); }   // that room code is taken: pick another
+  this.say(msg, true); this.close();
+};
+B.Net.prototype.host = function () {
+  this.role = 'host'; this.code = Array.from({ length: 5 }, () => B.Net.CODE[Math.floor(Math.random() * B.Net.CODE.length)]).join(''); this.say('Opening a room…');
+  B.Net.load().then(() => {
+    const peer = this.peer = new window.Peer('erikaboats-' + this.code.toLowerCase(), { debug: 0 });
+    peer.on('open', (id) => { this.id = id; this.players = [this.me()]; this.say('Room open. Tell your friends the code, then press Start race when everyone is in.'); });
+    peer.on('connection', (conn) => this.accept(conn));
+    peer.on('error', (e) => this.fail(e));
+  }).catch(() => this.say('Could not load the online service. Check your internet connection.', true));
+};
+B.Net.prototype.accept = function (conn) {
+  conn.on('open', () => { if (this.players.length >= 6) { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 400); return; } this.conns.push(conn); });
+  conn.on('data', (m) => {
+    if (!m || typeof m !== 'object') return;
+    if (m.t === 'hi') { const q = B.Net.clean(m, conn.peer), i = this.players.findIndex((p) => p.id === conn.peer); if (i >= 0) this.players[i] = q; else this.players.push(q); this.lobby(); }
+    else if (m.t === 's') { m.id = conn.peer; this.recv(m); for (const c of this.conns) if (c !== conn && c.open) c.send(m); }
+  });
+  conn.on('close', () => this.drop(conn.peer)); conn.on('error', () => this.drop(conn.peer));
+};
+B.Net.prototype.drop = function (id) {
+  this.conns = this.conns.filter((c) => c.peer !== id); const had = this.players.length; this.players = this.players.filter((p) => p.id !== id);
+  this.g.remoteGone(id); if (had !== this.players.length) this.lobby();
+};
+B.Net.prototype.lobby = function () { const m = { t: 'lobby', code: this.code, players: this.players }; for (const c of this.conns) if (c.open) c.send(m); this.g._paintNet(); };
+B.Net.prototype.join = function (code) {
+  code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 5) return this.say('A room code is 5 letters and numbers.', true);
+  this.role = 'guest'; this.code = code; this.say('Joining room ' + code + '…');
+  B.Net.load().then(() => {
+    const peer = this.peer = new window.Peer({ debug: 0 });
+    peer.on('open', (id) => {
+      this.id = id; const conn = this.conn = peer.connect('erikaboats-' + code.toLowerCase(), { reliable: true, serialization: 'json' });
+      conn.on('open', () => { conn.send(Object.assign({ t: 'hi' }, this.me())); this.say('In the room. Waiting for the host to start the race.'); });
+      conn.on('data', (m) => {
+        if (!m || typeof m !== 'object') return;
+        if (m.t === 'lobby' && Array.isArray(m.players)) { this.players = m.players.slice(0, 6).map((q) => B.Net.clean(q, String(q.id))); for (const X of this.g.remotes || []) if (!this.players.some((q) => q.id === X.id)) this.g.remoteGone(X.id); this.g._paintNet(); }
+        else if (m.t === 'start' && B.COURSES[m.course] && Array.isArray(m.players)) this.g.start(null, { online: true, course: m.course, laps: clamp(m.laps | 0, 1, 9), players: m.players.slice(0, 6).map((q) => B.Net.clean(q, String(q.id))) });
+        else if (m.t === 's') this.recv(m);
+        else if (m.t === 'full') this.say('That room is full (6 players).', true);
+      });
+      conn.on('close', () => { if (this.role) { for (const X of this.g.remotes || []) this.g.remoteGone(X.id); this.say('The host closed the room.', true); this.close(); } });
+    });
+    peer.on('error', (e) => this.fail(e));
+  }).catch(() => this.say('Could not load the online service. Check your internet connection.', true));
+};
+B.Net.prototype.update = function () {   // your name or boat changed
+  const q = this.me(); if (this.role === 'host') { const i = this.players.findIndex((p) => p.id === this.id); if (i >= 0) this.players[i] = q; this.lobby(); }
+  else if (this.conn && this.conn.open) this.conn.send(Object.assign({ t: 'hi' }, q));
+};
+B.Net.prototype.startRace = function () {
+  if (this.role !== 'host') return; if (this.players.length < 2) return this.say('Wait for at least one more player to join.', true);
+  this.players[0] = this.me(); const m = { t: 'start', course: this.g.cfg.course, laps: this.g.cfg.laps, players: this.players };
+  for (const c of this.conns) if (c.open) c.send(m); this.g.start(null, { online: true, course: m.course, laps: m.laps, players: this.players });
+};
+B.Net.prototype.recv = function (m) { const X = (this.g.remotes || []).find((q) => q.id === m.id); if (X && typeof m.x === 'number') { X.st = m; X.at = performance.now(); } };
+B.Net.prototype.sendState = function () {
+  const g = this.g; if (!g.rc || !g.rc.online || g.mode === 'menu') return; const b = g.player, f = (v, n) => +v.toFixed(n);
+  const m = { t: 's', id: this.id, x: f(b.x, 2), z: f(b.z, 2), h: f(b.h, 3), y: f(b.y, 2), p: f(b.pitch, 3), r: f(b.roll, 3), v: f(b.speed, 2), th: f(b.thr, 2), st: f(b.steer, 2), a: b.air ? 1 : 0, lap: g.lap, s: Math.round(g.pS || 0), f: g.finished ? f(g.finishT, 3) : null };
+  if (this.role === 'host') { for (const c of this.conns) if (c.open) c.send(m); } else if (this.conn && this.conn.open) this.conn.send(m);
+};
+B.Net.prototype.tick = function (dt) { if ((this.t -= dt) <= 0) { this.t = 1 / 12; this.sendState(); } };
+B.Net.prototype.close = function () { try { if (this.peer) this.peer.destroy(); } catch (e) { /* already gone */ } this.peer = null; this.conn = null; this.conns = []; this.players = []; this.role = null; this.g._paintNet(); };
+
+// two players on one keyboard: a = WASD (and the first gamepad), b = the arrow keys (and the second gamepad)
+B.Input.prototype.read2 = function () {
+  const k = this.keys, pads = navigator.getGamepads ? [...navigator.getGamepads()].filter((p) => p && p.connected) : [];
+  const one = (up, dn, lf, rt, pad) => { const o = { thr: k[up] ? 1 : 0, brk: k[dn] ? 1 : 0, steer: (k[rt] ? 1 : 0) - (k[lf] ? 1 : 0) };
+    if (pad) { const ax = pad.axes[0] || 0; if (Math.abs(ax) > .08) o.steer = ax; o.thr = Math.max(o.thr, pad.buttons[7] ? pad.buttons[7].value : 0); o.brk = Math.max(o.brk, pad.buttons[6] ? pad.buttons[6].value : 0); }
+    return o; };
+  const o = { a: one('KeyW', 'KeyS', 'KeyA', 'KeyD', pads[0]), b: one('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', pads[1]), cam: this.just.KeyC, reset: this.just.KeyR, reset2: this.just.Enter || this.just.NumpadEnter, pause: this.just.Escape || this.just.KeyP };
+  this.just = {}; return o;
+};
+
 // ---------------------------------------------------------------- game
 B.Game = function () {
   const $ = (id) => document.getElementById(id); this.$ = $;
@@ -1599,6 +1724,18 @@ B.Game = function () {
     on('teamBox', '[data-team]', () => { Cr.leave(); if (Cr.paint().mode === 'team') Cr.setPaint({ mode: 'boat' }); this._paint(); this._repaint(); });
     on('gPaint', 'button', (b) => { if (b.dataset.v) Cr.setPaint({ mode: b.dataset.v }); else if (b.dataset.paint) Cr.setPaint({ [b.dataset.paint]: b.dataset.c, mode: 'custom' }); this._paint(); this._repaint(); });
     $('gPaint').addEventListener('change', (e) => { const k = e.target.dataset && e.target.dataset.paintc; if (k) { Cr.setPaint({ [k]: e.target.value, mode: 'custom' }); this._paint(); this._repaint(); } });
+    // multiplayer: two players here, or online
+    $('mpB1').addEventListener('change', (e) => { this.cfg.boat = e.target.value; save(); this._paint(); if (this.net) this.net.update(); });
+    $('mpB2').addEventListener('change', (e) => { this.cfg.boat2 = e.target.value; save(); });
+    $('btnSplit').addEventListener('click', () => this.start(null, { split: true, boat2: Cr.owned(this.cfg.boat2) ? this.cfg.boat2 : this.cfg.boat }));
+    $('mpName').value = store.get('netName', 'Player');
+    $('mpName').addEventListener('change', (e) => { const v = e.target.value.replace(/[<>&"]/g, '').trim().slice(0, 16) || 'Player'; e.target.value = v; store.set('netName', v); if (this.net) { this.net.name = v; this.net.update(); } });
+    const net = () => { if (!this.net) this.net = new B.Net(this); this.net.name = $('mpName').value.replace(/[<>&"]/g, '').trim().slice(0, 16) || 'Player'; return this.net; };
+    $('btnHost').addEventListener('click', () => { const n = net(); if (!n.role) n.host(); });
+    $('btnJoin').addEventListener('click', () => { const n = net(); if (!n.role) n.join($('mpCode').value); });
+    $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnJoin').click(); });
+    $('btnNetGo').addEventListener('click', () => this.net && this.net.startRace());
+    $('btnLeave').addEventListener('click', () => { if (this.net) { this.net.close(); this.net.say('You left the room.'); } });
     $('btnGo').addEventListener('click', () => this.start(null)); $('btnAgain').addEventListener('click', () => this.start(this.rc.event)); $('btnMenu').addEventListener('click', () => this.toMenu());
     $('btnPause').addEventListener('click', () => this.togglePause()); $('btnCam').addEventListener('click', () => { this.camMode = (this.camMode + 1) % 2; });
     $('btnQuit').addEventListener('click', () => { this.paused = false; this.toMenu(); });
@@ -1613,6 +1750,12 @@ B.Game = function () {
     $('wallet').textContent = fmt(Cr.credits());
     $('licLine').innerHTML = 'Racing licence: <b>' + rk.name + '</b>' + (rk.next ? ' &middot; ' + rk.pts + ' / ' + rk.nextPts + ' points to ' + rk.next : ' &middot; ' + rk.pts + ' points');
     $('tabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === this.tab)));
+    $('pMulti').hidden = this.tab !== 'multi';
+    const owned = Object.entries(B.TYPES).filter(([k]) => Cr.owned(k)), opts = (v) => owned.map(([k, T]) => `<option value="${k}"${k === v ? ' selected' : ''}>${esc(T.name)} (${kn(B.spec(k, Cr.levels(k)).top)} kn)</option>`).join('');
+    if (!Cr.owned(c.boat2)) c.boat2 = c.boat;
+    $('mpB1').innerHTML = opts(c.boat); $('mpB2').innerHTML = opts(c.boat2);
+    $('mpCourse').innerHTML = B.COURSES[c.course].name + ' &middot; ' + c.laps + ' laps';
+    this._paintNet();
     $('pRace').hidden = this.tab !== 'race'; $('pCareer').hidden = this.tab !== 'career'; $('pGarage').hidden = this.tab !== 'garage'; $('pTeam').hidden = this.tab !== 'team';
     // team: your team and perk, the team championship table, and every team to join
     const tm = Cr.team(), se = Cr.season(), chip = (c) => `<i class="chip" style="background:${c}"></i>`;
@@ -1661,11 +1804,34 @@ B.Game = function () {
     }
     $('gDetail').innerHTML = h;
   };
+  // the online part of the Multiplayer tab
+  P._paintNet = function () {
+    const $ = this.$, n = this.net, inRoom = !!(n && n.role && n.id);
+    $('mpIdle').hidden = !!(n && n.role); $('mpRoom').hidden = !inRoom;
+    if (inRoom) {
+      $('mpCodeShow').textContent = n.code;
+      $('mpPlayers').innerHTML = n.players.map((q, i) => `<div><i class="chip" style="background:${q.col[0]}"></i><b>${esc(q.name)}</b><span class="sub">${B.TYPES[q.boat].name}${i === 0 ? ' &middot; host' : ''}${q.id === n.id ? ' &middot; you' : ''}</span></div>`).join('');
+      $('btnNetGo').hidden = n.role !== 'host'; $('btnNetGo').disabled = n.players.length < 2;
+    }
+    $('mpStatus').textContent = n ? n.status : ''; $('mpStatus').className = 'sub' + (n && n.err ? ' err' : '');
+  };
+  P.remoteGone = function (id) { const X = (this.remotes || []).find((q) => q.id === id); if (X) { X.gone = true; if (this.mode !== 'menu') this.flash(X.name + ' left', 2); } };
   P.load = function () {
     const rc = this.rc;
     this.course = B.buildCourse(rc.course); this.world.build(this.course); this.spray = new B.Spray(this.world.root); this.trails = new B.Trails(this.world.root, B.seaTex(this.world.renderer).foam);
     this.player = new B.Boat(rc.boat, Cr.owned(rc.boat) ? Cr.levels(rc.boat) : null); this.pMesh = this.world.makeBoat(rc.boat, Cr.colsFor(rc.boat), 7, true);
-    const tm = Cr.team(), rivals = B.TEAMS.filter((T) => !tm || T.id !== tm.id).slice(0, 5);   // one driver from each of the other teams, in team colours
+    const tm = Cr.team(), rivals = rc.online ? [] : B.TEAMS.filter((T) => !tm || T.id !== tm.id).slice(0, rc.split ? 4 : 5);   // one driver from each of the other teams, in team colours
+    // player 2 on this computer (split screen), in their boat's colours, or a contrasting livery if both race the same boat in the same paint
+    this.p2 = null;
+    if (rc.split) {
+      const b2 = rc.boat2, c1 = Cr.colsFor(rc.boat), cols = B.TYPES[b2].col.slice(), col2 = cols[0] === c1[0] ? ['#2fd4c4', '#10161c'] : cols;
+      const P2 = this.p2 = { player: new B.Boat(b2, Cr.owned(b2) ? Cr.levels(b2) : null), type: b2, col: col2[0], mesh: this.world.makeBoat(b2, col2, 2, true), tr: null, msgT: 0, finished: false, penalty: 0, lap: 0 };
+      P2.flash = (t, secs, sub) => { P2.msgT = secs; this.$('msg2').innerHTML = t ? t + (sub ? '<small>' + sub + '</small>' : '') : ''; };
+      P2.tr = this.trails.add(B.TYPES[b2].beam * .5);
+    }
+    // the other online players: their boats, driven by what they send (see B.Net)
+    this.remotes = (rc.online ? rc.players : []).filter((q) => this.net && q.id !== this.net.id).map((q, k) => {
+      const bt = B.TYPES[q.boat] ? q.boat : 'rib', boat = new B.Boat(bt); return { id: q.id, name: q.name, col: q.col[0], boat, mesh: this.world.makeBoat(bt, q.col, 20 + k), tr: this.trails.add(B.TYPES[bt].beam * .5), st: null, at: 0 }; });
     this.ai = rivals.map((T, k) => ({ boat: new B.Boat(rc.boat), mesh: this.world.makeBoat(rc.boat, T.col, [11, 24, 3, 88, 41][k]), name: T.driver, team: T.name, col: T.col[0], s: 0, lap: 0, v: 0, o: 0, done: null, missed: 0 }));
     this.trP = this.trails.add(B.TYPES[rc.boat].beam * .5); this.ai.forEach((A) => { A.tr = this.trails.add(B.TYPES[rc.boat].beam * .5); });
     this.profile = this._profile(); this._mini = null; this._grid();
@@ -1680,19 +1846,27 @@ B.Game = function () {
   };
   P._grid = function () {
     const c = this.course, slot = (k) => { const q = B.at(c, -18 - Math.floor(k / 2) * 16), off = (k % 2 ? 1 : -1) * 9; return { x: q.x + q.rx * off, z: q.z + q.rz * off, h: q.h, s: -18 - Math.floor(k / 2) * 16, o: off }; };
-    const me = slot(4); this.player.reset(me.x, me.z, me.h);
-    [0, 1, 2, 3, 5].forEach((k, n) => { const A = this.ai[n], q = slot(k); A.s = q.s; A.o = q.o; A.v = 0; A.lap = 0; A.done = null; A.missed = 0; A.boat.reset(q.x, q.z, q.h); });
-    this.pIdx = null; this.nextGate = 1; this.lap = 0; this.lapStart = null; this.lastLap = null; this.bestLap = null; this.penalty = 0; this.finished = false;
+    const order = this.rc.online ? this.rc.players.map((q) => q.id) : null, mySlot = order ? Math.max(0, order.indexOf(this.net && this.net.id)) : 4;
+    const me = slot(mySlot); this.player.reset(me.x, me.z, me.h);
+    if (this.p2) { const q = slot(5); this.p2.player.reset(q.x, q.z, q.h); Object.assign(this.p2, { pIdx: null, prevI: null, nextGate: 1, lap: 0, lapStart: null, lastLap: null, bestLap: null, penalty: 0, finished: false, finishT: null }); }
+    for (const X of this.remotes) { const q = slot(Math.max(0, order.indexOf(X.id))); X.boat.reset(q.x, q.z, q.h); }
+    (this.p2 ? [0, 1, 2, 3] : [0, 1, 2, 3, 5]).forEach((k, n) => { const A = this.ai[n], q = slot(k); if (!A) return; A.s = q.s; A.o = q.o; A.v = 0; A.lap = 0; A.done = null; A.missed = 0; A.boat.reset(q.x, q.z, q.h); });
+    this.pIdx = null; this.prevI = null; this.nextGate = 1; this.lap = 0; this.lapStart = null; this.lastLap = null; this.bestLap = null; this.penalty = 0; this.finished = false;
   };
   // ev: a career event, or null for a quick race with the saved settings
-  P.start = function (ev) {
-    this.sound.init();
-    if (ev) { const boat = ev.allow.indexOf(this.cfg.boat) >= 0 && Cr.owned(this.cfg.boat) ? this.cfg.boat : ev.allow.filter((id) => Cr.owned(id)).pop(); if (!boat) return;
+  // opts: { split: true, boat2 } for two players on this computer; { online: true, course, laps, players } for an online race
+  P.start = function (ev, opts) {
+    this.sound.init(); this.raceId = (this.raceId || 0) + 1;
+    if (opts) this.rc = Object.assign({}, this.cfg, { event: null, multi: true, skill: .97 }, opts);
+    else if (ev) { const boat = ev.allow.indexOf(this.cfg.boat) >= 0 && Cr.owned(this.cfg.boat) ? this.cfg.boat : ev.allow.filter((id) => Cr.owned(id)).pop(); if (!boat) return;
       this.rc = { boat, course: ev.course, laps: ev.laps, skill: ev.skill, event: ev }; }
     else this.rc = Object.assign({}, this.cfg, { event: null });
     this.load(); this.award = null;
     this.$('menu').hidden = true; this.$('results').hidden = true; this.$('mainCard').hidden = false; this.$('hud').hidden = false; this.$('touch').hidden = !this.touch;
     this.preview = false; this.paused = false; this.mode = 'count'; this.countT = 3.6; this.clock = 0;
+    this.$('hud').classList.toggle('split', !!this.p2); this.$('msg2').innerHTML = ''; this._resize();
+    if (this.rc.split) { this.flash('Player 1: WASD', 2.4, 'C camera · R back on course'); this.p2.flash('Player 2: arrow keys', 2.4, 'Enter back on course'); }
+    if (this.rc.online) this.flash('Online race', 2.4, B.COURSES[this.rc.course].name + ' · ' + this.rc.laps + ' laps · ' + this.rc.players.length + ' players');
     if (ev) this.flash(ev.name, 2.4, B.COURSES[ev.course].name + ' · ' + ev.laps + ' laps');
     if (window.ErikaAccess) window.ErikaAccess.flew('Boats: ' + B.TYPES[this.rc.boat].name);
   };
@@ -1701,47 +1875,59 @@ B.Game = function () {
   P.flash = function (t, secs, sub) { this.msgT = secs; this.$('msg').innerHTML = t ? t + (sub ? '<small>' + sub + '</small>' : '') : ''; };
 
   // ------------------------------------------------ simulation
-  P._stepPlayer = function (dt, inp) {
-    const b = this.player, c = this.course, run = this.mode === 'run' && !this.finished;
+  // R: the racer (the game object for player 1, this.p2 for player 2): boat in R.player, progress and timing on R
+  P._stepPlayer = function (dt, inp, R) {
+    R = R || this; const b = R.player, c = this.course, run = this.mode === 'run' && !R.finished;
     let steer = inp.steer * (c.assist ? clamp(150 / Math.max(Math.abs(b.u), 1), .15, 1) : 1);   // gentler steering at very high speed on assisted courses
-    if (c.assist && Math.abs(steer) < .05 && this.pIdx != null && b.u > 2) {   // steering assist: steer for a point on the centre line ahead
-      const L0 = B.locate(c, b.x, b.z, this.pIdx), u = b.u, Ld = u * 1.2 + 60, q = c.P[(L0.i + Math.round(Ld / c.ds)) % c.N];
+    if (c.assist && Math.abs(steer) < .05 && R.pIdx != null && b.u > 2) {   // steering assist: steer for a point on the centre line ahead
+      const L0 = B.locate(c, b.x, b.z, R.pIdx), u = b.u, Ld = u * 1.2 + 60, q = c.P[(L0.i + Math.round(Ld / c.ds)) % c.N];
       let e = Math.atan2(q.z - b.z, q.x - b.x) - b.h; while (e > Math.PI) e -= 2 * Math.PI; while (e < -Math.PI) e += 2 * Math.PI;
       const T = b.T, rMax = Math.min(T.yawMax || 9, u / Math.max(T.turnR, u * u / T.lat) * clamp(u / 5, .25, 1));
       steer = clamp(2 * u * Math.sin(e) / Ld / rMax, -1, 1);
     }
-    b.step(dt, { thr: run ? inp.thr : 0, brk: run ? inp.brk : (this.finished ? .4 : 0), steer }, this.clock, c.calm);
+    b.step(dt, { thr: run ? inp.thr : 0, brk: run ? inp.brk : (R.finished ? .4 : 0), steer }, this.clock, c.calm);
     // islands: you run aground and stop hard
-    for (const I of c.islands) { const dx = b.x - I.x, dz = b.z - I.z, d = Math.hypot(dx, dz), R = I.r * 1.02 + 2; if (d < R) { b.x = I.x + dx / d * R; b.z = I.z + dz / d * R; b.u *= .3; b.v = 0; this.flash('Aground!', 1.2, 'R to get back on course'); } }
+    for (const I of c.islands) { const dx = b.x - I.x, dz = b.z - I.z, d = Math.hypot(dx, dz), R = I.r * 1.02 + 2; if (d < R) { b.x = I.x + dx / d * R; b.z = I.z + dz / d * R; b.u *= .3; b.v = 0; R.flash('Aground!', 1.2, 'R to get back on course'); } }
     // buoys: a knock and a slowdown
     for (const y of this.world.buoys) { const dx = b.x - y.x, dz = b.z - y.z, d = Math.hypot(dx, dz); if (d < y.rad && d > .01) { y.x -= dx / d * (y.rad - d); y.z -= dz / d * (y.rad - d); b.u *= Math.exp(-dt * 1.5); } }   // you shove the buoy aside
-    const L = B.locate(c, b.x, b.z, this.pIdx); this.pIdx = L.i; this.pS = L.i * c.ds;
+    const L = B.locate(c, b.x, b.z, R.pIdx); R.pIdx = L.i; R.pS = L.i * c.ds;
     // gates in order: crossing a gate line inside the buoys counts it; passing it outside is a miss (+5 s)
-    const gi = c.gates[this.nextGate % c.gates.length], prev = this.prevI;
+    const gi = c.gates[R.nextGate % c.gates.length], prev = R.prevI;
     if (prev != null && this.mode === 'run') {
       const crossed = (a, b2, g) => { const N = c.N, da = ((g - a) % N + N) % N, db = ((g - b2) % N + N) % N; return da < N / 2 && db >= N / 2 && Math.abs(da - db) > N / 2 - 10 || (da > 0 && da < 20 && db === 0); };
       if (crossed(prev, L.i, gi)) {
-        if (Math.abs(L.d) > c.laneW / 2 + 1) { this.penalty += 5; this.flash('Missed gate', 1.4, '+5 seconds'); }
-        if (this.nextGate % c.gates.length === 0) this._lapDone(); this.nextGate++;
+        if (Math.abs(L.d) > c.laneW / 2 + 1) { R.penalty += 5; R.flash('Missed gate', 1.4, '+5 seconds'); }
+        if (R.nextGate % c.gates.length === 0) this._lapDone(R); R.nextGate++;
       }
     }
-    this.prevI = L.i;
+    R.prevI = L.i;
   };
-  P._lapDone = function () {
-    const now = this.clock;
-    if (this.lapStart != null) { const t = now - this.lapStart; this.lastLap = t; if (this.bestLap == null || t < this.bestLap) this.bestLap = t;
-      const key = 'best.' + this.rc.course + '.' + this.rc.boat, old = store.get(key, null); if (old == null || t < old) { store.set(key, t); this.flash('Best lap', 1.8, fmtT(t)); } }
-    this.lap++; this.lapStart = now;
-    if (this.lap > this.rc.laps) this._finish(); else if (this.lap === this.rc.laps) this.flash('Final lap', 1.6); else if (this.lap > 1) this.flash('Lap ' + this.lap + ' / ' + this.rc.laps, 1.2);
+  P._lapDone = function (R) {
+    R = R || this; const now = this.clock;
+    if (R.lapStart != null) { const t = now - R.lapStart; R.lastLap = t; if (R.bestLap == null || t < R.bestLap) R.bestLap = t;
+      if (R === this && !this.rc.multi) { const key = 'best.' + this.rc.course + '.' + this.rc.boat, old = store.get(key, null); if (old == null || t < old) { store.set(key, t); R.flash('Best lap', 1.8, fmtT(t)); } } }
+    R.lap++; R.lapStart = now;
+    if (R.lap > this.rc.laps) this._finish(R); else if (R.lap === this.rc.laps) R.flash('Final lap', 1.6); else if (R.lap > 1) R.flash('Lap ' + R.lap + ' / ' + this.rc.laps, 1.2);
   };
-  P._finish = function () { if (this.finished) return; this.finished = true; this.finishT = this.clock + this.penalty; const pos = this.standings().findIndex((r) => r.me) + 1; this.award = B.Career.award(this.rc, pos);   // paid at the line, so quitting now keeps the prize
-    this.flash(pos === 1 ? 'Winner!' : 'P' + pos, 3, 'Chequered flag' + (this.penalty ? ' · ' + this.penalty + ' s penalty' : '') + ' · ' + B.fmtCr(this.award.credits + this.award.bonus)); setTimeout(() => this._results(), 4000); };
+  // the chequered flag for racer R. Career and quick races pay at the line (so quitting now keeps the prize); 2-player and online races
+  // are just for fun. With two players on one computer the results wait for both (or 40 s after the first)
+  P._finish = function (R) {
+    R = R || this; if (R.finished) return; R.finished = true; R.finishT = this.clock + R.penalty;
+    const pos = this.standings().findIndex((r) => r.racer === R) + 1, multi = this.rc.multi;
+    if (R === this && !multi) this.award = B.Career.award(this.rc, pos);
+    R.flash(pos === 1 ? 'Winner!' : 'P' + pos, 3, 'Chequered flag' + (R.penalty ? ' · ' + R.penalty + ' s penalty' : '') + (this.award && R === this ? ' · ' + B.fmtCr(this.award.credits + this.award.bonus) : ''));
+    if (this.net && R === this) this.net.sendState(true);
+    const both = !this.p2 || (this.finished && this.p2.finished), id = this.raceId;
+    if (both) setTimeout(() => { if (this.raceId === id) this._results(); }, 4000);
+    else if (R === this || R === this.p2) setTimeout(() => { if (this.raceId === id) this._results(); }, 40000);
+  };
   P._results = function () {
     if (this.mode !== 'run') return;   // already quit to the menu
     const rows = this.standings(), tb = this.$('resTable'); tb.innerHTML = '';
     const w = this.award, ev = this.rc.event, sum = this.$('resSum'); sum.innerHTML = '';
     const line = (cls, t) => { const d = document.createElement('div'); d.className = cls; d.textContent = t; sum.appendChild(d); };
-    line('', (ev ? ev.name : 'Quick race') + ' \u00B7 ' + B.COURSES[this.rc.course].name + ' \u00B7 ' + B.TYPES[this.rc.boat].name);
+    line('', (ev ? ev.name : this.rc.split ? '2-player race' : this.rc.online ? 'Online race' : 'Quick race') + ' \u00B7 ' + B.COURSES[this.rc.course].name + ' \u00B7 ' + B.TYPES[this.rc.boat].name);
+    if (this.rc.multi) line('big', rows[0].name + ' wins');
     if (w) {
       line('big', w.pos === 1 ? 'Winner' : 'Finished P' + w.pos);
       line('cr', 'Prize ' + B.fmtCr(w.credits) + (w.bonus ? ' + first-win bonus ' + B.fmtCr(w.bonus) : '') + ' \u00B7 +' + w.pts + ' licence points');
@@ -1750,13 +1936,15 @@ B.Game = function () {
       if (w.team && w.team.end) line('cr', 'Season ' + w.team.end.n + ' is over: ' + w.team.end.champ + ' are team champions' + (w.team.end.won ? '. That\'s your team! Title bonus ' + B.fmtCr(w.team.end.bonus) : '.'));
       line('', 'Credits: ' + B.fmtCr(B.Career.credits()));
     }
-    rows.forEach((r, i) => { const tr = document.createElement('tr'); if (r.me) tr.className = 'me'; [String(i + 1), r.team ? r.name + ' \u00B7 ' + r.team : r.name, r.time != null ? fmtT(r.time) : 'running'].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.appendChild(td); }); tb.appendChild(tr); });
+    rows.forEach((r, i) => { const tr = document.createElement('tr'); if (r.me || (r.racer && r.racer === this.p2)) tr.className = 'me'; [String(i + 1), r.team ? r.name + ' \u00B7 ' + r.team : r.name, r.time != null ? fmtT(r.time) : 'running'].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.appendChild(td); }); tb.appendChild(tr); });
     this.$('menu').hidden = false; this.$('mainCard').hidden = true; this.$('results').hidden = false; this.$('hud').hidden = true; this.mode = 'menu'; this.preview = true;
   };
   P.standings = function () {
-    const c = this.course, L = c.L, me = { name: 'You', me: true, team: Cr.team() ? B.TEAM[Cr.team().id].name : null, col: Cr.colsFor(this.rc.boat)[0], dist: (this.lap - 1) * L + (this.pS || 0), time: this.finished ? this.finishT : null };
-    if (this.lap === 0) me.dist = (this.pS || 0) - L;
-    const rows = [me].concat(this.ai.map((A) => ({ name: A.name, team: A.team, col: A.col, dist: A.lap * L + A.s, time: A.done })));
+    const c = this.course, L = c.L, mine = (R, name, col, team) => ({ name, me: R === this, racer: R, team, col, dist: R.lap === 0 ? (R.pS || 0) - L : (R.lap - 1) * L + (R.pS || 0), time: R.finished ? R.finishT : null });
+    const rows = [mine(this, this.rc.multi ? (this.p2 ? 'Player 1' : (this.net ? this.net.name : 'You')) : 'You', Cr.colsFor(this.rc.boat)[0], !this.rc.multi && Cr.team() ? B.TEAM[Cr.team().id].name : null)];
+    if (this.p2) rows.push(mine(this.p2, 'Player 2', this.p2.col, null));
+    for (const A of this.ai) rows.push({ name: A.name, team: A.team, col: A.col, dist: A.lap * L + A.s, time: A.done });
+    for (const X of this.remotes || []) if (!X.gone) rows.push({ name: X.name, col: X.col, dist: X.st ? (X.st.lap === 0 ? X.st.s - L : (X.st.lap - 1) * L + X.st.s) : -L, time: X.st && X.st.f != null ? X.st.f : null });
     rows.sort((a, b) => (a.time != null && b.time != null ? a.time - b.time : a.time != null ? -1 : b.time != null ? 1 : b.dist - a.dist));
     const lead = rows[0]; rows.forEach((r) => { r.gap = lead.dist - r.dist; }); return rows;
   };
@@ -1784,21 +1972,39 @@ B.Game = function () {
     // you bump rivals: push apart
     for (const A of this.ai) { const b = A.boat, dx = pl.x - b.x, dz = pl.z - b.z, d = Math.hypot(dx, dz), R = (pl.T.beam + b.T.beam) * .9; if (d < R && d > .01) { pl.x += dx / d * (R - d); pl.z += dz / d * (R - d); pl.u *= Math.exp(-dt * 2.5); A.v *= Math.exp(-dt * 1.2); A.o += (A.o >= B.locate(this.course, pl.x, pl.z, this.pIdx).d ? 1 : -1) * 8 * dt; } }
   };
-  P.resetToCourse = function () { const b = this.player, q = B.at(this.course, (this.pIdx || 0) * this.course.ds); b.reset(q.x, q.z, q.h); this.flash('Back on course', 1); };
+  // two boats touching: pushed apart, both lose a little speed
+  P._bump = function (a, b, dt) { const dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz), R = (a.T.beam + b.T.beam) * .9; if (d < R && d > .01) { const k = (R - d) / d / 2; a.x += dx * k; a.z += dz * k; b.x -= dx * k; b.z -= dz * k; a.u *= Math.exp(-dt * 2); b.u *= Math.exp(-dt * 2); } };
+  // online players: their boats follow what they last sent, carried forward by their speed (dead reckoning) and eased in
+  P._stepRemotes = function (dt) {
+    const now = performance.now(), k = Math.min(1, dt * 8);
+    for (const X of this.remotes) {
+      const st = X.st, b = X.boat; if (!st || X.gone) continue;
+      const age = Math.min(.6, (now - X.at) / 1000), tx = st.x + Math.cos(st.h) * st.v * age, tz = st.z + Math.sin(st.h) * st.v * age;
+      if (Math.hypot(tx - b.x, tz - b.z) > 40) { b.x = tx; b.z = tz; } else { b.x += (tx - b.x) * k; b.z += (tz - b.z) * k; }
+      let dh = st.h - b.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; b.h += dh * k;
+      b.y += (st.y - b.y) * k; b.pitch += (st.p - b.pitch) * k; b.roll += (st.r - b.roll) * k;
+      b.speed = b.u = st.v; b.thr = st.th; b.air = !!st.a; b.plane = clamp((st.v - 9) / 7, 0, 1); b.foilUp = b.T.foil ? clamp((st.v - b.T.foil) / 6, 0, 1) : 0; b.steer = st.st || 0;
+    }
+  };
+  P.resetToCourse = function (R) { R = R || this; const b = R.player, q = B.at(this.course, (R.pIdx || 0) * this.course.ds); b.reset(q.x, q.z, q.h); R.flash('Back on course', 1); };
 
   // ------------------------------------------------ frame
   P._loop = function (now) {
     requestAnimationFrame(this._loop);
     const dtF = Math.min(.05, (now - (this.last || now)) / 1000); this.last = now;
-    const inp = this.input.read();
+    const P2 = this.mode !== 'menu' ? this.p2 : null, inp = P2 ? this.input.read2() : this.input.read(), i1 = P2 ? inp.a : inp;
     if (inp.pause) this.togglePause(); if (inp.cam) this.camMode = (this.camMode + 1) % 2;
     const live = this.mode !== 'menu' && !this.paused;
     if (live) {
       if (inp.reset && this.mode === 'run') this.resetToCourse();
-      if (this.mode === 'count') { this.countT -= dtF; const n = Math.ceil(this.countT - .6); this.flash(n > 0 ? String(n) : 'Go!', .5); if (this.countT <= .6) { this.mode = 'run'; this.lapStart = null; this.lap = 0; this.nextGate = 0; } }
+      if (P2 && inp.reset2 && this.mode === 'run') this.resetToCourse(P2);
+      if (this.mode === 'count') { this.countT -= dtF; const n = Math.ceil(this.countT - .6); this.flash(n > 0 ? String(n) : 'Go!', .5); if (P2) P2.flash(n > 0 ? String(n) : 'Go!', .5);
+        if (this.countT <= .6) { this.mode = 'run'; this.lapStart = null; this.lap = 0; this.nextGate = 0; if (P2) Object.assign(P2, { lapStart: null, lap: 0, nextGate: 0 }); } }
       const n = Math.max(1, Math.round(dtF * 240)), dt = dtF / n;
-      for (let k = 0; k < n; k++) { this.clock += dt; this._stepPlayer(dt, inp); this._stepAI(dt); }
+      for (let k = 0; k < n; k++) { this.clock += dt; this._stepPlayer(dt, i1); if (P2) { this._stepPlayer(dt, inp.b, P2); this._bump(this.player, P2.player, dt); } this._stepAI(dt); }
+      if (this.remotes && this.remotes.length) this._stepRemotes(dtF);
     } else this.clock += dtF;
+    if (this.net) this.net.tick(dtF);
     if (live) this._fx(dtF);
     this.spray.update(dtF); this.trails.update(this.clock);
     this._render(dtF); this._hud(dtF);
@@ -1807,7 +2013,7 @@ B.Game = function () {
   };
   // wakes and spray, once per frame: a foam trail from every transom, sheets of spray off the chines, rooster tails from the props
   P._fx = function (dt) {
-    const t = this.clock, sp = this.spray, R = Math.random, boats = [[this.player, this.trP, 1]].concat(this.ai.map((A) => [A.boat, A.tr, .6]));
+    const t = this.clock, sp = this.spray, R = Math.random, boats = [[this.player, this.trP, 1]].concat(this.p2 ? [[this.p2.player, this.p2.tr, 1]] : [], this.ai.map((A) => [A.boat, A.tr, .6]), (this.remotes || []).filter((X) => !X.gone).map((X) => [X.boat, X.tr, .8]));
     for (const [b, tr, q] of boats) {
       const T = b.T, f = [Math.cos(b.h), Math.sin(b.h)], s = [-f[1], f[0]], v = Math.min(b.speed, 130);
       if (v > 1.5) this.trails.push(tr, b.x - f[0] * T.len * .48, b.z - f[1] * T.len * .48, b.h, t, v, b.air);
@@ -1819,7 +2025,7 @@ B.Game = function () {
         for (const sd of [-1, 1]) { const out = 2 + v * .09 + R() * 2, along = T.len * (.15 - R() * .2);
           sp.emit(b.x + f[0] * along + s[0] * sd * T.beam * .5, b.y + .2, b.z + f[1] * along + s[1] * sd * T.beam * .5, vx * .5 + s[0] * sd * out, 1.5 + v * .05 + R() * 1.5, vz * .5 + s[1] * sd * out, .6 + v * .012, .8 + R() * .5, .5); }
       }
-      if (q === 1) this._bowSpray(b, dt);
+      if (q === 1) this._bowSpray(b, dt, b === this.player);
       const rt = T.model === 'hydro' ? 1 : T.model === 'tunnel' ? .65 : T.model === 'jet' || T.model === 'pwc' ? .8 : T.model === 'airboat' ? .1 : T.model === 'hover' ? .03 : T.model === 'pontoon' ? .12 : T.model === 'jon' ? .25 : T.foil ? .3 * (1 - b.foilUp) + .05 : .35;
       if (v > 10) for (let m = rt * v * .9 * dt * q; m > 0; m--) {
         if (m < 1 && R() > m) break;
@@ -1831,7 +2037,7 @@ B.Game = function () {
   // the player's bow spray: two thin sheets of droplets peeling off where the bow meets the water (well forward when the hull ploughs,
   // further aft once it planes), flung out and up and left behind; and a burst that blows back over the bow when it slams into a
   // wave or lands, which also throws drops on the windscreen when you are on board
-  P._bowSpray = function (b, dt) {
+  P._bowSpray = function (b, dt, mine) {
     const T = b.T, sp = this.spray, R = Math.random, v = Math.min(b.speed, 90), f = [Math.cos(b.h), Math.sin(b.h)], s = [-f[1], f[0]];
     if (b.air || v < 2.5 || T.model === 'hover') return;
     const lift = 1 - b.foilUp * .9, bx = T.len * (.42 - .22 * b.plane), catHull = T.model === 'cat' || T.model === 'tunnel' || T.model === 'hydro' || T.model === 'pontoon';
@@ -1847,12 +2053,12 @@ B.Game = function () {
     // slamming into a wave (the bow climbs fast) or landing from a jump: a burst of heavy spray over the bow
     const slam = Math.max(b.vy - 1.2, 0) * (b.speed > 8 ? 1 : 0) * dt * 6 + (b.landing > 1.5 ? b.landing * .4 : 0);
     if (slam > .02 && lift > .5) {
-      const k = Math.min(70, Math.round(slam * 60)); this._slam = (this._slam || 0) + slam;
+      const k = Math.min(70, Math.round(slam * 60)); if (mine) this._slam = (this._slam || 0) + slam;
       for (let i = 0; i < k; i++) { const along = T.len * (.35 + R() * .12), sd = R() < .5 ? -1 : 1, w = wAt(.8) * R();
         sp.emit(b.x + f[0] * along + s[0] * sd * w, b.y + .3, b.z + f[1] * along + s[1] * sd * w, f[0] * v * (.82 + R() * .12) + s[0] * sd * (1 + R() * 3), 2 + R() * (3 + v * .12), f[1] * v * (.82 + R() * .12) + s[1] * sd * (1 + R() * 3), .15 + R() * .35, .6 + R() * .6, .6); }
     }
     // a fine mist of drops on the windscreen at speed in a sea, plus the slams
-    this._wet = (this._wet || 0) + dt * Math.max(0, v - 12) * .02 * (T.ride || 1) * (this.course.calm || 1) + (this._slam || 0) * 6; this._slam = 0;
+    if (mine) this._wet = (this._wet || 0) + dt * Math.max(0, v - 12) * .02 * (T.ride || 1) * (this.course.calm || 1) + (this._slam || 0) * 6; this._slam = 0;
   };
   // water drops on the windscreen or visor (on-board camera only): they land where the spray hits, run down and back in the airflow,
   // join into streaks and dry off
@@ -1875,52 +2081,69 @@ B.Game = function () {
     }
   };
   P._place = function (mesh, b) { mesh.position.set(b.x, b.y, b.z); mesh.rotation.set(0, 0, 0); mesh.rotation.order = 'YZX'; mesh.rotation.y = -b.h; mesh.rotation.z = b.pitch; mesh.rotation.x = b.roll; };
-  P._render = function (dt) {
-    const W = this.world, b = this.player, cam = W.cam, c = this.course;
-    this._place(this.pMesh, b); this.ai.forEach((A) => this._place(A.mesh, A.boat));
-    for (const [m, o] of [[this.pMesh, b]].concat(this.ai.map((A) => [A.mesh, A.boat]))) {
-      if (m.userData.fan) m.userData.fan.rotation.x += (6 + 40 * o.thr) * dt;   // airboat propellers
-      (m.userData.sheets || (m.userData.sheets = new B.BowSheets(m, B.seaTex(this.world.renderer).foam))).update(o, this.clock);
-    }
-    W.buoys.forEach((y) => { const k = Math.min(1, dt * .4); y.x += (y.x0 - y.x) * k; y.z += (y.z0 - y.z) * k; y.g.position.x = y.x; y.g.position.z = y.z; y.g.position.y = B.waveAt(y.x, y.z, this.clock, c.calm) - .4; y.g.rotation.z = Math.sin(this.clock * 1.3 + y.x) * .08; });
-    W.waterMat.uniforms.t.value = this.clock;
+  // a camera for one racer: the chase view or the driver's eyes. st holds that view's smoothing (the game object for player 1)
+  P._camera = function (cam, b, m, st, dt, onb) {
     const f = [Math.cos(b.h), Math.sin(b.h)];
-    if (this.preview) { const a = this.clock * .12; cam.position.set(b.x + Math.cos(a) * 26, 7, b.z + Math.sin(a) * 26); cam.lookAt(b.x, 1.5, b.z); cam.fov = 50; }
-    else if (this.camMode === 0) {   // chase
+    if (!onb) {   // chase
       const back = b.T.len * 1.6 + 6 + b.speed * .06, tx = b.x - f[0] * back, tz = b.z - f[1] * back;
-      this._cp = this._cp || { x: tx, z: tz, y: 5 }; const k = 1 - Math.exp(-dt * (5 + Math.max(0, b.speed - 120) * .1)); this._cp.x += (tx - this._cp.x) * k; this._cp.z += (tz - this._cp.z) * k; this._cp.y += (Math.max(b.y, 0) + 4.6 - this._cp.y) * k;
-      cam.position.set(this._cp.x, this._cp.y, this._cp.z); cam.lookAt(b.x + f[0] * 10, b.y + 1.2, b.z + f[1] * 10); cam.fov = 62 + Math.min(12, b.speed * .15);
+      st._cp = st._cp || { x: tx, z: tz, y: 5 }; const k = 1 - Math.exp(-dt * (5 + Math.max(0, b.speed - 120) * .1)); st._cp.x += (tx - st._cp.x) * k; st._cp.z += (tz - st._cp.z) * k; st._cp.y += (Math.max(b.y, 0) + 4.6 - st._cp.y) * k;
+      cam.position.set(st._cp.x, st._cp.y, st._cp.z); cam.lookAt(b.x + f[0] * 10, b.y + 1.2, b.z + f[1] * 10); cam.fov = 62 + Math.min(12, b.speed * .15);
     } else {   // on board: through the driver's eyes, moving with the hull. The head keeps the horizon a little steadier than the
       // boat, looks into the turn, and shakes with speed and hard landings
-      const m = this.pMesh, eye = m.userData.eye, Q = B._q || (B._q = { a: new THREE.Quaternion(), l: new THREE.Quaternion(), t: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, 'YXZ'), y: new THREE.Vector3(0, 1, 0) });
+      const eye = m.userData.eye, Q = B._q || (B._q = { a: new THREE.Quaternion(), l: new THREE.Quaternion(), t: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, 'YXZ'), y: new THREE.Vector3(0, 1, 0) });
       m.updateMatrixWorld(true); eye.getWorldPosition(cam.position);
       Q.l.setFromAxisAngle(Q.y, -b.h); Q.a.copy(Q.l).slerp(m.quaternion, .7);
-      this._jolt = Math.max((this._jolt || 0) * Math.exp(-dt * 4), b.landing > 1 ? Math.min(1, b.landing / 6) : 0);
-      const t = this.clock, sh = Math.min(1, b.speed / 45) * .0035 + this._jolt * .03 + (b.air ? 0 : Math.min(.01, Math.abs(b.vy) * .002));
-      this._look = (this._look || 0) + (clamp(b.r * .35, -.3, .3) - (this._look || 0)) * Math.min(1, dt * 3);
-      Q.e.set(-.03 + ((m.userData.ck || {}).pitch || 0) + Math.sin(t * 31) * Math.sin(t * 7.3) * sh, -Math.PI / 2 - this._look + Math.sin(t * 23.1) * sh * .5, Math.sin(t * 17.7) * sh * .6);
+      st._jolt = Math.max((st._jolt || 0) * Math.exp(-dt * 4), b.landing > 1 ? Math.min(1, b.landing / 6) : 0);
+      const t = this.clock, sh = Math.min(1, b.speed / 45) * .0035 + st._jolt * .03 + (b.air ? 0 : Math.min(.01, Math.abs(b.vy) * .002));
+      st._look = (st._look || 0) + (clamp(b.r * .35, -.3, .3) - (st._look || 0)) * Math.min(1, dt * 3);
+      Q.e.set(-.03 + ((m.userData.ck || {}).pitch || 0) + Math.sin(t * 31) * Math.sin(t * 7.3) * sh, -Math.PI / 2 - st._look + Math.sin(t * 23.1) * sh * .5, Math.sin(t * 17.7) * sh * .6);
       cam.quaternion.copy(Q.a).multiply(Q.t.setFromEuler(Q.e)); cam.fov = 75;
       const D = m.userData.dash; if (D && (D.t -= dt) <= 0) { D.t = .08; B.drawDash(D, b); }
       if (m.userData.wheel) m.userData.wheel.rotation.x = -b.steer * 1.6;
       if (m.userData.throttle) m.userData.throttle.rotation.z = -.5 + b.thr * 1.0;
     }
-    b.landing = 0;   // a landing is seen by the spray and the camera once
-    const onb = this.camMode === 1 && !this.preview; cam.near = onb ? .05 : .3; this.spray.mat.uniforms.nf.value = onb ? .35 : 2;
-    this._drops(dt, onb && this.mode !== 'menu');
-    if (this.pMesh.userData.me) for (const o of this.pMesh.userData.me) o.visible = !onb;
+  };
+  P._render = function (dt) {
+    const W = this.world, b = this.player, cam = W.cam, c = this.course, R = W.renderer, P2 = this.p2;
+    const fleet = [[this.pMesh, b]].concat(P2 ? [[P2.mesh, P2.player]] : [], this.ai.map((A) => [A.mesh, A.boat]), (this.remotes || []).map((X) => [X.mesh, X.boat, X]));
+    for (const [m, o, X] of fleet) {
+      this._place(m, o); if (X) m.visible = !X.gone;
+      if (m.userData.fan) m.userData.fan.rotation.x += (6 + 40 * o.thr) * dt;   // airboat propellers
+      (m.userData.sheets || (m.userData.sheets = new B.BowSheets(m, B.seaTex(this.world.renderer).foam))).update(o, this.clock);
+    }
+    W.buoys.forEach((y) => { const k = Math.min(1, dt * .4); y.x += (y.x0 - y.x) * k; y.z += (y.z0 - y.z) * k; y.g.position.x = y.x; y.g.position.z = y.z; y.g.position.y = B.waveAt(y.x, y.z, this.clock, c.calm) - .4; y.g.rotation.z = Math.sin(this.clock * 1.3 + y.x) * .08; });
+    W.waterMat.uniforms.t.value = this.clock;
+    // one view, or two side by side (player 1 left, player 2 right) when two play on this computer
+    const onb = this.camMode === 1 && !this.preview, sz = R.getSize(B._v2 || (B._v2 = new THREE.Vector2()));
+    const views = P2 && !this.preview && this.mode !== 'menu' ? [[this, this.pMesh, 0], [P2, P2.mesh, 1]] : [[this, this.pMesh, -1]];
+    R.setScissorTest(views.length > 1);
+    for (const [st, m, half] of views) {
+      const w = half < 0 ? sz.x : sz.x / 2, x0 = half > 0 ? sz.x / 2 : 0, pb = st.player;
+      cam.aspect = w / sz.y;
+      if (this.preview) { const a = this.clock * .12; cam.position.set(b.x + Math.cos(a) * 26, 7, b.z + Math.sin(a) * 26); cam.lookAt(b.x, 1.5, b.z); cam.fov = 50; }
+      else this._camera(cam, pb, m, st, dt, onb);
+      for (const [mm] of fleet) if (mm.userData.me && (mm === this.pMesh || (P2 && mm === P2.mesh))) for (const o of mm.userData.me) o.visible = !(onb && mm === m);
+      cam.near = onb ? .05 : .3; cam.updateProjectionMatrix(); this.spray.mat.uniforms.nf.value = onb ? .35 : 2;
+      // the water grid is centred under the camera; spray sizes are in metres
+      W.waterMat.uniforms.camXZ.value.set(cam.position.x, cam.position.z);
+      this.spray.mat.uniforms.sc.value = sz.y * R.getPixelRatio() / (2 * Math.tan(cam.fov * Math.PI / 360));
+      W.skyMesh.position.copy(cam.position); W.sun.target.position.set(pb.x, 0, pb.z);
+      R.setViewport(x0, 0, w, sz.y); R.setScissor(x0, 0, w, sz.y); R.render(W.scene, cam);
+    }
+    R.setScissorTest(false); R.setViewport(0, 0, sz.x, sz.y); cam.aspect = sz.x / sz.y;
+    b.landing = 0; if (P2) P2.player.landing = 0;   // a landing is seen by the spray and the camera once
+    this._drops(dt, onb && this.mode !== 'menu' && !(P2 && views.length > 1));
     if (this._onb !== onb) { this._onb = onb; this.$('dash').style.visibility = onb && this.pMesh.userData.dash ? 'hidden' : ''; }   // the boat's own dashboard shows the speed on board
-    cam.updateProjectionMatrix();
-    // the water grid is centred under the camera; spray sizes are in metres
-    W.waterMat.uniforms.camXZ.value.set(cam.position.x, cam.position.z);
-    this.spray.mat.uniforms.sc.value = W.renderer.domElement.height / (2 * Math.tan(cam.fov * Math.PI / 360));
-    W.skyMesh.position.copy(cam.position);
-    W.sun.target.position.set(b.x, 0, b.z);
-    W.renderer.render(W.scene, cam);
   };
   P._hud = function (dt) {
     if (this.mode === 'menu') return;
     const $ = this.$, b = this.player, c = this.course;
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) $('msg').innerHTML = ''; }
+    if (this.p2) {   // a box for each player at the bottom of their half
+      if (this.p2.msgT > 0) { this.p2.msgT -= dt; if (this.p2.msgT <= 0) $('msg2').innerHTML = ''; }
+      this._pvT = (this._pvT || 0) - dt;
+      if (this._pvT <= 0) { this._pvT = .1; const rows = this.standings(); $('pv1').innerHTML = this._pv(this, 'Player 1 · WASD', rows); $('pv2').innerHTML = this._pv(this.p2, 'Player 2 · arrows', rows); }
+    }
     $('kn').textContent = Math.round(b.speed * 1.944); $('kmh').textContent = Math.round(b.speed * 3.6); $('thrFill').style.height = (b.thr * 100) + '%';
     $('tLap').textContent = 'LAP ' + clamp(this.lap, 1, this.rc.laps) + ' / ' + this.rc.laps;
     $('tCur').textContent = this.lapStart != null ? fmtT(this.clock - this.lapStart) : this.mode === 'count' ? 'START' : 'TO THE LINE';
@@ -1932,6 +2155,13 @@ B.Game = function () {
     this._twT = (this._twT || 0) - dt;
     if (this._twT <= 0) { this._twT = .3; const rows = this.standings(), tw = $('tower'); tw.innerHTML = '<div class="hd">Race</div>' + rows.map((r, i) => `<div class="row${r.me ? ' me' : ''}"><span>${i + 1}</span><i style="background:${r.col}"></i><span>${r.name}</span><span class="g">${i ? '+' + Math.round(r.gap) + ' m' : ''}</span></div>`).join(''); }
     this._map();
+  };
+  P._pv = function (R, who, rows) {
+    const c = this.course, b = R.player, g = c.P[c.gates[R.nextGate % c.gates.length]], ang = Math.atan2(g.z - b.z, g.x - b.x) - b.h, pos = rows.findIndex((r) => r.racer === R) + 1;
+    const gt = R.nextGate % c.gates.length === 0 ? (R.lap === 0 ? 'START LINE' : 'FINISH') : 'GATE ' + (R.nextGate % c.gates.length) + ' / ' + (c.gates.length - 1);
+    return `<div class="who">${who}</div><div class="big">${Math.round(b.speed * 1.944)}<small>kn</small></div>`
+      + `<div class="sub">${R.finished ? 'Finished P' + pos + ' · ' + fmtT(R.finishT) : 'Lap ' + clamp(R.lap, 1, this.rc.laps) + ' / ' + this.rc.laps + ' · P' + pos + ' of ' + rows.length}</div>`
+      + `<div class="sub"><span class="arw" style="transform:rotate(${ang * 180 / Math.PI + 90}deg)">▲</span>${gt} · ${Math.round(Math.hypot(g.x - b.x, g.z - b.z))} m${R.penalty ? ' · +' + R.penalty + ' s' : ''}</div>`;
   };
   P._map = function () {
     const cv = this.$('mini'), x = cv.getContext('2d'), c = this.course, S = cv.width;
@@ -1946,7 +2176,8 @@ B.Game = function () {
     x.clearRect(0, 0, S, S); x.drawImage(this._mini, 0, 0);
     const dot = (px, pz, col, r) => { const q = this._mm(px, pz); x.fillStyle = col; x.beginPath(); x.arc(q[0], q[1], r, 0, 7); x.fill(); };
     const g = c.P[c.gates[this.nextGate % c.gates.length]]; dot(g.x, g.z, '#ffb52e', 7);
-    this.ai.forEach((A) => dot(A.boat.x, A.boat.z, A.col, 7)); dot(this.player.x, this.player.z, '#2fd4c4', 10);
+    this.ai.forEach((A) => dot(A.boat.x, A.boat.z, A.col, 7)); for (const X of this.remotes || []) if (!X.gone) dot(X.boat.x, X.boat.z, X.col, 8);
+    if (this.p2) dot(this.p2.player.x, this.p2.player.z, '#ffb52e', 10); dot(this.player.x, this.player.z, '#2fd4c4', 10);
   };
 })();
 
