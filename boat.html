@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Erika Boats</title>
-<meta name="description" content="Powerboat racing round buoy courses: thirty-two boats, fourteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
+<meta name="description" content="Powerboat racing round buoy courses: forty boats, fourteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -322,7 +322,8 @@ B.at = function (c, s) { const N = c.N, f = ((s / c.ds) % N + N) % N, i = Math.f
 // leans into turns), airProp (an air propeller: still pushes when airborne), foil (speed in m/s where it lifts onto hydrofoils),
 // brk (hardest braking, m/s2; default: power-limited), yawMax (fastest turn, rad/s),
 // fun (quick races in it pay no credits or licence points),
-// silent (no engine sound), noAssist (no steering assist on assisted courses).
+// patrol-style boats: inboard (no outboards), light (light bar colour, null for none), monitors (fireboat water cannons);
+// dinghy (the rib as a tiller dinghy); silent (no engine sound), noAssist (no steering assist on assisted courses).
 B.TYPES = {
   rib: { name: 'Race RIB', cls: 'Club', model: 'rib', price: 0, rank: 0, blurb: 'Rigid inflatable, 2 x 300 hp: forgiving and turns on a coin', mass: 1700, power: .45e6, top: 44, acc: 4.8, lat: 26, turnR: 15, grip: 2.4, slide: .3, len: 7.5, beam: 2.6, col: ['#22262b', '#ff8a1a'], hum: 92 },
   pwc: { name: 'Race Jet Ski', cls: 'Club', model: 'pwc', price: 900, rank: 0, blurb: 'A 310 hp racing jet ski ridden standing: turns inside anything and bucks over every wave', mass: 420, power: .23e6, top: 36, acc: 7.2, lat: 34, turnR: 6, grip: 3.0, slide: .45, len: 3.4, beam: 1.2, col: ['#1fbf5f', '#10161c'], hum: 135, hump: .5, ride: 1.1, bank: 1.6 },
@@ -354,6 +355,14 @@ B.TYPES = {
   cc: { name: 'Centre Console 33', cls: 'Regional', model: 'cc', price: 4800, rank: 1, blurb: 'A 10 m sport-fishing centre console with three 350 hp outboards and a T-top: 60 knots to the fishing grounds', mass: 5600, power: .78e6, top: 30.5, acc: 4.3, lat: 21, turnR: 24, grip: 2.1, slide: .4, len: 10, beam: 3.1, col: ['#e9eef2', '#0f6a8a'], hum: 68, ride: .75 },
   patrol: { name: 'Patrol Interceptor', cls: 'International', model: 'cruiser', patrol: true, price: 12000, rank: 3, blurb: 'A 13 m patrol boat with a closed wheelhouse and three 600 hp outboards: 52 knots in any sea', mass: 10500, power: 1.35e6, top: 27, acc: 3.2, lat: 16, turnR: 34, grip: 2.1, slide: .38, len: 13, beam: 3.6, col: ['#3d4650', '#ff7a1a'], hum: 54, ride: .6, bank: .7 },
   topfuel: { name: 'Top Fuel Drag Hydro', cls: 'World Series', model: 'hydro', blower: true, price: 50000, rank: 6, blurb: 'A supercharged 8,000 hp V8 on nitromethane, on a three-point hull: 200 knots in seconds, and it hates corners', mass: 1200, power: 6e6, top: 103, acc: 13, lat: 20, turnR: 70, grip: 1.0, slide: .95, len: 7.6, beam: 3.2, col: ['#10161c', '#ffd400'], hum: 95 },
+  dinghy: { name: 'Inflatable Dinghy', cls: 'Club', model: 'rib', dinghy: true, price: 250, rank: 0, blurb: 'A 3.6 m inflatable tender with a 25 hp tiller outboard: you sit on the tube at the back and steer with the tiller', mass: 200, power: .0186e6, top: 12, acc: 3.5, lat: 14, turnR: 6, grip: 1.8, slide: .5, len: 3.6, beam: 1.7, col: ['#5a646c', '#ff6a1a'], hum: 172, hump: .4, ride: 1.3 },
+  aquarama: { name: 'Classic Twin-Cockpit Cruiser', cls: 'Club', model: 'runabout', price: 2600, rank: 1, blurb: 'An 8.8 m varnished mahogany classic with twin 350 hp V8s and two cockpits: 45 knots of pure elegance', mass: 2900, power: .52e6, top: 23.5, acc: 3.6, lat: 19, turnR: 20, grip: 2.2, slide: .35, len: 8.8, beam: 2.7, col: ['#f2ead2', '#1d2a5a'], hum: 55, ride: .85 },
+  rescuehover: { name: 'Rescue Hovercraft', cls: 'Regional', model: 'hover', airProp: true, price: 2400, rank: 1, blurb: 'An 8 m rescue hovercraft with a big ducted fan: crosses water, mud and ice, and slides through every turn', mass: 2600, power: .45e6, top: 22, acc: 3.6, lat: 10, turnR: 14, grip: .55, slide: 1.3, len: 8, beam: 4, col: ['#ff7a1a', '#1d2a3a'], hum: 110, hump: .15, ride: .4 },
+  lobster: { name: 'Downeast Lobster Yacht', cls: 'Regional', model: 'cruiser', patrol: true, inboard: true, light: null, price: 4200, rank: 2, blurb: 'A 12.5 m Maine-built lobster yacht with a 1,000 hp diesel: a salty wheelhouse, a sea-kindly hull and 35 knots', mass: 9000, power: .75e6, top: 18, acc: 3.0, hump: .8, lat: 12, turnR: 30, grip: 2.0, slide: .35, len: 12.5, beam: 4.0, col: ['#1f5a3a', '#f4f4f2'], hum: 48, ride: .55, bank: .6 },
+  fireboat: { name: 'Fireboat', cls: 'Regional', model: 'cruiser', patrol: true, inboard: true, monitors: true, light: 0xff2a2a, price: 5500, rank: 2, blurb: 'A 14 m harbour fireboat with two roof water cannons that never stop spraying: heavy, slow and spectacular', mass: 12000, power: 1.2e6, top: 17.5, acc: 3.0, hump: .8, lat: 12, turnR: 32, grip: 2.0, slide: .35, len: 14, beam: 4.4, col: ['#c62828', '#f4f4f2'], hum: 46, ride: .5, bank: .5 },
+  pilot: { name: 'Pilot Boat', cls: 'Regional', model: 'cruiser', patrol: true, inboard: true, light: 0xffb02e, price: 6500, rank: 2, blurb: 'A 15 m harbour pilot cutter with twin 1,000 hp diesels: built to run out to ships at 30 knots in any weather', mass: 14000, power: 1.6e6, top: 15.5, acc: 3.0, hump: .8, lat: 12, turnR: 34, grip: 2.1, slide: .35, len: 15, beam: 4.6, col: ['#10161c', '#ff7a1a'], hum: 44, ride: .45, bank: .5 },
+  racingairboat: { name: 'Racing Airboat', cls: 'National', model: 'airboat', airProp: true, price: 6800, rank: 2, blurb: 'A stripped-out racing airboat with a 600 hp V8 and a carbon propeller: 65 knots and sideways everywhere', mass: 900, power: .45e6, top: 34, acc: 6.5, lat: 17, turnR: 12, grip: .85, slide: 1.1, len: 5.8, beam: 2.4, col: ['#2b3035', '#ffd400'], hum: 80, hump: .3, ride: 1.1 },
+  sportcat: { name: 'Sport Cat 32', cls: 'National', model: 'cat', price: 9500, rank: 3, blurb: 'A 9.5 m sport catamaran with twin 450 hp outboards: 80 knots on a cushion of air between its sponsons', mass: 2600, power: .6e6, top: 41, acc: 5.4, lat: 24, turnR: 28, grip: 1.7, slide: .45, len: 9.5, beam: 2.8, col: ['#f4f4f2', '#2bb673'], hum: 70 },
   erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Quick races in it pay no prizes; the Erika 2000 Grand Finale does', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, silent: true, noAssist: true, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
@@ -1183,9 +1192,14 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
       add(new THREE.BoxGeometry(wl + .3, .1, Bm * .84), hullM, (x0 + x1) / 2, hy + 1.72, 0);
       rod([x0 + .6, hy + 1.75, 0], [x0 + .4, hy + 3.0, 0], .05, metal); add(new THREE.BoxGeometry(.12, .06, 1.4), metal, x0 + .45, hy + 2.7, 0);   // mast and yard
       const rad = add(new THREE.BoxGeometry(.14, .08, 1.2), dark, x0 + .4, hy + 3.05, 0); g.userData.radar = rad;
-      add(new THREE.BoxGeometry(.25, .1, 1.1), M(0x2a6cff, { emissive: 0x1a3cff, emissiveIntensity: .8 }), x1 - .3, hy + 1.82, 0);   // light bar
-      for (const sd of [-1, 1]) outboard(-L / 2, sd * .9, 1.25);
-      outboard(-L / 2, 0, 1.25);
+      const lc = T.light === undefined ? 0x2a6cff : T.light;
+      if (lc != null) add(new THREE.BoxGeometry(.25, .1, 1.1), M(lc, { emissive: lc, emissiveIntensity: .8 }), x1 - .3, hy + 1.82, 0);   // light bar
+      if (T.monitors) for (const sd of [-1, 1]) {   // fire monitors on the wheelhouse roof (they spray: see _fx)
+        add(new THREE.CylinderGeometry(.12, .16, .35, 12), M(0xd8d8d0, { metalness: .6, roughness: .3 }), x0 + 1.2, hy + 1.95, sd * .7);
+        const nz = add(new THREE.CylinderGeometry(.05, .09, .6, 10), M(0xc9a227, { metalness: .8, roughness: .3 }), x0 + 1.45, hy + 2.2, sd * .7); nz.rotation.z = -1.0;
+      }
+      if (T.inboard) for (const sd of [-1, 1]) { add(new THREE.BoxGeometry(.5, .5, .06), dark, -L / 2 + .3, -.5, sd * .7); const pr = add(new THREE.CylinderGeometry(.35, .35, .06, 4), metal, -L / 2 + .7, -.55, sd * .7); pr.rotation.z = Math.PI / 2; }   // rudders and props
+      else { for (const sd of [-1, 1]) outboard(-L / 2, sd * .9, 1.25); outboard(-L / 2, 0, 1.25); }
       rails(L * .12, L * .45, .5);
       add(new THREE.BoxGeometry(.6, .5, .9), hullM, x1 - .45, hy + .7, Bm * .2);                                        // helm console inside
       numbers(L * .3, dy(L * .3) - .3, ew(L * .3) + .03, .7);
@@ -1221,6 +1235,13 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
     for (let i = R.length - 2; i >= 0; i--) pts.push(new THREE.Vector3(R[i][6][0], R[i][6][1] + .08, R[i][6][2] + .2));
     const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, .3, 12, false), M(ac.clone().lerp(new THREE.Color(0x30353b), .35), { roughness: .75 })); body.add(tube);
     for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.3, 12, 10), tube.material, pts[0].x, pts[0].y, sd * Math.abs(pts[0].z));
+    if (T.dinghy) {   // tender: thwart seat, oars stowed along the tubes, one small tiller outboard and you on the tube at the back
+      add(new THREE.BoxGeometry(.3, .05, Bm * .7), M(0x9a6a3c, { roughness: .7 }), L * .05, .75, 0);
+      for (const sd of [-1, 1]) rod([-L * .3, .95, sd * (Bm * .39 - .05)], [L * .3, .95, sd * (Bm * .39 - .05)], .025, M(0xb89a6a, { roughness: .6 }));
+      outboard(-L / 2 + .02, 0, .55); rod([-L / 2 - .15, .85, 0], [-L / 2 + .55, .8, .25], .025, dark);
+      numbers(L * .25, .9, edge(h, L * .25)[2] + .28, .4);
+      driver(-L * .3, 1.15, .35); g.userData.ck = { kind: 'none' };
+    } else {
     add(new THREE.BoxGeometry(.9, .8, .95), M(0xe9ecef, { roughness: .3 }), .5, .95, 0);                          // console
     const ws = add(new THREE.BoxGeometry(.04, .42, 1.0), glass, .98, 1.5, 0); ws.rotation.z = -.55;
     if (!mine) add(new THREE.BoxGeometry(.5, .06, .6), dark, .62, 1.38, 0);   // (your own boat has the full cockpit dash instead)                                                     // dash
@@ -1231,6 +1252,7 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
     }
     numbers(.5, 1.05, .48, .6);
     driver(-.45, 1.2, -.32); driver(-.45, 1.2, .32);
+    }
   }
   if (mine && g.userData.eye) this.cockpit(g, body, T, md, M, accM, dark, metal);
   if (g.userData.eye) g.userData.eye.position.y += (g.userData.ck && g.userData.ck.eyeUp || 0) + (mine ? .1 : 0);   // sit up to see the water ahead over the dash and the cockpit edge
@@ -1248,7 +1270,7 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
 //  handlebars (jet skis, hovercraft) and the airboat's stick: grips, a throttle trigger, mirrors and a colour LCD.
 // g.userData: dash (the live canvas), wheel (turns with the steering), throttle (levers that move with the throttle)
 // g.userData.ck can move the wheel and dash ([forward, down] from the eye, m) where a console is in the way
-B.ENGINES = { rib: 2, vee: 2, c2: 2, gofast: 2, cat: 2, super: 2, cc: 3, patrol: 3, cruiser: 2, interceptor: 2 };
+B.ENGINES = { pilot: 2, aquarama: 2, sportcat: 2, rib: 2, vee: 2, c2: 2, gofast: 2, cat: 2, super: 2, cc: 3, patrol: 3, cruiser: 2, interceptor: 2 };
 B.World.prototype.cockpit = function (g, body, T, md, M, accM, dark, metal) {
   const e = g.userData.eye.position, ck = g.userData.ck || {}, kind = ck.kind || (md === 'pwc' || md === 'hover' ? 'bars' : md === 'airboat' ? 'stick' : 'wheel');
   if (kind === 'none') return;   // a tiller boat: no wheel and no gauges
@@ -1568,6 +1590,7 @@ B.EVENTS = [
   { id: 'mistfishing', name: 'Misty Morning Fishing Run', course: 'mist', laps: 2, skill: .92, rank: 0, allow: ['bass', 'jon'], purse: 1100 },
   { id: 'harbourski', name: 'Harbour Ski Dash', course: 'harbour', laps: 3, skill: .93, rank: 0, allow: ['touring', 'standup', 'pwc'], purse: 1500 },
   { id: 'lagoontow', name: 'Lagoon Tow Boat Trophy', course: 'lagoon', laps: 2, skill: .94, rank: 0, allow: ['ski', 'runabout'], purse: 1700 },
+  { id: 'dinghyderby', name: 'Dinghy Derby', course: 'harbour', laps: 2, skill: .9, rank: 0, allow: ['dinghy', 'jon'], purse: 800 },
   { id: 'reefrun', name: 'Reef Run', course: 'reef', laps: 3, skill: .96, rank: 1, allow: ['rib', 'jet', 'vee'], purse: 2600 },
   { id: 'canyonrun', name: 'Canyon River Run', course: 'canyon', laps: 2, skill: .96, rank: 1, allow: ['airboat', 'jet', 'pwc'], purse: 2900 },
   { id: 'laketrophy', name: 'Lake Trophy', course: 'lake', laps: 4, skill: .97, rank: 1, allow: ['jet', 'vee', 'f2'], purse: 3000 },
@@ -1578,6 +1601,8 @@ B.EVENTS = [
   { id: 'atollrib', name: 'Atoll RIB Raid', course: 'atoll', laps: 3, skill: .96, rank: 1, allow: ['rib', 'interceptor', 'vee'], purse: 2700 },
   { id: 'archicruise', name: 'Archipelago Cruise Classic', course: 'archipelago', laps: 1, skill: .95, rank: 1, allow: ['cruiser', 'cc'], purse: 3100 },
   { id: 'canalairboat', name: 'Canal Airboat Sprint', course: 'canal', laps: 3, skill: .96, rank: 1, allow: ['airboat', 'hover'], purse: 3300 },
+  { id: 'classicregatta', name: 'Classic Wooden Boat Regatta', course: 'lake', laps: 3, skill: .95, rank: 1, allow: ['aquarama', 'runabout'], purse: 2600 },
+  { id: 'hoverrescue', name: 'Hovercraft Rescue Rally', course: 'canyon', laps: 2, skill: .95, rank: 1, allow: ['rescuehover', 'hover', 'airboat'], purse: 3000 },
   { id: 'fjordclassic', name: 'Fjord Classic', course: 'fjord', laps: 3, skill: .97, rank: 2, allow: ['vee', 'f2', 'hydro'], purse: 4800 },
   { id: 'misttrophy', name: 'Misty Lake Trophy', course: 'mist', laps: 3, skill: .97, rank: 2, allow: ['airboat', 'vee', 'f2'], purse: 5000 },
   { id: 'sunsetgp', name: 'Sunset Grand Prix', course: 'harbour', laps: 5, skill: .99, rank: 2, allow: ['f2', 'hydro'], purse: 5500 },
@@ -1587,12 +1612,15 @@ B.EVENTS = [
   { id: 'reefgofast', name: 'Reef Go-Fast Shootout', course: 'reef', laps: 3, skill: .98, rank: 2, allow: ['gofast', 'vee', 'c2'], purse: 5600 },
   { id: 'glaciervintage', name: 'Glacier Vintage Cup', course: 'glacier', laps: 3, skill: .98, rank: 2, allow: ['vintage', 'runabout', 'hydro'], purse: 5400 },
   { id: 'speedwaysprint', name: 'Speedway Sprint', course: 'erika', laps: 1, skill: .98, rank: 2, allow: ['hydro', 'vintage', 'f2', 'unl'], purse: 5900 },
+  { id: 'workboat', name: 'Harbour Workboat Race', course: 'coast', laps: 1, skill: .96, rank: 2, allow: ['pilot', 'lobster', 'fireboat', 'cruiser'], purse: 4500 },
+  { id: 'airboatnats', name: 'Airboat Nationals', course: 'mist', laps: 3, skill: .98, rank: 2, allow: ['racingairboat', 'airboat'], purse: 5200 },
   { id: 'glacier', name: 'Glacier Challenge', course: 'glacier', laps: 3, skill: .98, rank: 3, allow: ['vee', 'hydro', 'cat'], purse: 7500 },
   { id: 'foilcup', name: 'Atoll Foil Cup', course: 'atoll', laps: 4, skill: .99, rank: 3, allow: ['foil', 'hydro', 'cat'], purse: 8000 },
   { id: 'marathon', name: 'Archipelago Marathon', course: 'archipelago', laps: 2, skill: .98, rank: 3, allow: ['hydro', 'cat'], purse: 8500 },
   { id: 'patrolchallenge', name: 'Patrol Boat Challenge', course: 'fjord', laps: 3, skill: .98, rank: 3, allow: ['patrol', 'interceptor', 'c2'], purse: 7800 },
   { id: 'coastfoil', name: 'Riviera Foil Grand Prix', course: 'coast', laps: 2, skill: .99, rank: 3, allow: ['foil', 'e1'], purse: 8200 },
   { id: 'mistcat', name: 'Misty Lake Cat Classic', course: 'mist', laps: 3, skill: .99, rank: 3, allow: ['cat', 'super'], purse: 8800 },
+  { id: 'sportcatcup', name: 'Sport Cat Cup', course: 'lake', laps: 4, skill: .99, rank: 3, allow: ['sportcat', 'cat'], purse: 8000 },
   { id: 'offshore', name: 'Offshore Classic', course: 'offshore', laps: 2, skill: 1, rank: 4, allow: ['cat', 'super'], purse: 12000 },
   { id: 'lakespeed', name: 'Lake Speed Week', course: 'lake', laps: 5, skill: 1, rank: 4, allow: ['f1', 'hydro'], purse: 12500 },
   { id: 'riviera', name: 'Riviera Endurance', course: 'coast', laps: 2, skill: 1, rank: 4, allow: ['c2', 'cat', 'vee'], purse: 13500 },
@@ -2164,6 +2192,10 @@ B.Game = function () {
           sp.emit(b.x + f[0] * along + s[0] * sd * T.beam * .5, b.y + .2, b.z + f[1] * along + s[1] * sd * T.beam * .5, vx * .5 + s[0] * sd * out, 1.5 + v * .05 + R() * 1.5, vz * .5 + s[1] * sd * out, .6 + v * .012, .8 + R() * .5, .5); }
       }
       if (q === 1) this._bowSpray(b, dt, b === this.player);
+      if (T.monitors) for (const sd of [-1, 1]) for (let n = 130 * dt * q; n > 0; n--) {   // the fireboat's water cannons: two arcs of water out over the bows
+        if (n < 1 && R() > n) break; const lx = -T.len * .22 + 1.45 + .3, lz = sd * .7, ly = 3.4, sp2 = 15 + R() * 3;
+        sp.emit(b.x + f[0] * lx + s[0] * lz, b.y + ly, b.z + f[1] * lx + s[1] * lz, vx * .9 + f[0] * sp2 * .55 + s[0] * sd * sp2 * .35 + (R() - .5), sp2 * .75 + (R() - .5), vz * .9 + f[1] * sp2 * .55 + s[1] * sd * sp2 * .35 + (R() - .5), .45 + R() * .45, 2 + R() * .6, .75);
+      }
       const rt = T.model === 'hydro' ? 1 : T.model === 'tunnel' ? .65 : T.model === 'jet' || T.model === 'pwc' ? .8 : T.model === 'airboat' ? .1 : T.model === 'hover' ? .03 : T.model === 'pontoon' ? .12 : T.model === 'jon' ? .25 : T.foil ? .3 * (1 - b.foilUp) + .05 : .35;
       if (v > 10) for (let m = rt * v * .9 * dt * q; m > 0; m--) {
         if (m < 1 && R() > m) break;
