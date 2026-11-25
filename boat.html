@@ -2052,8 +2052,8 @@ B.Game = function () {
       steer = clamp(2 * u * Math.sin(e) / Ld / rMax, -1, 1);
     }
     b.step(dt, { thr: run ? inp.thr : 0, brk: run ? inp.brk : (R.finished ? .4 : 0), steer }, this.clock, c.calm);
-    // islands: you run aground and stop hard
-    for (const I of c.islands) { const dx = b.x - I.x, dz = b.z - I.z, d = Math.hypot(dx, dz), R = I.r * 1.02 + 2; if (d < R) { b.x = I.x + dx / d * R; b.z = I.z + dz / d * R; b.u *= .3; b.v = 0; R.flash('Aground!', 1.2, 'R to get back on course'); } }
+    // islands: you run aground and stop hard, but you can still pivot off with the wheel
+    for (const I of c.islands) { const dx = b.x - I.x, dz = b.z - I.z, d = Math.hypot(dx, dz), rr = I.r * 1.02 + 2; if (d < rr) { b.x = I.x + dx / d * rr; b.z = I.z + dz / d * rr; b.u *= .3; b.v = 0; b.h += inp.steer * .8 * dt; R.flash('Aground!', 1.2, R === this ? 'R to get back on course' : 'Enter to get back on course'); } }
     // buoys: a knock and a slowdown
     for (const y of this.world.buoys) { const dx = b.x - y.x, dz = b.z - y.z, d = Math.hypot(dx, dz); if (d < y.rad && d > .01) { y.x -= dx / d * (y.rad - d); y.z -= dz / d * (y.rad - d); b.u *= Math.exp(-dt * 1.5); } }   // you shove the buoy aside
     const L = B.locate(c, b.x, b.z, R.pIdx); R.pIdx = L.i; R.pS = L.i * c.ds;
