@@ -5243,12 +5243,15 @@ class Race {
     for (let k = 0; k < total; k++) {
       const pose = slotPose(k);
       if (k === this.playerSlot) { this.playerPose = pose; continue; }
-      const [color, accent] = modelOf(cls, opts.variant) === 'rickshaw' ? RICK_LIVERIES[n % RICK_LIVERIES.length] : LIVERIES[cls === 'f1' ? 'f1' : 'gt'][n % 19];
+      let [color, accent] = modelOf(cls, opts.variant) === 'rickshaw' ? RICK_LIVERIES[n % RICK_LIVERIES.length] : LIVERIES[cls === 'f1' ? 'f1' : 'gt'][n % 19], name = AI_NAMES[n % AI_NAMES.length];
+      const tg = opts.career && opts.career.event && !modelOf(cls, opts.variant) ? Career.grid()[n] : null;   // career races: drivers race for the teams
+      if (tg) { [color, accent] = tg[0].col; name = tg[1]; }
+      else if (opts.career && opts.career.event) { const free = AI_NAMES.filter((x) => !Career.driverTeam(x)); name = free[n % free.length]; }   // the rest: independents, no name twice
       // faster drivers start further up the grid (a qualifying order)
       const skill = base * (1.02 - 0.04 * (k / Math.max(1, total - 1))) * (0.99 + rnd() * 0.02);
       // personality: how hard they attack, how they defend, how often they make mistakes
       const P = AI_STYLES[Math.floor(rnd() * AI_STYLES.length)];
-      this.ai.push({ name: AI_NAMES[n % AI_NAMES.length], color, accent, number: [7, 11, 22, 3, 16, 44, 63, 31, 10, 23, 77, 4, 81, 14, 18, 24, 55, 27, 20][n % 19], skill,
+      this.ai.push({ name, color, accent, number: [7, 11, 22, 3, 16, 44, 63, 31, 10, 23, 77, 4, 81, 14, 18, 24, 55, 27, 20][n % 19], skill,
         s: pose.i, lat: pose.lat - this.rl[pose.i], tLat: null, v: 0, crossings: 0, lapStart: 0, last: null, best: null,
         finished: false, finishTime: 0, x: pose.x, y: pose.y, h: pose.h, steer: 0, spin: 0, braking: false, rpm: this.spec.idle,
         style: P.name, agg: P.agg, def: P.def, cons: P.cons * (DIFF_CONS[opts.difficulty] || 1), form: 1, mistT: 0, defT: 0 });
@@ -5816,6 +5819,18 @@ const MODES = {
 
 /* ================================ CAREER ================================
    Earn credits in races, pass licence tests, buy cars, win championships. Saved in this browser. */
+/* Career racing teams: join one (Career screen) to race in its colours with a team-mate, get its perk, and score in an 8-race
+   team championship (the points every team's drivers win in your career races). Rivals in career races drive for the other teams.
+   perk: cr (race prize money), dealer (car prices), lic (licence test rewards), champ (championship prize) multipliers */
+const RACE_TEAMS = [
+  { id: 'rossa', name: 'Scuderia Rossa', col: ['#c8102e', '#ffd400'], drivers: ['M. Varga', 'L. Bellini'], perk: { cr: 1.1 }, perkTxt: '+10% race prize money' },
+  { id: 'silver', name: 'Silver Arrow Works', col: ['#c0c6cc', '#00a19b'], drivers: ['T. Lindqvist', 'H. Brandt'], perk: { dealer: .88 }, perkTxt: 'Cars cost 12% less at the dealer' },
+  { id: 'papaya', name: 'Papaya Racing', col: ['#ff8000', '#1d4fd6'], drivers: ['R. Santoro', 'O. Pryce'], perk: { lic: 1.25 }, perkTxt: '+25% licence test rewards' },
+  { id: 'bluebull', name: 'Blue Bull Energy', col: ['#1b2a5c', '#e2231a'], drivers: ['K. Ito', 'S. Okafor'], perk: { champ: 1.25 }, perkTxt: '+25% championship prizes' },
+  { id: 'greenlane', name: 'Green Lane Motorsport', col: ['#0f5a3a', '#c9a227'], drivers: ['D. Moreau', 'E. Nakamura'], perk: { cr: 1.05, dealer: .94 }, perkTxt: '+5% prize money, cars 6% cheaper' },
+  { id: 'midnight', name: 'Midnight Garage', col: ['#10161c', '#2fd4c4'], drivers: ['A. Kowalski', 'J. Reyes'], perk: { cr: 1.06, lic: 1.12 }, perkTxt: '+6% prize money, +12% licence rewards' },
+];
+const TEAM_SEASON = 8, TEAM_TITLE = 20000;
 const CAREER = {
   tests: [
     { id: 'B', name: 'National B licence', car: 'road', track: 'redbullring', factor: 1.13, reward: 3000, desc: 'Road car · Red Bull Ring' },
@@ -5883,12 +5898,37 @@ const Career = {
     startSession(this.cfg({ mode: e.car, track, car: e.car, variant: e.variant || this.sel(e.car), laps: e.laps, difficulty: e.diff, opponents: e.opp, tod: e.tod || 'noon', weather: e.weather || 'clear', tyre: e.car === 'road' ? 'R' : 'M',
       startPos: e.rounds ? 'middle' : 'back', career: { event: e.id, round: ch ? ch.round : 0 } }));
   },
+  team() { const id = this.p.team; return RACE_TEAMS.find((t) => t.id === id) || null; },
+  perk(k) { const t = this.team(); return (t && t.perk[k]) || 1; },
+  price(cls, id) { return Math.round((id === cls ? CAREER.price[cls] : variantOf(cls, id).price) * this.perk('dealer') / 50) * 50; },
+  season() { const P = this.p; if (!P.season || !P.season.table) P.season = { n: 1, races: 0, table: Object.fromEntries(RACE_TEAMS.map((t) => [t.id, 0])) }; return P.season; },
+  join(id) { if (!RACE_TEAMS.find((t) => t.id === id) || this.p.team === id) return; this.p.team = id; this.p.teamPts = 0; this.save(); banner(`🏁 You joined ${RACE_TEAMS.find((t) => t.id === id).name}`); },
+  leave() { this.p.team = null; this.p.teamPts = 0; this.save(); },
+  // who drives for which team in a career race: your team-mate first, then two drivers from each of the other teams
+  grid() { const mine = this.team(), out = []; if (mine) out.push([mine, mine.drivers[1]]);
+    for (let r = 0; r < 2; r++) for (const t of RACE_TEAMS) if (t !== mine) out.push([t, t.drivers[r]]); return out; },
+  driverTeam(name) { return RACE_TEAMS.find((t) => t.drivers.includes(name)) || null; },
+  // the team championship after a career race: every team scores its drivers' points; your finish counts for your team
+  teamRace(st) {
+    const mine = this.team(); if (!mine) return '';
+    const S = this.season(), got = {}; st.forEach((r, k) => { const t = r.player ? mine : this.driverTeam(r.name); if (t) got[t.id] = (got[t.id] || 0) + (CAREER.points[k] || 0); });
+    for (const t of RACE_TEAMS) S.table[t.id] = (S.table[t.id] || 0) + (got[t.id] || 0);
+    const myPts = CAREER.points[st.findIndex((r) => r.player)] || 0; this.p.teamPts = (this.p.teamPts || 0) + myPts; S.races++;
+    let html = `<tr><td colspan="4" style="padding-top:6px">🏁 <b>${mine.name}</b> scored ${got[mine.id] || 0} points in the team championship (you ${myPts}) · season ${S.n}, race ${S.races} of ${TEAM_SEASON}</td></tr>`;
+    if (S.races >= TEAM_SEASON) {
+      const champ = RACE_TEAMS.slice().sort((a, b) => S.table[b.id] - S.table[a.id])[0], won = champ === mine;
+      if (won) { this.p.credits += TEAM_TITLE; this.p.earned += TEAM_TITLE; }
+      html += `<tr><td colspan="4" style="color:#ffd60a"><b>${won ? `🏆 ${mine.name} are team champions! +${TEAM_TITLE.toLocaleString()} credits` : `Season ${S.n} over: ${champ.name} are team champions`}</b></td></tr>`;
+      this.p.season = { n: S.n + 1, races: 0, table: Object.fromEntries(RACE_TEAMS.map((t) => [t.id, 0])), last: champ.name };
+    }
+    return html;
+  },
   // target lap for a licence test: the ideal lap from the racing line, plus a margin
   testTarget(t, world, spec) { const rd = world.racingData(spec); let T = 0; for (let i = 0; i < world.N; i++) T += world.seg / Math.max(5, rd.v[i]); return T * t.factor; },
   passTest(id, lap) {
     const t = CAREER.tests.find(x => x.id === id); if (!t || this.p.lic.includes(id)) return;
-    this.p.lic.push(id); this.p.credits += t.reward; this.p.earned += t.reward; this.save();
-    banner(`🎓 ${t.name} passed! +${t.reward.toLocaleString()} credits`);
+    const rw = Math.round(t.reward * this.perk('lic')); this.p.lic.push(id); this.p.credits += rw; this.p.earned += rw; this.save();
+    banner(`🎓 ${t.name} passed! +${rw.toLocaleString()} credits`);
     game.finishFx = { t: performance.now(), text: `${id} LICENCE PASSED` };
   },
   // after a career race: credits, best result, championship points. Returns HTML for the results page.
@@ -5904,12 +5944,13 @@ const Career = {
       const me = table.findIndex(([n]) => n === 'You') + 1;
       html += `<tr><td colspan="4" style="padding-top:10px">🏆 <b>${e.name}</b> — round ${ch.round} of ${e.rounds.length}. You're <b>P${me}</b> with ${ch.pts.You || 0} points. Leaders: ${table.slice(0, 3).map(([n, v]) => `${n} ${v}`).join(' · ')}</td></tr>`;
       if (ch.round >= e.rounds.length) {
-        const prize = e.prize[me - 1] || 0; cr += prize;
+        const prize = Math.round((e.prize[me - 1] || 0) * this.perk('champ')); cr += prize;
         P.best[e.id] = Math.min(P.best[e.id] || 99, me); delete P.champ[e.id];
         html += `<tr><td colspan="4" style="color:#ffd60a"><b>${me === 1 ? '🏆 CHAMPION!' : `Championship finished P${me}`}</b>${prize ? ` Bonus +${prize.toLocaleString()} credits` : ''}</td></tr>`;
         game.champDone = true;
       } else game.champDone = false;
     } else { cr = e.prize[pos - 1] || 1000; P.best[e.id] = Math.min(P.best[e.id] || 99, pos); }
+    cr = Math.round(cr * this.perk('cr')); html += this.teamRace(st);
     P.credits += cr; P.earned += cr; this.save();
     return html + `<tr><td colspan="4" style="color:#2fd36b;padding-top:6px">💰 +${cr.toLocaleString()} credits (you have ${P.credits.toLocaleString()})</td></tr>`;
   },
@@ -6793,8 +6834,9 @@ const Menu = {
     else if (k === 'career') { this.careerFocus = v || null; this.show('career'); }
     else if (k === 'ctest') Career.startTest(CAREER.tests.find(t => t.id === v));
     else if (k === 'cev') Career.startEvent(CAREER.events.find(e => e.id === v));
-    else if (k === 'cbuy') { const P = Career.p, [cls, id] = v.includes('=') ? v.split('=') : [v, v], price = id === cls ? CAREER.price[cls] : variantOf(cls, id).price;
+    else if (k === 'cbuy') { const P = Career.p, [cls, id] = v.includes('=') ? v.split('=') : [v, v], price = Career.price(cls, id);
       if (P.credits >= price && !P.cars.includes(id) && !Career.blocked(id)) { P.credits -= price; P.cars.push(id); (P.sel || (P.sel = {}))[cls] = id; Career.save(); banner(`🔑 ${variantOf(cls, id).name} bought!`); } this.renderCareer(); this.highlight(); }
+    else if (k === 'cteam') { if (v) Career.join(v); else Career.leave(); const keep = this.sel; this.renderCareer(); this.sel = keep; this.highlight(); }
     else if (k === 'csel') { const [cls, id] = v.split('='); (Career.p.sel || (Career.p.sel = {}))[cls] = id; Career.save(); this.renderCareer(); this.highlight(); }
     else if (k === 'board') this.show('board');
     else if (k === 'race') this.show('race');
@@ -7103,6 +7145,14 @@ const Menu = {
     $('careerTitle').innerHTML = `💰 <b>${fmtC(P.credits)}</b> credits · Licences: <b>${P.lic.join(' ') || 'none yet'}</b> · ${P.races} races, ${P.wins} wins`;
     const medal = p => p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : p ? `P${p}` : '';
     let html = this.card('back', '← Back', 'back');
+    // racing teams: join one, its perk, the team championship
+    const tm = Career.team(), S = Career.season(), chip = (cl) => `<i style="display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:3px;vertical-align:-1px;background:${cl}"></i>`;
+    const small = 'style="margin:0 0 8px;font:500 14px/1.45 system-ui,sans-serif;opacity:.85"';
+    html += `<p class="sub" id="cf-teams" style="margin:12px 0 6px">Racing teams</p><p ${small}>${tm ? `You drive for <b>${tm.name}</b> (${tm.perkTxt}) and have scored ${P.teamPts || 0} points for them. In career races you wear the team colours and your team-mate races too.` : 'Join a team to race in its colours with a team-mate, get its perk, and score in the team championship. Rivals in career races drive for the teams.'}</p>`;
+    html += `<table class="records"><tr><th></th><th>Team championship · season ${S.n} · race ${S.races} of ${TEAM_SEASON}</th><th>Points</th></tr>${RACE_TEAMS.slice().sort((a, b) => S.table[b.id] - S.table[a.id]).map((t, i) => `<tr${tm === t ? ' style="color:#ffd60a;font-weight:700"' : ''}><td>${i + 1}</td><td>${chip(t.col[0])}${chip(t.col[1])}${t.name}</td><td>${S.table[t.id] || 0}</td></tr>`).join('')}</table>`;
+    html += `<p ${small}>Every career race counts. The champion team's drivers win ${fmtC(TEAM_TITLE)} credits when the season ends.${S.last ? ' Last season: ' + S.last + '.' : ''}</p><div class="worlds">`;
+    for (const t of RACE_TEAMS) html += this.card('world' + (tm === t ? '' : ''), `<h3>${tm === t ? '🏁 ' : ''}${chip(t.col[0])}${chip(t.col[1])}${t.name}</h3><p>Drivers: ${t.drivers.join(' & ')} · ${t.perkTxt}<br>${tm === t ? '<b>your team</b>' : tm ? 'click to switch team (your team points start again)' : 'click to join'}</p>`, tm === t ? 'noop' : 'cteam:' + t.id);
+    html += `</div>${tm ? `<div class="btnrow" style="margin-top:8px">${this.card('btn ghostbtn', 'Leave team', 'cteam:')}</div>` : ''}`;
     html += `<p class="sub" id="cf-tests" style="margin:12px 0 6px">Licence tests — beat the target lap time</p><div class="worlds">`;
     for (const t of CAREER.tests) {
       const done = P.lic.includes(t.id), lock = !Career.has(t.needs);
@@ -7117,7 +7167,7 @@ const Menu = {
     }
     html += `</div><p class="sub" id="cf-garage" style="margin:14px 0 6px">Garage & dealer</p><div class="worlds">`;
     for (const k of ['road', 'gt', 'f1']) for (const V of VARIANTS[k]) {
-      const id = V.id, own = Career.owns(id), price = id === k ? CAREER.price[k] : V.price, locked = Career.blocked(id), needBase = id !== k && !Career.owns(k), afford = P.credits >= price && !needBase && !locked;
+      const id = V.id, own = Career.owns(id), price = Career.price(k, id), locked = Career.blocked(id), needBase = id !== k && !Career.owns(k), afford = P.credits >= price && !needBase && !locked;
       const S = tunedSpec(k, TUNE_DEF, id), using = own && Career.sel(k) === id;
       const status = own ? (using ? '<b>driving this one</b>' : 'in your garage — click to drive it') : locked ? 'not available (locked by the admin)' : needBase ? `buy the ${VARIANTS[k][0].name} first` : `${fmtC(price)} credits${afford ? ' — click to buy' : ''}`;
       html += this.card('world' + (!own && !afford ? ' locked' : ''), `<h3>${using ? '🏁 ' : own ? '✅ ' : ''}${V.name}</h3><p>${S.engineName} · ${S.hp} hp · ${Math.round(S.mass)} kg · ${V.desc}<br>${status}</p>`, own ? (using ? 'noop' : 'csel:' + k + '=' + id) : afford ? 'cbuy:' + k + '=' + id : 'noop');
@@ -7286,7 +7336,8 @@ function startSession(cfg) {
   const model = modelOf(cfg.car, cfg.variant);
   // your car (with its interior), on its own layer so the mirror camera can't see it
   GFX.carsRoot.clear();
-  game.playerObj = createCarObject(cfg.car, variantOf(cfg.car, cfg.variant).paint || PLAYER_LIVERY[cfg.car], { number: 1, team: 'ERIKA RACING', model });
+  const myTeam = cfg.career && !model ? Career.team() : null;   // in a career race your team's livery
+  game.playerObj = createCarObject(cfg.car, myTeam ? myTeam.col : variantOf(cfg.car, cfg.variant).paint || PLAYER_LIVERY[cfg.car], { number: 1, team: myTeam ? myTeam.name.toUpperCase() : 'ERIKA RACING', model });
   game.playerObj.interior = model === 'moto' ? null : buildInterior(game.playerObj, game.car.spec);   // on a bike you look over the screen
   game.playerObj.group.traverse(o => o.layers.set(1));
   GFX.carsRoot.add(game.playerObj.group);
