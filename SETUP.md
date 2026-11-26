@@ -33,5 +33,9 @@ The game stays locked until this is done. It takes about 10 minutes, once.
 - **Planes flown:** click **Show planes flown** above the code list to see which aircraft each player has flown and how many times. The game counts every flight started with a code.
   - This needs the third `allow update` part in the `codes` block of `firestore.rules` (the one about `'fleet'`). Paste the updated `codes` block into **Firestore Database → Rules** and click **Publish** (keep your admin email in place).
 - **Manage players** (the Manage button on each code, or *Everyone at once*): give, take away or set credits, give or take away planes, cars and boats, and block items. Changes reach the player the next time they play (straight away if they are playing). To see each player's credits and items on the desk, the games report them back: this needs the fourth `allow update` part in the `codes` block of `firestore.rules` (the one about `'status'`). Paste the updated `codes` block into **Firestore Database → Rules** and click **Publish** (keep your admin email in place). Giving and taking work without it.
-- **Messages:** players can **Ask Fernando** for a code on the enter-code page, and send **Message Fernando** notes from inside each game. They appear under **Messages** at the top of the desk (with a chime), and the Desk button in the game shows a red count while any are unread. **Make code** on a code request fills in the Make codes form with their name and game.
-  - This needs the `messages` block from `firestore.rules`. Open **Firestore Database → Rules**, paste the `match /messages/{msgId} { ... }` block from `firestore.rules` just above the alerts block, and click **Publish** (keep your admin email in place). Until then, sending says "Messages are not switched on yet".
+- **Messages:** players can ask you for a code on the enter-code page, and message you from inside each game. You see them under **Messages** at the top of the desk.
+  - To switch it on (once):
+    1. Open the rules page: https://console.firebase.google.com/project/erika-air/firestore/databases/-default-/rules
+    2. Copy the `match /messages/{msgId} { ... }` block from https://github.com/fernando-is-the-best/erika-air/blob/main/firestore.rules
+    3. Paste it just above the last two `}` at the bottom of the rules. Don't change anything else.
+    4. Click **Publish**.
