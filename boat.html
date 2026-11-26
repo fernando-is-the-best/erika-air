@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Erika Boats</title>
-<meta name="description" content="Powerboat racing round buoy courses: fifty-seven boats, fourteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
+<meta name="description" content="Powerboat racing round buoy courses: sixty-six boats, fourteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -415,6 +415,15 @@ B.TYPES = {
   hoverferry: { name: 'Channel Hovercraft', cls: 'International', model: 'hover', airProp: true, price: 12500, rank: 3, blurb: 'A 30 m cross-channel hovercraft on four huge propellers: 65 knots over the waves, and it slides sideways through every corner', mass: 90000, power: 9e6, top: 33, acc: 2.6, lat: 7, turnR: 50, grip: .5, slide: 1.3, len: 30, beam: 14, col: ['#f4f4f2', '#c8102e'], hum: 60, hump: .15, ride: .3 },
   dragjet: { name: 'Drag Jet Boat', cls: 'Pro', model: 'jet', price: 24000, rank: 4, blurb: 'A blown alcohol V8 jet boat built for a quarter mile: 0 to 120 knots in five seconds, and it hates corners', mass: 1100, power: 3.0e6, top: 62, acc: 15, lat: 24, turnR: 32, grip: 2.0, slide: .5, len: 6.4, beam: 2.3, col: ['#10161c', '#ff3d7f'], hum: 70, ride: 1.0 },
   record: { name: 'Record Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 90000, rank: 7, blurb: 'A water speed record jet: 275 knots on glassy water. Built for a straight line: give it the Erika Speedway', mass: 2700, power: 8e6, top: 141, acc: 9, lat: 36, turnR: 50, grip: 1.3, slide: .8, len: 8.4, beam: 3.4, col: ['#ffd400', '#1d4fd6'], hum: 190 },
+  minijet: { name: 'Mini Jet Ski', cls: 'Club', model: 'pwc', price: 500, rank: 0, blurb: 'A tiny 90 hp two-seat ski: light, cheap and flicks round buoys like a toy', mass: 200, power: .067e6, top: 22, acc: 6.0, lat: 30, turnR: 5, grip: 2.9, slide: .45, len: 2.8, beam: 1.1, col: ['#ff7a1a', '#f4f4f2'], hum: 160, hump: .5, ride: 1.3, bank: 1.6 },
+  steamer: { name: 'Paddle Steamer', cls: 'Club', model: 'cruiser', patrol: true, inboard: true, paddle: true, light: null, price: 400, rank: 0, blurb: 'A 1900s side-wheel paddle steamer: 12 knots of steam, smoke and dignity. Turns like a cathedral', mass: 40000, power: 1.2e6, top: 6, acc: 1.0, hump: .08, lat: 4, turnR: 40, grip: 2.2, slide: .3, len: 28, beam: 8, col: ['#f4f1ea', '#1d2a3a'], hum: 30, ride: .2, bank: .2 },
+  bowrider: { name: 'Family Bowrider', cls: 'Club', model: 'runabout', price: 900, rank: 0, blurb: 'A 6.4 m family bowrider with a 250 hp stern drive: seats up front, a sun deck at the back and 40 knots on a calm lake', mass: 1600, power: .19e6, top: 21, acc: 4.2, lat: 18, turnR: 13, grip: 2.3, slide: .35, len: 6.4, beam: 2.4, col: ['#f4f4f2', '#c8102e'], hum: 90, ride: .9 },
+  basspro: { name: 'Bass Pro 21', cls: 'Regional', model: 'bass', price: 3600, rank: 1, blurb: 'A 21-foot metal-flake bass boat with a 300 hp outboard: 72 knots of glitter, low and flat', mass: 1150, power: .23e6, top: 37, acc: 5.0, lat: 22, turnR: 16, grip: 2.3, slide: .4, len: 6.4, beam: 2.3, col: ['#7b3fe4', '#c9ced4'], hum: 96 },
+  sarrib: { name: 'Rescue RIB', cls: 'Regional', model: 'rib', price: 4000, rank: 1, blurb: 'An 8 m search-and-rescue RIB with twin 250 hp outboards: grips in rough water and turns hard', mass: 2600, power: .5e6, top: 24, acc: 4.6, lat: 24, turnR: 16, grip: 2.4, slide: .3, len: 8, beam: 2.9, col: ['#ff7a1a', '#1d2a3a'], hum: 92, ride: .8 },
+  foilferry: { name: 'Hydrofoil Ferry', cls: 'National', model: 'foil', foil: 10, price: 8000, rank: 2, blurb: 'A 27 m passenger hydrofoil: lifts its hull clear at 20 knots and cruises at 35 over the chop', mass: 30000, power: 3.2e6, top: 18, acc: 2.5, hump: .4, lat: 8, turnR: 50, grip: 2.4, slide: .25, len: 27, beam: 6, col: ['#f4f4f2', '#e2331f'], hum: 46, ride: .2, bank: .6 },
+  lcac: { name: 'Military Hovercraft', cls: 'International', model: 'hover', airProp: true, price: 11000, rank: 3, blurb: 'A 27 m landing hovercraft with four gas turbines and two huge propellers: 40 knots over sea, sand and swamp', mass: 150000, power: 12e6, top: 21, acc: 2.0, lat: 6, turnR: 50, grip: .5, slide: 1.3, len: 27, beam: 14, col: ['#5a6650', '#2b3035'], hum: 70, hump: .15, ride: .3 },
+  topgun: { name: 'Cigarette Top Gun 39', cls: 'International', model: 'vee', open: true, price: 14000, rank: 3, blurb: 'The classic 39-foot go-fast with twin 1,100 hp engines: 82 knots of pure eighties attitude', mass: 5400, power: 1.64e6, top: 42, acc: 4.4, lat: 22, turnR: 28, grip: 2.0, slide: .4, len: 12, beam: 2.6, col: ['#ff3d7f', '#10161c'], hum: 48, ride: .75 },
+  rocketski: { name: 'Rocket Jet Ski', cls: 'Pro', model: 'pwc', price: 22000, rank: 4, blurb: 'A jet ski with a small rocket strapped behind the seat: 120 knots, and very little of it is in control', mass: 500, power: 1.2e6, top: 62, acc: 12, lat: 30, turnR: 9, grip: 2.8, slide: .5, len: 3.4, beam: 1.2, col: ['#10161c', '#ffd400'], hum: 170, hump: .5, ride: 1.3, bank: 1.7 },
   erika: { name: 'Erika 2000', cls: 'Club', model: 'hydro', jet: true, price: 0, rank: 0, blurb: 'A rocket-jet hydroplane that does 2,000 knots, and it is free. Switch to the on-board camera for the music. Try it on the Erika Speedway. Quick races in it pay no prizes; the Erika 2000 Grand Finale does', mass: 2000, power: 150e6, top: 1029, acc: 60, lat: 800, turnR: 20, yawMax: .9, silent: true, noAssist: true, grip: 4, slide: .1, brk: 150, fun: true, len: 9, beam: 3.2, col: ['#d4af37', '#10161c'], hum: 210, ride: .3 },
   jetplane: { name: 'Kestrel Jet Hydroplane', cls: 'Champion', model: 'hydro', jet: true, price: 75000, rank: 7, blurb: 'A jet engine on a hydroplane: over 220 knots. Needs room to turn', mass: 2500, power: 3.2e6, top: 115, acc: 7.5, lat: 27, turnR: 40, grip: 1.1, slide: .9, len: 8.5, beam: 3.2, col: ['#1d4fd6', '#f4f4f2'], hum: 180 },
 };
@@ -1253,6 +1262,15 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
       const rad = add(new THREE.BoxGeometry(.14, .08, 1.2), dark, x0 + .4, hy + 3.05, 0); g.userData.radar = rad;
       const lc = T.light === undefined ? 0x2a6cff : T.light;
       if (lc != null) add(new THREE.BoxGeometry(.25, .1, 1.1), M(lc, { emissive: lc, emissiveIntensity: .8 }), x1 - .3, hy + 1.82, 0);   // light bar
+      if (T.paddle) {   // paddle steamer: a tall funnel behind the wheelhouse and a big paddle wheel in a box on each side
+        const fun = add(new THREE.CylinderGeometry(.55, .6, 4.2, 16), M(0x1a1d21, { roughness: .6 }), x0 - 1.6, hy + 2.6, 0);
+        add(new THREE.CylinderGeometry(.62, .62, .5, 16), accM, x0 - 1.6, hy + 4.5, 0);
+        for (const sd of [-1, 1]) {
+          const wh = add(new THREE.CylinderGeometry(2.1, 2.1, 1.0, 20, 1, true), hullM, -L * .02, .8, sd * (Bm / 2 + .55)); wh.rotation.x = Math.PI / 2;
+          add(new THREE.BoxGeometry(4.6, .25, 1.15), hullM, -L * .02, 2.95, sd * (Bm / 2 + .55));
+          for (let k = 0; k < 6; k++) { const b = add(new THREE.BoxGeometry(.18, 3.9, .9), M(0x6a3b22, { roughness: .8 }), -L * .02, .8, sd * (Bm / 2 + .55)); b.rotation.z = k * Math.PI / 6; }
+        }
+      }
       if (T.monitors) for (const sd of [-1, 1]) {   // fire monitors on the wheelhouse roof (they spray: see _fx)
         add(new THREE.CylinderGeometry(.12, .16, .35, 12), M(0xd8d8d0, { metalness: .6, roughness: .3 }), x0 + 1.2, hy + 1.95, sd * .7);
         const nz = add(new THREE.CylinderGeometry(.05, .09, .6, 10), M(0xc9a227, { metalness: .8, roughness: .3 }), x0 + 1.45, hy + 2.2, sd * .7); nz.rotation.z = -1.0;
@@ -1329,7 +1347,7 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
 //  handlebars (jet skis, hovercraft) and the airboat's stick: grips, a throttle trigger, mirrors and a colour LCD.
 // g.userData: dash (the live canvas), wheel (turns with the steering), throttle (levers that move with the throttle)
 // g.userData.ck can move the wheel and dash ([forward, down] from the eye, m) where a console is in the way
-B.ENGINES = { tug: 2, catferry: 4, lifeboat: 2, wavepiercer: 2, turbinecat: 2, pilot: 2, aquarama: 2, sportcat: 2, rib: 2, vee: 2, c2: 2, gofast: 2, cat: 2, super: 2, cc: 3, patrol: 3, cruiser: 2, interceptor: 2 };
+B.ENGINES = { topgun: 2, sarrib: 2, foilferry: 2, tug: 2, catferry: 4, lifeboat: 2, wavepiercer: 2, turbinecat: 2, pilot: 2, aquarama: 2, sportcat: 2, rib: 2, vee: 2, c2: 2, gofast: 2, cat: 2, super: 2, cc: 3, patrol: 3, cruiser: 2, interceptor: 2 };
 B.World.prototype.cockpit = function (g, body, T, md, M, accM, dark, metal) {
   const e = g.userData.eye.position, ck = g.userData.ck || {}, kind = ck.kind || (md === 'pwc' || md === 'hover' ? 'bars' : md === 'airboat' ? 'stick' : 'wheel');
   if (kind === 'none') return;   // a tiller boat: no wheel and no gauges
@@ -1713,6 +1731,15 @@ B.EVENTS = [
   { id: 'ferrydash', name: 'Ferry Dash', course: 'coast', laps: 1, skill: .97, rank: 3, allow: ['catferry', 'hoverferry'], purse: 7400 },
   { id: 'dragweek', name: 'Drag Week', course: 'erika', laps: 1, skill: 1, rank: 4, allow: ['dragjet', 'jet'], purse: 12500 },
   { id: 'speedrecord', name: 'Speed Record Attempt', course: 'erika', laps: 1, skill: 1.04, rank: 7, allow: ['record', 'jetplane'], purse: 60000 },
+  { id: 'minimayhem', name: 'Mini Ski Mayhem', course: 'lagoon', laps: 3, skill: .9, rank: 0, allow: ['minijet', 'standup', 'freeski'], purse: 800 },
+  { id: 'steamgala', name: 'Steamboat Gala', course: 'harbour', laps: 1, skill: .9, rank: 0, allow: ['steamer'], purse: 900 },
+  { id: 'familyrun', name: 'Family Fun Run', course: 'lake', laps: 2, skill: .91, rank: 0, allow: ['bowrider', 'pontoon', 'ski'], purse: 1000 },
+  { id: 'bassmasters', name: 'Bass Masters', course: 'mist', laps: 3, skill: .95, rank: 1, allow: ['basspro', 'bass'], purse: 2600 },
+  { id: 'rescuechallenge', name: 'Rescue Challenge', course: 'fjord', laps: 2, skill: .96, rank: 1, allow: ['sarrib', 'interceptor', 'rib'], purse: 3000 },
+  { id: 'foilexpress', name: 'Foil Ferry Express', course: 'coast', laps: 1, skill: .97, rank: 2, allow: ['foilferry', 'ftaxi', 'catferry'], purse: 5200 },
+  { id: 'hoverassault', name: 'Hover Assault', course: 'canyon', laps: 2, skill: .98, rank: 3, allow: ['lcac', 'hoverferry', 'rescuehover'], purse: 7600 },
+  { id: 'cigaretteshootout', name: 'Cigarette Shootout', course: 'offshore', laps: 2, skill: .99, rank: 3, allow: ['topgun', 'gofast', 'superstock'], purse: 8400 },
+  { id: 'rocketski', name: 'Rocket Ski Showdown', course: 'lake', laps: 3, skill: 1, rank: 4, allow: ['rocketski'], purse: 12000 },
   { id: 'erikafinale', name: 'Erika 2000 Grand Finale', course: 'erika', laps: 3, skill: 1.0, rank: 2, allow: ['erika'], purse: 6000 },   // listed last: 2,000 knots on the Erika Speedway, open from a Regional licence
 ];
 // racing teams you can join (Teams tab). Each has a livery, a home water, a driver who races against you, and a perk:
