@@ -108,7 +108,7 @@ select { background: var(--raise); border: 1px solid var(--line); border-radius:
   <section id="pTop">
     <div class="bar">
       <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="tQ" type="search" placeholder="Search films" aria-label="Search films"></label>
-      <div class="chips" id="tCat"><button type="button" class="chip" data-v="">All</button><button type="button" class="chip" data-v="W">War</button><button type="button" class="chip" data-v="A">Planes</button><button type="button" class="chip" data-v="D">Disaster</button><button type="button" class="chip" data-v="list">My list</button></div>
+      <div class="chips" id="tCat"><button type="button" class="chip" data-v="">All</button><button type="button" class="chip" data-v="W">War</button><button type="button" class="chip" data-v="A">Planes</button><button type="button" class="chip" data-v="D">Disaster</button><button type="button" class="chip" data-v="free">&#9654; Free here</button><button type="button" class="chip" data-v="list">My list</button></div>
       <select id="tSort" aria-label="Sort"><option value="long">Longest first</option><option value="new">Newest first</option><option value="old">Oldest first</option><option value="az">A to Z</option></select>
     </div>
     <div class="count" id="tCount"></div>
@@ -237,6 +237,7 @@ const chips = (id, val, on) => { $(id).querySelectorAll('.chip').forEach((b) => 
 function paintTop() {
   const q = $('tQ').value.trim().toLowerCase();
   chips('tCat', S.cat, (v) => { S.cat = v; store.set('cat', v); paintTop(); });
+  if (S.cat === 'free') { FreeHere.paint(); FreeHere.load(); return; }
   let l = FILMS.filter((f) => (!S.cat || (S.cat === 'list' ? S.list.includes(keyOf(f)) : f.c.includes(S.cat))) && (!q || (f.t + ' ' + f.y).toLowerCase().includes(q)));
   const by = { long: (a, b) => b.m - a.m, new: (a, b) => b.y - a.y, old: (a, b) => a.y - b.y, az: (a, b) => a.t.replace(/^The /, '').localeCompare(b.t.replace(/^The /, '')) }[S.sort];
   l = l.sort(by);
@@ -256,6 +257,7 @@ $('tGrid').addEventListener('click', (e) => {
   const st = e.target.closest('[data-star]'), fr = e.target.closest('[data-free]');
   if (st) { const k = keyOf(FILMS[+st.dataset.star]); S.list = S.list.includes(k) ? S.list.filter((x) => x !== k) : S.list.concat(k); store.set('list', S.list); paintTop(); }
   if (fr) Lookup.play(FILMS[+fr.dataset.free]);
+  const v = e.target.closest('.vid'); if (v) Player.open({ kind: 'frame', src: 'https://archive.org/embed/' + encodeURIComponent(v.dataset.id), title: v.dataset.t, link: 'https://archive.org/details/' + encodeURIComponent(v.dataset.id) });
 });
 
 // ---------------------------------------------------------------- free films from the Internet Archive (public domain and freely licensed)
@@ -390,7 +392,44 @@ const Lookup = {
 };
 $('plScr').addEventListener('click', (e) => { if (e.target.closest('[data-gofree]')) { e.preventDefault(); Player.close(); S.fcat = 'war'; store.set('fcat', 'war'); showTab('free'); window.scrollTo(0, 0); } });
 
-window.__movies = { FILMS, minutesOf, embedOf, Free, Lookup };
+// ---------------------------------------------------------------- "Free here": every film that plays right on this page.
+// The old films from the list that have a free copy, plus the most watched free war, plane and disaster films of feature length.
+async function ask(u) { try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return await r.json(); } catch (e) { try { return await jsonp(u); } catch (e2) { return null; } } }
+const BASEQ = 'mediatype:(movies) AND collection:(feature_films OR classic_cinema OR film_noir OR silent_films OR sci-fi_horror) AND -collection:(trailers)';
+const FreeHere = {
+  items: null, busy: false, found: 0, failed: false,
+  async load() {
+    if (this.items || this.busy) return;
+    const saved = store.get('freehere', null); if (saved && Date.now() - saved.at < 3 * 864e5 && saved.items.length) { this.items = saved.items; if (S.cat === 'free') this.paint(); return; }
+    this.busy = true; this.failed = false; this.found = 0; this.paint();
+    const out = [], have = new Set(), add = (x) => { if (have.has(x.id)) return; have.add(x.id); out.push(x); this.found = out.length; if (S.cat === 'free') this.paint(); };
+    // films from the list old enough to have a free copy
+    const cands = FILMS.filter((f) => f.y <= 1965); let i = 0, asked = 0, lost = 0;
+    const worker = async () => { while (i < cands.length) { const f = cands[i++]; const id = await Lookup.find(f); asked++; if (id === null) lost++; if (id) add({ id, t: f.t, y: f.y, min: f.m, c: f.c, top: true, dl: 1e9 }); } };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    // the most watched free films on each topic, feature length only
+    for (const [topic, c] of [['war', 'W'], ['air', 'A'], ['dis', 'D']]) {
+      const d = await ask('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(BASEQ + ' AND ' + TOPIC[topic]) + '&fl[]=identifier&fl[]=title&fl[]=year&fl[]=runtime&fl[]=downloads&sort[]=downloads+desc&rows=100&output=json');
+      asked++; if (!d || !d.response) { lost++; continue; }
+      let n = 0; for (const x of d.response.docs || []) { const m = minutesOf(x.runtime); if (!x.identifier || m == null || m < 75 || n >= 15) continue; n++;
+        add({ id: x.identifier, t: Array.isArray(x.title) ? x.title[0] : (x.title || x.identifier), y: x.year ? String(x.year).slice(0, 4) : '', min: Math.round(m), c, dl: x.downloads || 0 }); }
+    }
+    this.busy = false; this.failed = !out.length && lost === asked; this.items = out;
+    if (out.length) store.set('freehere', { at: Date.now(), items: out });
+    if (S.cat === 'free') this.paint();
+  },
+  paint() {
+    const q = $('tQ').value.trim().toLowerCase(), all = this.items || [];
+    const l = all.filter((x) => !q || (x.t + ' ' + x.y).toLowerCase().includes(q)).sort((a, b) => b.dl - a.dl);
+    $('tCount').textContent = this.busy ? 'Checking which films play free right here… ' + this.found + ' found so far' : this.failed ? 'Could not reach the Internet Archive. Check the connection and try again.'
+      : l.length + (l.length === 1 ? ' film plays' : ' films play') + ' right here, free and legal (old films whose copyright has run out)';
+    $('tGrid').innerHTML = l.map((x) => '<button type="button" class="vid" data-id="' + esc(x.id) + '" data-t="' + esc(x.t) + '"><div class="th" style="background-image:url(\'https://archive.org/services/img/' + encodeURIComponent(x.id) + '\')">'
+      + (x.min ? '<span>' + hm(x.min) + '</span>' : '') + '<i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,.5)"/><path d="M10 8v8l6-4z"/></svg></i></div>'
+      + '<div class="tx"><b>' + esc(x.t) + '</b><small>' + [x.y, x.c.split('').map((c) => CAT[c][0]).join(' · '), x.top ? 'on our top list' : ''].filter(Boolean).join(' · ') + '</small></div></button>').join('');
+  },
+};
+
+window.__movies = { FILMS, minutesOf, embedOf, Free, Lookup, FreeHere };
 paintTop(); showTab(['top', 'free', 'mine'].includes(S.tab) ? S.tab : 'top');
 })();
 </script>
