@@ -246,9 +246,10 @@ B.COURSES = {
   mist: { name: 'Misty Lake', blurb: '4.0 km on a glassy mountain lake in the fog: the next buoy appears late', calm: .15, sky: 'mist', land: 'green',
     pts: [[0, 0], [400, -120], [800, -60], [1000, 160], [860, 400], [1040, 620], [960, 860], [640, 900], [480, 700], [200, 760], [-60, 620], [-40, 380], [-220, 200], [-180, 40]] },
   // lane: lane width (m), gate: gate spacing on the straights (m), buoy: buoy and gantry size, clear: islands kept this far from the
-  // centre line (m), assist: the player's boat steers itself along the lane when you are not steering
-  erika: { name: 'Erika Speedway', blurb: '24.6 km giant oval on glassy water, made for the Erika 2000: a 300 m wide lane, gentle bends, nothing to hit, and every boat but the Erika 2000 steers itself until you steer', calm: .08, sky: 'day', land: 'sand',
-    lane: 300, gate: 1500, buoy: 5, clear: 900, assist: true,
+  // centre line (m), assist: the player's boat steers itself along the lane when you are not steering (no course uses it now:
+  // every boat is steered by hand)
+  erika: { name: 'Erika Speedway', blurb: '24.6 km giant oval on glassy water, made for the Erika 2000: a 300 m wide lane, gentle bends, nothing to hit', calm: .08, sky: 'day', land: 'sand',
+    lane: 300, gate: 1500, buoy: 5, clear: 900,
     pts: (() => { const o = [], R = 2000, S = 6000, n = Math.round(S / 150), m = Math.round(Math.PI * R / 150);
       for (let i = 0; i < n; i++) o.push([i * S / n, 0]);
       for (let i = 0; i < m; i++) { const a = -Math.PI / 2 + Math.PI * i / m; o.push([S + R * Math.cos(a), R + R * Math.sin(a)]); }
