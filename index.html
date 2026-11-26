@@ -236,47 +236,35 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 @media (max-height: 520px) and (min-width: 600px) { .brand h1 { font-size: 26px; } .sheet { padding-top: 8px; } .panes { padding-top: 8px; } }
 .em{display:inline-block;font:700 10px/1 system-ui;letter-spacing:.06em;background:#c2331f;color:#fff;border-radius:4px;padding:3px 5px;margin-right:6px;vertical-align:2px}
 
-/* ---------- minimal look: fewer boxes, borders and words; colour only where something is selected ---------- */
+/* ---------- minimal look: normal sizes, but fewer boxes, borders, glows and words; colour only where something is selected ---------- */
 #chooser { background: #070b10; }
-#chooser .wrap { width: min(760px, 100%); gap: 28px; }
-#chooser h1 { font-size: clamp(22px, 4vw, 30px); letter-spacing: 0.3em; font-weight: 600; color: var(--dim); }
-#chooser .sub { font-size: 13px; opacity: 0.7; }
-#chooser .cards { gap: 8px; }
-#chooser .card { min-height: 0; padding: 26px 18px; border-radius: 10px; border-color: transparent; background: transparent; justify-items: center; text-align: center; gap: 14px; }
+#chooser .card { justify-items: center; text-align: center; align-content: center; gap: 16px; border-color: transparent; background: rgba(255,255,255,0.03); }
 #chooser .card span, #chooser .card em { display: none; }
-#chooser .card svg { width: 46px; height: 46px; }
-#chooser .card b { font-size: 26px; font-weight: 600; }
-#chooser .card:hover, #chooser .card:focus-visible { transform: none; background: rgba(255,255,255,0.04); box-shadow: none; border-color: var(--c); }
+#chooser .card:hover, #chooser .card:focus-visible { transform: none; background: rgba(255,255,255,0.05); box-shadow: none; border-color: var(--c); }
 .sheet { background: linear-gradient(90deg, rgba(7,11,16,0.93) 0%, rgba(7,11,16,0.9) 86%, rgba(7,11,16,0) 100%); }
-.brand { align-items: center; gap: 4px 14px; }
-.brand h1 { font-size: 28px; font-weight: 600; letter-spacing: 0.2em; }
-.brand > span { display: none; }
+.brand { align-items: center; gap: 4px 16px; }
 .brand h1 { margin-right: auto; }
-.racelink { margin-left: 0; border: 0; padding: 4px 2px; font-size: 12px; font-weight: 500; color: var(--dim); }
+.brand > span, .ac-blurb, #apBlurb { display: none; }
+.racelink { margin-left: 0; border: 0; padding: 4px 2px; color: var(--dim); }
 .racelink:hover, .racelink:focus-visible { background: none; color: var(--text); }
-.wallet { border: 0; background: none; padding: 4px 0; font-size: 13px; font-weight: 500; }
-.tabs { margin-top: 14px; gap: 0; }
-.tab { font-size: 13px; font-weight: 500; padding: 8px 11px 9px; }
-.tab[aria-selected="true"] { border-bottom-width: 1px; }
-.lbl { font-size: 11px; font-weight: 500; margin: 16px 0 6px; opacity: 0.8; }
-.chip { background: none; border: 1px solid transparent; padding: 5px 9px; min-height: 32px; font-size: 12px; font-weight: 500; color: var(--dim); white-space: nowrap; }
+.wallet { border: 0; background: none; padding: 4px 0; }
+.tabs { gap: 0; }
+.chip { background: none; border-color: transparent; color: var(--dim); white-space: nowrap; }
 .chip:hover { color: var(--text); }
 .chip[aria-pressed="true"] { background: none; color: var(--accent); border-color: rgba(255,181,46,0.5); }
 .acfilter { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 2px; margin-bottom: 8px; }
 .acfilter::-webkit-scrollbar { display: none; }
-.ac { flex-basis: 140px; min-height: 0; background: rgba(255,255,255,0.035); border-color: transparent; border-radius: 6px; padding: 10px 11px; }
+.ac { background: rgba(255,255,255,0.035); border-color: transparent; border-radius: 6px; }
 .ac .c { display: none; }
-.ac .n { font-size: 17px; font-weight: 600; }
-.ac .s { margin-top: 8px; color: var(--dim); font-size: 11px; }
-.seg button[aria-pressed="true"] { background: rgba(255,181,46,0.12); color: var(--accent); }
+.ac .s { color: var(--dim); }
 .ac[aria-pressed="true"] { background: rgba(255,181,46,0.07); border-color: rgba(255,181,46,0.7); box-shadow: none; }
-.ac-blurb { color: var(--dim); font-size: 13px; }
 .sel, .seg { background: rgba(255,255,255,0.035); border-color: transparent; }
-.seg button { border-right-color: transparent; font-weight: 500; }
+.seg button { border-right-color: transparent; }
+.seg button[aria-pressed="true"] { background: rgba(255,181,46,0.12); color: var(--accent); }
 .chal, .crcard { background: rgba(255,255,255,0.035); border-color: transparent; border-radius: 6px; }
 .chal[aria-pressed="true"] { border-color: rgba(255,181,46,0.7); background: rgba(255,181,46,0.06); }
 .chal .b, .crcard p { color: var(--dim); }
-.btn { font-weight: 600; letter-spacing: 0.2em; border-radius: 6px; }
+.btn { border-radius: 6px; }
 .btn.ghost { border-color: rgba(160,190,215,0.28); }
 </style>
 
@@ -7450,6 +7438,22 @@ function build(C, spec) {
       emptyMass: 820, payload: 300, fuelCap: 150, S: 14.8, b: 11.4, c: 1.3, P: 147e3, T0: 3800, D: 1.78, eng: '2 x Rotax 912S 100 hp',
       sp: { vs0: 25, vs1: 29, vr: 31, vy: 40, vne: 88, vfe: 50, vno: 70, vcruise: 70 }, stats: ['2 x 100 hp', 'Retractable gear', 'Cruise 135 kt', 'Ceiling 14,000 ft'], CD0: 0.03, price: 2400, rank: 0 },
       { wing: 'high', wy: 0.95, L0: -3.0, L1: 5.0, blades: 2, body: 0xf4f4f2, stripe: 0x1d6b3a, accent: 0xc12a30 });
+    twAdd('c310', { id: 'pa31', name: 'Piper Navajo Chieftain', cls: 'Piston commuter twin', blurb: 'A stretched cabin-class twin with two turbocharged 350 hp engines: the commuter and freight hauler of the seventies.',
+      emptyMass: 1950, payload: 600, fuelCap: 560, S: 21.3, b: 12.4, c: 1.75, P: 522e3, T0: 9800, D: 2.0, rpmMax: 2575, eng: '2 x Lycoming TIO-540 350 hp',
+      sp: { vs0: 33, vs1: 38, vr: 41, vy: 55, vne: 122, vfe: 75, vno: 105, vcruise: 105 }, eye: [0, 0.75, -1.4], chase: 18, stats: ['2 x 350 hp turbo', 'Retractable gear', 'Cruise 220 kt', 'Seats 10'], CD0: 0.028, price: 4500, rank: 0 },
+      { L0: -4.6, L1: 6.6, long: true, body: 0xf1efe8, stripe: 0x14407a, accent: 0xc12a30 });
+    twAdd('kg350', { id: 'kg90', name: 'Beechcraft King Air C90GTx', cls: 'Twin turboprop', blurb: 'The smaller King Air: two 550 shp PT6s, a conventional tail and a cosy pressurised cabin. Docile and quick.',
+      emptyMass: 3200, payload: 700, fuelCap: 1100, S: 27.3, b: 15.3, c: 1.8, P: 820e3, T0: 17000, D: 2.3, eng: '2 x PT6A-135A 550 shp',
+      sp: { vs0: 40, vs1: 45, vr: 48, vy: 60, vne: 130, vfe: 75, vno: 105, vcruise: 130 }, eye: [0, 0.9, -2.0], chase: 20, stats: ['2 x 550 shp turboprops', 'Cruise 270 kt', 'Ceiling 30,000 ft'], CD0: 0.026, price: 5500, rank: 1 },
+      { tail: 'conv', stabY: 0.8, L0: -4.8, L1: 7.4, body: 0xf3f1ec, stripe: 0x8a1f2b, accent: 0x14181c });
+    twAdd('bn2', { id: 'p68', name: 'Vulcanair P68 Observer', cls: 'High-wing light twin', blurb: 'An Italian high-wing twin with a glass nose for the view: fixed gear, two 200 hp engines and gentle, stable handling.',
+      emptyMass: 1300, payload: 500, fuelCap: 270, S: 18.6, b: 12.0, c: 1.55, P: 298e3, T0: 6000, eng: '2 x Lycoming IO-360 200 hp',
+      sp: { vs0: 27, vs1: 31, vr: 34, vy: 44, vne: 98, vfe: 55, vno: 80, vcruise: 70 }, eye: [0, 0.7, -1.2], chase: 15, stats: ['2 x 200 hp', 'Fixed gear', 'Glass nose', 'Cruise 135 kt'], CD0: 0.030, price: 2600, rank: 0 },
+      { L0: -3.4, L1: 6.0, body: 0xf4f4f2, stripe: 0x1d4fd6, accent: 0xc12a30 });
+    twAdd('dhc6', { id: 'do228', name: 'Dornier 228', cls: 'Utility turboprop twin', blurb: 'A German commuter with a supercritical wing and two Garrett turboprops: fast for its size, short-field capable and very tough.',
+      emptyMass: 3700, payload: 1900, fuelCap: 1900, S: 32, b: 16.97, c: 1.9, P: 1.16e6, T0: 24000, D: 2.7, eng: '2 x Garrett TPE331 776 shp',
+      sp: { vs0: 33, vs1: 38, vr: 41, vy: 55, vne: 128, vfe: 70, vno: 110, vcruise: 115 }, eye: [0, 1.0, -3.0], chase: 25, stats: ['2 x 776 shp turboprops', 'Short take-off', 'Cruise 220 kt', 'Seats 19'], CD0: 0.034, price: 7500, rank: 1 },
+      { tail: 'conv', stabY: 1.2, blades: 4, body: 0xf1efe7, stripe: 0x14407a, accent: 0xffb52e });
   }
 
   // ---- specs: start from the Skymaster and rescale ----
@@ -7715,6 +7719,32 @@ function build(C, spec) {
     sp: { vne: 120, vcruise: 90 }, eye: [0, 0.55, -0.1], chase: 11, stats: ['340 hp piston', 'Roll rate 420°/s', '+10 / -10 G', 'Single seat'], CD0: 0.026, k: 0.06, price: 3200, rank: 0 },
     { body: 0x10161c, stripe: 0xffd400, accent: 0xe2331f });
 
+  // ---- still more singles: a vintage Cub, a radial tail-dragger, a classic retractable, an aerobatic trainer and a turboprop trainer
+  sgAdd('husky', { id: 'j3', name: 'Piper J-3 Cub', cls: 'Vintage tail-dragger', blurb: 'The yellow classic from 1938: 65 hp, fabric wings, no flaps and no electrics. Slow, gentle and the purest flying there is.',
+    emptyMass: 310, payload: 170, fuelCap: 45, S: 16.6, b: 10.7, c: 1.6, P: 58e3, T0: 1600, D: 1.83, rpmMax: 2300, pitch: 'fixed', eng: 'Continental A-65 65 hp', retract: false, flaps: 1,
+    sp: { vne: 54, vcruise: 33 }, eye: [0, 0.6, -0.1], chase: 11, stats: ['65 hp piston', 'Tail-wheel, tandem seats', 'Cruise 65 kt', 'Stalls at 33 kt'], CD0: 0.033, price: 500, rank: 0 },
+    { blades: 2, body: 0xf2c418, stripe: 0x14181c, accent: 0x14181c });
+  sgAdd('c185', { id: 'c195', name: 'Cessna 195 Businessliner', cls: 'Radial tail-dragger', blurb: 'A 1950s Cessna with a 300 hp Jacobs radial, a strutless polished wing and a tail wheel: gorgeous, fast and a handful on landing.',
+    emptyMass: 940, payload: 300, fuelCap: 290, S: 18.6, b: 11.02, c: 1.6, P: 224e3, T0: 5000, D: 2.2, rpmMax: 2200, pitch: 'cs', eng: 'Jacobs R-755 300 hp radial', retract: false, flaps: 2,
+    sp: { vne: 82, vcruise: 70 }, eye: [0, 0.75, -0.5], chase: 13, stats: ['300 hp radial', 'Tail-wheel', 'Cruise 140 kt', 'Seats 5'], CD0: 0.034, price: 2300, rank: 0 },
+    { strut: false, nr: 0.46, blades: 2, body: 0xd8dde3, stripe: 0x14407a, accent: 0xc12a30 });
+  sgAdd('a36', { id: 'pa24', name: 'Piper Comanche 250', cls: 'Classic retractable single', blurb: 'Piper\'s sleek sixties tourer: a laminar wing, retractable gear and a 250 hp engine. Quick, quiet and lovely to fly.',
+    emptyMass: 770, payload: 300, fuelCap: 227, S: 16.5, b: 10.97, c: 1.5, P: 186e3, T0: 4400, D: 1.9, rpmMax: 2575, pitch: 'cs', eng: 'Lycoming O-540 250 hp', retract: true, flaps: 3,
+    sp: { vne: 97, vcruise: 80 }, eye: [0, 0.6, -0.5], chase: 13, stats: ['250 hp, constant-speed prop', 'Retractable gear', 'Cruise 155 kt', 'Seats 4'], CD0: 0.024, price: 2400, rank: 0 },
+    { L0: -2.6, L1: 5.3, blades: 2, body: 0xf1efe8, stripe: 0x1d6b3a, accent: 0xc9a227 });
+  sgAdd('rv7', { id: 'yak52', name: 'Yakovlev Yak-52', cls: 'Aerobatic radial trainer', blurb: 'The Soviet aerobatic trainer: a 360 hp radial, tandem seats and gear that stays half out when retracted. Tough, loud and fully aerobatic.',
+    emptyMass: 1000, payload: 200, fuelCap: 120, S: 15, b: 9.3, c: 1.6, P: 268e3, T0: 6000, D: 2.4, rpmMax: 2900, pitch: 'cs', eng: 'Vedeneyev M-14P 360 hp radial', retract: true, flaps: 2,
+    sp: { vne: 117, vcruise: 75 }, eye: [0, 0.65, -0.2], chase: 12, stats: ['360 hp radial', 'Tandem two-seat', '+7 / -5 G', 'Cruise 145 kt'], CD0: 0.032, price: 2600, rank: 0 },
+    { L0: -2.6, L1: 5.4, w: 0.55, h: 0.9, nr: 0.48, blades: 2, body: 0xc9ced4, stripe: 0xc12a30, accent: 0x1d2a5a });
+  sgAdd('pc21', { id: 'pc7', name: 'Pilatus PC-7 Mk II', cls: 'Turboprop trainer', blurb: 'The air-force trainer: 700 shp, tandem seats and a clean low wing. Fast, fully aerobatic and smooth.',
+    emptyMass: 1330, payload: 200, fuelCap: 380, S: 16.6, b: 10.4, c: 1.6, P: 520e3, T0: 9500, D: 2.36, rpmMax: 2000, pitch: 'cs', eng: 'Pratt & Whitney PT6A-25C 700 shp', retract: true, flaps: 2, turbo: true,
+    sp: { vne: 140, vcruise: 120 }, eye: [0, 0.85, -0.9], chase: 15, stats: ['700 shp turboprop', 'Tandem two-seat', '+6 / -3 G', 'Cruise 230 kt'], CD0: 0.022, price: 5500, rank: 1 },
+    { blades: 3, body: 0xf4f4f2, stripe: 0xc8102e, accent: 0x14181c });
+  sgAdd('c206', { id: 'c182t', name: 'Cessna 182 Turbo Skylane', cls: 'Turbocharged single', blurb: 'A turbocharged Skylane: the same honest four-seater with the power to keep climbing high over mountains.',
+    emptyMass: 920, payload: 220, fuelCap: 330, S: 16.2, b: 11.0, c: 1.49, P: 175e3, T0: 4400, D: 2.0, rpmMax: 2400, pitch: 'cs', eng: 'Lycoming TIO-540 235 hp turbo', retract: false, flaps: 3,
+    sp: { vne: 85, vcruise: 75 }, eye: [0, 0.62, -0.55], chase: 13, stats: ['235 hp turbocharged', 'Fixed gear', 'Cruise 155 kt', 'Ceiling 20,000 ft'], CD0: 0.031, price: 2100, rank: 0 },
+    { L0: -2.7, L1: 5.3, body: 0xf3f1ea, stripe: 0x6b2a8a, accent: 0xc9a227 });
+
   // ---- float-plane variants: the same airframes on EDO-style floats (real water ops, no wheels)
   [['dhc2', 'dhc2f', 'de Havilland Canada DHC-2 Beaver (floats)', 'The classic bush floatplane: take off from a lake, land on a lake, and go anywhere the map is wet.', 120, 4500],
    ['dhc3', 'dhc3f', 'de Havilland Canada DHC-3 Otter (floats)', 'A big single-engine floatplane with a huge wing: slow, strong and happiest on a lake.', 180, 6500],
@@ -7932,7 +7962,7 @@ function build(C, spec) {
     bn58: 3500, pa34: 2500, c310: 3000, da42: 3000, kg350: 7000, bn2: 2800, dhc6: 6500,
     t38: 2500, a10: 4000, f5: 3500, f4: 6000, f18: 9000, f15: 12000, f14: 11000, f22: 20000, f35: 24000,
     para: 800,
-    b737: 4000, b762: 7500, b764: 10000, b779: 19000, b778: 17500, titan: 60000, b736: 3600, b37m7: 6500, b39m: 7500, b742: 12500, a19n: 6000, a338: 11000, a345: 13500, md83: 4500, tu204: 5500, il86: 8500, e290: 7500, cv990: 5000, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
+    b737: 4000, b762: 7500, b764: 10000, b779: 19000, b778: 17500, titan: 60000, j3: 500, c195: 2300, pa24: 2400, yak52: 2600, pc7: 5500, c182t: 2100, pa31: 4500, kg90: 5500, p68: 2600, do228: 7500, b736: 3600, b37m7: 6500, b39m: 7500, b742: 12500, a19n: 6000, a338: 11000, a345: 13500, md83: 4500, tu204: 5500, il86: 8500, e290: 7500, cv990: 5000, b78x: 14000, b74sp: 12000, a339: 12000, crj7: 3700, c919: 6000, mc21: 6500, ssj100: 4300, yak42: 4000, vc10: 6500,
     c152: 600, rv7: 2000, decathlon: 1600, c210: 2600, pa44: 2200, p2006: 2400, pa46: 5000,
     c177: 2300, sr20: 2400, da20: 900, pc21: 9000, edge540: 3200, a321xlr: 8000, b38m10: 8000, b753: 8500, b733: 3800, crj1000: 4800, il96: 10500,
     r44: 1500, h125: 3500, uh60: 9000, ch47: 14000, r22: 900, b206: 2800, h135: 6000, uh1h: 7000, aw139: 11000, mi8: 12000,
@@ -7940,7 +7970,7 @@ function build(C, spec) {
   };
   FREE.forEach((id) => { PRICE[id] = 0; });
   const GROUPS = [
-    { id: 'light', name: 'Light & sport', ids: ['c172', 'c208', 'c337', 'extra', 'glider', 'para', 'pa34', 'bn58', 'c310', 'da42', 'bn2', 'kg350', 'pa28', 'c182', 'da40', 'm20', 'a36', 'sr22', 'pc12', 'tbm9', 'c206', 'pa32', 'dr400', 'c152', 'rv7', 'decathlon', 'c210', 'pa44', 'p2006', 'pa46', 'c177', 'sr20', 'da20', 'pc21', 'edge540'] },
+    { id: 'light', name: 'Light & sport', ids: ['c172', 'c208', 'c337', 'extra', 'glider', 'para', 'pa34', 'bn58', 'c310', 'da42', 'bn2', 'kg350', 'pa28', 'c182', 'da40', 'm20', 'a36', 'sr22', 'pc12', 'tbm9', 'c206', 'pa32', 'dr400', 'c152', 'rv7', 'decathlon', 'c210', 'pa44', 'p2006', 'pa46', 'c177', 'sr20', 'da20', 'pc21', 'edge540', 'j3', 'c195', 'pa24', 'c182t', 'yak52', 'pc7', 'p68', 'pa31', 'kg90', 'do228'] },
     { id: 'stol', name: 'Bush & STOL', ids: ['cub', 'ccub', 'husky', 'm7', 'c185', 'helio', 'wilga', 'pc6', 'kodiak', 'draco'] },
     { id: 'boeing', name: 'Boeing', ids: ['b707', 'b717', 'b727', 'b732', 'b733', 'b736', 'b737', 'b738', 'b37m7', 'b738m', 'b39m', 'b38m10', 'b739', 'b742', 'b747', 'b744', 'b74sp', 'b748', 'b752', 'b753', 'b762', 'b763', 'b764', 'b772', 'b777', 'b778', 'b779', 'b788', 'b789', 'b78x'] },
     { id: 'airbus', name: 'Airbus', ids: ['a220', 'a223', 'a300', 'a310', 'a318', 'a319', 'a19n', 'a320', 'a20n', 'a321', 'a321xlr', 'a332', 'a333', 'a338', 'a339', 'a343', 'a345', 'a346', 'a359', 'a35k', 'a388'] },
