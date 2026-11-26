@@ -13607,19 +13607,21 @@ SIM.Game = (function () {
 
   // ---------------- main frame ----------------
   P.frame = function (tms) {
-    const t = tms / 1000; let dt = this.last ? Math.min(0.05, t - this.last) : 0.016; this.last = t; this._dt = dt;
+    // a slow computer (under 20 frames a second) used to run the whole flight in slow motion, so the stick and throttle felt dead.
+    // Controls now follow real time (up to a quarter second a frame) and the physics keeps real time down to 10 frames a second.
+    const t = tms / 1000, raw = this.last ? Math.max(0, Math.min(0.25, t - this.last)) : 0.016; let dt = Math.min(0.1, raw); this.last = t; this._dt = dt;
     const w3 = this.world3d, ent = this.ent;
     if (!ent) return;
     const ac = this.ac;
     if (this.mode === 'play' || this.mode === 'result') {
-      if (this.mode === 'play') this.applyControls(dt);
+      if (this.mode === 'play') this.applyControls(raw);
       else { ac.ctl.pitch = ac.ctl.roll = ac.ctl.yaw = 0; if (this.input.justPressed('Enter')) { /* handled by UI */ } }
       // time warp (autopilot cruise only): the challenge's own limit decides when it is allowed
       if (this.mode === 'play' && this.kind === 'free') this.warpLimit = (ac.ap.on && !ac.onGround && ac.agl > 300 && !ac.crashed) ? 8 : 1;
       if (this.warp > (this.warpLimit || 1) || this.mode !== 'play') this.warp = 1;
       const wp = this.warp || 1, sdt = dt * wp;
       this.acc += sdt; let n = 0;
-      while (this.acc >= DT && n < 10 * wp) { if (this.tow) this.tow.pre(DT); ac.step(DT); this.acc -= DT; n++; }
+      while (this.acc >= DT && n < 14 * wp) { if (this.tow) this.tow.pre(DT); ac.step(DT); this.acc -= DT; n++; }
       if (this.acc > DT) this.acc = 0;
       this.clock += sdt;
       this.updateStart(sdt);
