@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Erika Karts</title>
-<meta name="description" content="Go-kart racing: four tracks, six karts, drift boosts and boost pads, seven rivals, time trials and best laps.">
+<meta name="description" content="Kart racing with real kart physics: eleven karts from hire karts to 250 cc superkarts, a career with championships, credits, a garage and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: full-screen 3D track; a menu card on the left over a slowly circling preview; in the race a HUD (position and laps top
-   left, timing top right, speed and drift meter bottom centre, track map bottom right). Same Erika Pro look as the other games. */
+/* Layout: full-screen 3D track; a menu card on the left (tabs: Race, Career, Garage) over a slowly circling preview; in the race a HUD
+   (position and laps top left, timing top right, speed and gear bottom centre, track map bottom right). Same Erika Pro look as the
+   other games. */
 :root {
   color-scheme: dark;
   --accent: #ff6b3d; --accent-ink: #1f0a03; --text: #eef1f5; --dim: #8d99a7; --line: rgba(255, 255, 255, .08); --line2: rgba(255, 255, 255, .16);
@@ -21,55 +22,69 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #06080c; color: var(--text); font: 15px/1.45 var(--ui); -webkit-user-select: none; user-select: none; touch-action: none }
 #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block }
 button { font: inherit; color: inherit; cursor: pointer }
+button[disabled] { opacity: .45; cursor: not-allowed }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 /* menu */
 #menu { position: fixed; inset: 0; display: flex; align-items: flex-start; overflow: auto; padding: 18px clamp(14px, 4vw, 56px);
-  background: linear-gradient(90deg, rgba(6, 8, 12, .9) 0%, rgba(6, 8, 12, .72) 42%, rgba(6, 8, 12, .08) 72%) }
-.card { margin: auto 0; width: min(640px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 26px; display: grid; gap: 16px;
+  background: linear-gradient(90deg, rgba(6, 8, 12, .9) 0%, rgba(6, 8, 12, .72) 46%, rgba(6, 8, 12, .08) 74%) }
+.card { margin: auto 0; width: min(700px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px 26px; display: grid; gap: 14px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05); position: relative; overflow: hidden }
 .card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--accent) }
-.top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap }
-h1 { margin: 0; font: 700 44px/1 var(--disp); letter-spacing: .1em; text-transform: uppercase; margin-right: auto }
+.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+h1 { margin: 0; font: 700 42px/1 var(--disp); letter-spacing: .1em; text-transform: uppercase; margin-right: auto }
 h1 b { color: var(--accent) }
-.sub { color: var(--dim); font-size: 13.5px; margin-top: -8px }
+.wallet { font: 600 14px var(--ui); color: #ffd36b; border: 1px solid rgba(255, 211, 107, .28); background: rgba(255, 181, 46, .08); border-radius: 8px; padding: 6px 11px; white-space: nowrap }
+.lic { font: 500 12.5px var(--ui); color: var(--dim); border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px } .lic b { color: var(--text) }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line) }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 11px 12px 10px; font: 600 12.5px var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--dim) }
+.tabs button:hover { color: #fff } .tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--accent) }
+.pane { display: grid; gap: 14px }
+.sub { color: var(--dim); font-size: 13px }
 .lbl { font: 600 11px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px }
 .pick { text-align: left; background: var(--raise); border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; position: relative; overflow: hidden; transition: border-color .15s, transform .15s }
-.pick:hover { border-color: var(--line2); transform: translateY(-2px) }
+.pick:hover:not([disabled]) { border-color: var(--line2); transform: translateY(-2px) }
 .pick::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--accent); opacity: 0 }
 .pick[aria-pressed="true"] { border-color: rgba(255, 107, 61, .8); background: linear-gradient(180deg, rgba(255, 107, 61, .13), rgba(255, 107, 61, .02)) }
 .pick[aria-pressed="true"]::before { opacity: 1 }
 .pick b { display: block; font: 700 18px/1.1 var(--disp); letter-spacing: .03em }
 .pick small { display: block; color: var(--dim); font-size: 11.5px; margin-top: 2px }
-.pick svg { width: 100%; height: 54px; display: block; margin-bottom: 6px }
+.pick .pr { color: #ffd36b } .pick .own { color: #46d98a }
+.pick svg { width: 100%; height: 50px; display: block; margin-bottom: 6px }
 .pick svg path { fill: none; stroke: #cfd8e0; stroke-width: 3; stroke-linejoin: round }
 .pick[aria-pressed="true"] svg path { stroke: var(--accent) }
 .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid rgba(255, 255, 255, .3) }
-.bars { display: grid; gap: 3px; margin-top: 7px }
-.bars i { display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: center; font: 500 9.5px var(--ui); letter-spacing: .08em; color: var(--dim); font-style: normal; text-transform: uppercase }
-.bars i span { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden } .bars i span::after { content: ""; display: block; height: 100%; width: var(--w); background: #cfd8e0 }
-.pick[aria-pressed="true"] .bars i span::after { background: var(--accent) }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px }
 .seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line) }
 .seg button { flex: 1; border: 0; border-radius: 7px; background: transparent; padding: 8px 6px; font: 600 12px var(--ui); letter-spacing: .06em; color: #cdd6de }
-.seg button:hover { color: #fff }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
-.btn { border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); padding: 13px 26px; font: 700 17px var(--disp); letter-spacing: .18em; text-transform: uppercase; box-shadow: 0 10px 26px rgba(255, 107, 61, .25) }
-.btn:hover { filter: brightness(1.07) } .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); box-shadow: none }
+.seg button:hover { color: #fff } .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
+.btn { border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); padding: 12px 24px; font: 700 17px var(--disp); letter-spacing: .18em; text-transform: uppercase; box-shadow: 0 10px 26px rgba(255, 107, 61, .25) }
+.btn:hover:not([disabled]) { filter: brightness(1.07) } .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); box-shadow: none }
+.btn.sm { padding: 8px 14px; font-size: 14px; box-shadow: none }
 .foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap }
 .foot .links { margin-left: auto; display: flex; gap: 16px } .foot a { color: var(--dim); text-decoration: none; font-size: 13.5px } .foot a:hover { color: #fff }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12.5px; color: var(--dim) } .keys b { color: var(--text); font-weight: 600 }
-.best { color: #ffd36b; font: 500 13px var(--ui) }
+.note { color: var(--dim); font-size: 12.5px }
+.box { background: var(--raise); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px }
+.bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden } .bar i { display: block; height: 100%; background: var(--accent) }
+.ev { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; background: var(--raise); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px }
+.ev b { font: 700 18px/1.1 var(--disp); letter-spacing: .03em } .ev small { display: block; color: var(--dim); font-size: 12px }
+.ev .pr { font: 600 13px var(--ui); color: #ffd36b; text-align: right } .ev .done { color: #46d98a; font-size: 12px; font-weight: 600 }
+.ev.locked { opacity: .55 }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px } .stats div { background: rgba(255, 255, 255, .035); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px }
+.stats span { display: block; font: 600 10px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--dim) } .stats b { font: 700 18px var(--disp) }
+.upg { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--line) } .upg small { display: block; color: var(--dim); font-size: 11.5px }
+.pips { display: flex; gap: 3px } .pips i { width: 16px; height: 6px; border-radius: 2px; background: rgba(255, 255, 255, .1) } .pips i.on { background: #ffd36b }
 /* HUD */
-.hp { position: absolute; background: rgba(8, 11, 15, .8); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; backdrop-filter: blur(4px) }
+.hp { position: absolute; background: rgba(8, 11, 15, .8); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px }
 #hPos { left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top)); min-width: 150px; border-left: 3px solid var(--accent) }
 #hPos .p { font: 700 52px/1 var(--disp) } #hPos .p small { font-size: 22px; color: var(--dim); margin-left: 3px }
 #hPos .l { font: 600 12px var(--ui); letter-spacing: .14em; color: var(--dim); text-transform: uppercase; margin-top: 2px }
-#hTime { right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); text-align: right; min-width: 170px; font-variant-numeric: tabular-nums }
+#hTime { right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); text-align: right; min-width: 180px; font-variant-numeric: tabular-nums }
 #hTime .c { font: 700 30px/1 var(--disp); letter-spacing: .02em } #hTime .s { font-size: 12.5px; color: var(--dim); margin-top: 4px }
-#hSpd { left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); text-align: center; min-width: 210px }
-#hSpd .v { font: 700 44px/.95 var(--disp) } #hSpd .u { font: 600 11px var(--ui); letter-spacing: .14em; color: var(--dim) }
-#hDrift { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; margin-top: 7px } #hDrift i { display: block; height: 100%; width: 0 }
+#hSpd { left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); text-align: center; min-width: 220px; display: grid; grid-template-columns: auto 1fr; gap: 0 14px; align-items: center }
+#hG { font: 700 40px/1 var(--disp); color: var(--accent); min-width: 26px } #hV { font: 700 44px/.95 var(--disp) } #hSpd .u { font: 600 11px var(--ui); letter-spacing: .14em; color: var(--dim) }
+#hRpm { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; margin-top: 7px } #hRpm i { display: block; height: 100%; width: 0; background: #cfd8e0 }
 #hMap { right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: 190px; height: 190px; padding: 6px }
 #hMsg { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); font: 700 clamp(34px, 8vw, 84px)/1 var(--disp); letter-spacing: .06em; text-transform: uppercase; text-align: center;
   text-shadow: 0 4px 24px rgba(0, 0, 0, .6); pointer-events: none; white-space: nowrap }
@@ -81,12 +96,13 @@ h1 b { color: var(--accent) }
   display: grid; place-items: center; font: 700 15px var(--disp); letter-spacing: .08em; color: #dfe6ec; touch-action: none }
 #touch .t.on { background: rgba(255, 107, 61, .45) }
 /* overlays */
-.ov { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 9, .7); padding: 16px; z-index: 5 }
-.ov .card { width: min(520px, 100%) }
+.ov { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 9, .7); padding: 16px; z-index: 5; overflow: auto }
+.ov .card { width: min(560px, 100%) }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums } td { padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 14px }
 td:last-child { text-align: right } tr.me td { color: var(--accent); font-weight: 700 }
+.earn { font: 600 15px var(--ui); color: #ffd36b } .earn small { display: block; color: var(--dim); font-weight: 500; font-size: 12.5px }
 .btns { display: flex; gap: 8px; flex-wrap: wrap } .btns .btn { flex: 1 }
-@media (max-width: 700px) { #hMap { width: 120px; height: 120px; bottom: 110px } #hSpd { bottom: 104px } #hPos .p { font-size: 38px } h1 { font-size: 36px } }
+@media (max-width: 700px) { #hMap { width: 120px; height: 120px; bottom: 110px } #hSpd { bottom: 104px } #hPos .p { font-size: 38px } h1 { font-size: 34px } .stats { grid-template-columns: repeat(2, 1fr) } }
 </style>
 </head>
 <body>
@@ -94,7 +110,7 @@ td:last-child { text-align: right } tr.me td { color: var(--accent); font-weight
 <div id="hud" hidden>
   <div class="hp" id="hPos"><div class="p" id="hP">1<small>/8</small></div><div class="l" id="hL">Lap 1 / 3</div></div>
   <div class="hp" id="hTime"><div class="c" id="hC">0:00.000</div><div class="s" id="hS">Best --</div></div>
-  <div class="hp" id="hSpd"><div class="v" id="hV">0</div><div class="u">KM/H</div><div id="hDrift"><i id="hDi"></i></div></div>
+  <div class="hp" id="hSpd"><div id="hG">1</div><div><div id="hV">0</div><div class="u">KM/H</div></div><div id="hRpm"><i id="hRi"></i></div></div>
   <canvas class="hp" id="hMap" width="360" height="360"></canvas>
   <div id="hMsg"></div>
   <div id="hBtns"><button type="button" id="bPause">Pause</button><button type="button" id="bCam">Camera</button></div>
@@ -102,29 +118,39 @@ td:last-child { text-align: right } tr.me td { color: var(--accent); font-weight
 <div id="touch" hidden>
   <div class="t" id="tL" style="left:max(16px,env(safe-area-inset-left))">&#9664;</div>
   <div class="t" id="tR" style="left:calc(max(16px,env(safe-area-inset-left)) + 90px)">&#9654;</div>
-  <div class="t" id="tD" style="right:calc(max(16px,env(safe-area-inset-right)) + 180px)">DRIFT</div>
   <div class="t" id="tB" style="right:calc(max(16px,env(safe-area-inset-right)) + 90px)">BRAKE</div>
   <div class="t" id="tG" style="right:max(16px,env(safe-area-inset-right))">GAS</div>
 </div>
 
 <section id="menu">
   <div class="card">
-    <div class="top"><h1>Erika <b>Karts</b></h1><span class="best" id="mBest"></span></div>
-    <div class="sub">Go-kart racing. Hold drift through a corner, let go for a boost. Hit the orange pads for more.</div>
-    <div><div class="lbl">Track</div><div class="grid" id="mTracks"></div></div>
-    <div><div class="lbl">Kart</div><div class="grid" id="mKarts"></div></div>
-    <div class="row">
-      <div><div class="lbl">Mode</div><div class="seg" id="mMode"><button type="button" data-v="race">Race</button><button type="button" data-v="trial">Time trial</button></div></div>
-      <div><div class="lbl">Laps</div><div class="seg" id="mLaps"><button type="button" data-v="3">3</button><button type="button" data-v="5">5</button></div></div>
-      <div><div class="lbl">Rivals</div><div class="seg" id="mDiff"><button type="button" data-v="0.9">Easy</button><button type="button" data-v="0.97">Medium</button><button type="button" data-v="1.03">Hard</button></div></div>
+    <div class="top"><h1>Erika <b>Karts</b></h1><span class="lic" id="mLic"></span><span class="wallet" id="mWallet"></span></div>
+    <div class="tabs" role="tablist"><button type="button" role="tab" data-tab="race">Race</button><button type="button" role="tab" data-tab="career">Career</button><button type="button" role="tab" data-tab="garage">Garage</button></div>
+    <div class="pane" id="pRace">
+      <div><div class="lbl">Track</div><div class="grid" id="mTracks"></div></div>
+      <div><div class="lbl">Kart <span style="text-transform:none;letter-spacing:0;font-weight:500">(rivals drive the same class)</span></div><div class="grid" id="mKarts"></div></div>
+      <div class="row">
+        <div><div class="lbl">Mode</div><div class="seg" id="mMode"><button type="button" data-v="race">Race</button><button type="button" data-v="trial">Time trial</button></div></div>
+        <div><div class="lbl">Laps</div><div class="seg" id="mLaps"><button type="button" data-v="3">3</button><button type="button" data-v="5">5</button><button type="button" data-v="8">8</button></div></div>
+        <div><div class="lbl">Rivals</div><div class="seg" id="mDiff"><button type="button" data-v="0.93">Easy</button><button type="button" data-v="0.98">Medium</button><button type="button" data-v="1.02">Hard</button></div></div>
+      </div>
+      <div class="note" id="mPay"></div>
+      <div class="keys"><b>&uarr; / W</b><span>Throttle</span><b>&darr; / S</b><span>Brake (most karts brake the rear wheels only: brake in a straight line). Hold when stopped to roll back</span><b>&larr; &rarr; / A D</b><span>Steer. Too much lock or too much speed and the tyres slide</span><b>C &middot; M &middot; R &middot; Esc</b><span>Camera &middot; sound &middot; restart &middot; pause</span></div>
+      <div class="foot"><button class="btn" id="mGo" type="button">Race</button><span class="links"><a href="#" class="msgF" title="Send Fernando a message">Message Fernando</a><a href="./" title="Back to the game choice">&larr; All games</a></span></div>
     </div>
-    <div class="keys"><b>&uarr; / W</b><span>Gas</span><b>&darr; / S</b><span>Brake, reverse</span><b>&larr; &rarr; / A D</b><span>Steer</span><b>Space / Shift</b><span>Drift (hold, let go for a boost)</span><b>C &middot; M &middot; Esc</b><span>Camera &middot; sound &middot; pause</span></div>
-    <div class="foot"><button class="btn" id="mGo" type="button">Race</button><span class="links"><a href="#" id="mMsg" title="Send Fernando a message">Message Fernando</a><a href="./" title="Back to the game choice">&larr; All games</a></span></div>
+    <div class="pane" id="pCareer" hidden>
+      <div class="box" id="cRank"></div>
+      <div class="lbl" style="margin:4px 0 -6px">Events and championships</div>
+      <div class="pane" id="cEvents" style="gap:8px"></div>
+    </div>
+    <div class="pane" id="pGarage" hidden>
+      <div class="grid" id="gKarts"></div>
+      <div class="box" id="gDetail"></div>
+    </div>
   </div>
 </section>
 <div class="ov" id="pause" hidden><div class="card"><h1 style="font-size:36px">Paused</h1><div class="btns"><button class="btn" id="pRes" type="button">Resume</button><button class="btn ghost" id="pRe" type="button">Restart</button><button class="btn ghost" id="pQuit" type="button">Menu</button></div></div></div>
-<div class="ov" id="res" hidden><div class="card"><h1 style="font-size:36px" id="rH">Results</h1><div class="sub" id="rS"></div><table id="rT"></table><div class="btns"><button class="btn" id="rAgain" type="button">Race again</button><button class="btn ghost" id="rNext" type="button">Next track</button><button class="btn ghost" id="rMenu" type="button">Menu</button></div></div></div>
-
+<div class="ov" id="res" hidden><div class="card"><h1 style="font-size:36px" id="rH">Results</h1><div class="sub" id="rS"></div><table id="rT"></table><div class="earn" id="rE"></div><div class="btns" id="rB"></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -141,6 +167,7 @@ const wrapA = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI
 function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; }
 const store = { get(k, d) { try { const v = localStorage.getItem('erika.kart.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('erika.kart.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } } };
 const fmtT = (t) => { if (t == null || !isFinite(t)) return '--'; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(3); };
+const fmtN = (n) => Math.round(n).toLocaleString('en-US');
 
 // ------------------------------------------------------------------ tracks
 // each track is a star-shaped loop: a radius that wobbles with a few harmonics (so it can never cross itself), stretched sideways
@@ -151,7 +178,7 @@ const TRACKS = {
   night: { name: 'Neon Night', blurb: 'Under the lights, with neon kerbs', R: 165, sx: 1.25, h: [[2, .16, 1.2], [4, .12, .3], [5, .04, 1.7]], sky: 'night', seed: 41 },
 };
 const TRACK_ORDER = Object.keys(TRACKS);
-const W = 13, HW = W / 2, GRASS = 7, DS = 2;   // track width, grass run-off before the tyre wall, sample spacing (m)
+const W = 11, HW = W / 2, GRASS = 7, DS = 2;   // track width, grass run-off before the tyre wall, sample spacing (m)
 const SKIES = {
   day: { sky: [0x7fb3e6, 0xdcecf7], fog: 0xcfe3f0, ground: 0x4f9a3a, ground2: 0x5fae45, sun: 1.0, amb: .55, near: 160, far: 900 },
   sunset: { sky: [0x3d4f8c, 0xf2a05c], fog: 0xe0a27a, ground: 0x4a7f3a, ground2: 0x5a8f44, sun: .85, amb: .5, near: 140, far: 850, sunCol: 0xffc08a },
@@ -170,15 +197,7 @@ function buildTrackData(key) {
   const Q = P.slice(best).concat(P.slice(0, best));
   Q.forEach((p, i) => { const a = Q[(i - 2 + N) % N], b = Q[(i + 2) % N]; p.h = Math.atan2(b.z - a.z, b.x - a.x); p.rx = -Math.sin(p.h); p.rz = Math.cos(p.h); });
   Q.forEach((p, i) => { p.k = wrapA(Q[(i + 4) % N].h - Q[(i - 4 + N) % N].h) / (8 * DS); });
-  const L = N * DS;
-  // racing speed profile (m/s): cornering grip, then braking from the corner backwards
-  const LAT = 17.5, v = Q.map((p) => Math.min(40, Math.sqrt(LAT / Math.max(1e-4, Math.abs(p.k)))));
-  for (let pass = 0; pass < 2; pass++) for (let n = 0; n < N * 2; n++) { const i = (N * 2 - n) % N, jn = (i + 1) % N; v[i] = Math.min(v[i], Math.sqrt(v[jn] * v[jn] + 2 * 16 * DS)); }
-  // boost pads on the straights, off the middle so you have to aim for them
-  const r = rng(t.seed), pads = [];
-  for (let i = 40; i < N - 30; i += 6) { let straight = true; for (let k = -12; k <= 12; k++) if (Math.abs(Q[(i + k + N) % N].k) > 1 / 160) { straight = false; break; }
-    if (straight && (!pads.length || i - pads[pads.length - 1].i > 120)) pads.push({ i, d: (r() < .5 ? -1 : 1) * (1.5 + r() * 2) }); }
-  return { key, t, P: Q, N, L, prof: v, pads };
+  return { key, t, P: Q, N, L: N * DS, pads: [] };
 }
 const locate = (T, x, z, hint) => {
   const P = T.P, N = T.N; let best = 0, bd = 1e18;
@@ -187,72 +206,7 @@ const locate = (T, x, z, hint) => {
   const p = P[best]; return { i: best, d: (x - p.x) * p.rx + (z - p.z) * p.rz };
 };
 
-// ------------------------------------------------------------------ karts
-const KARTS = {
-  zip: { name: 'Zipper', col: ['#2fd4c4', '#10161c'], vmax: 26, acc: 17, turn: 2.8, grip: 1.05, mass: .9, blurb: 'Quick off the line, light and nimble' },
-  blaze: { name: 'Blaze', col: ['#ff3d3d', '#f4f4f2'], vmax: 29, acc: 14, turn: 2.5, grip: 1, mass: 1, blurb: 'The all-rounder' },
-  grip: { name: 'Gecko', col: ['#7ad000', '#10161c'], vmax: 27.5, acc: 15, turn: 3.0, grip: 1.12, mass: .95, blurb: 'Sticks in the corners' },
-  tank: { name: 'Bulldog', col: ['#3d5afe', '#ffd400'], vmax: 30, acc: 11.5, turn: 2.2, grip: .95, mass: 1.45, blurb: 'Heavy, fast, wins every shove' },
-  bolt: { name: 'Bolt', col: ['#ffd400', '#10161c'], vmax: 31, acc: 12.5, turn: 2.3, grip: .96, mass: 1.05, blurb: 'Top speed above all' },
-  erika: { name: 'Erika Gold', col: ['#d4af37', '#10161c'], vmax: 32.5, acc: 15, turn: 2.6, grip: 1.04, mass: 1, music: true, blurb: 'The gold kart: fast and plays the Erika song' },
-};
-const KART_ORDER = Object.keys(KARTS);
-const RIVALS = ['Marlow', 'Ostrova', 'Tanaka', 'Delacroix', 'Okonkwo', 'Varga', 'Lindqvist'];
-
-// ------------------------------------------------------------------ sound: an engine note, drift screech, beeps; the Erika song
-const Snd = {
-  ac: null, on: store.get('sound', true),
-  init() { if (this.ac) return; try { const AC = window.AudioContext || window.webkitAudioContext; this.ac = new AC(); } catch (e) { return; }
-    const a = this.ac; this.master = a.createGain(); this.master.gain.value = this.on ? .5 : 0; this.master.connect(a.destination);
-    this.o1 = a.createOscillator(); this.o1.type = 'sawtooth'; this.o2 = a.createOscillator(); this.o2.type = 'square'; this.lp = a.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 900;
-    this.eg = a.createGain(); this.eg.gain.value = 0; this.o1.connect(this.lp); this.o2.connect(this.lp); this.lp.connect(this.eg); this.eg.connect(this.master); this.o1.start(); this.o2.start();
-    const nb = a.createBuffer(1, a.sampleRate, a.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    this.ns = a.createBufferSource(); this.ns.buffer = nb; this.ns.loop = true; this.bp = a.createBiquadFilter(); this.bp.type = 'bandpass'; this.bp.frequency.value = 2400; this.bp.Q.value = 3;
-    this.dg = a.createGain(); this.dg.gain.value = 0; this.ns.connect(this.bp); this.bp.connect(this.dg); this.dg.connect(this.master); this.ns.start(); },
-  engine(v, thr, boost, drift, live) { if (!this.ac) return; const t = this.ac.currentTime, f = 55 + Math.abs(v) * 7.5 + (boost ? 40 : 0);
-    this.o1.frequency.setTargetAtTime(f, t, .05); this.o2.frequency.setTargetAtTime(f * .5, t, .05); this.lp.frequency.setTargetAtTime(500 + thr * 1400 + (boost ? 900 : 0), t, .08);
-    this.eg.gain.setTargetAtTime(live ? .06 + .07 * thr : 0, t, .08); this.dg.gain.setTargetAtTime(live && drift ? .05 : 0, t, .05); },
-  beep(f, d) { if (!this.ac || !this.on) return; const a = this.ac, o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; g.gain.setValueAtTime(.0001, a.currentTime); g.gain.exponentialRampToValueAtTime(.3, a.currentTime + .01); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + d); o.connect(g); g.connect(this.master); o.start(); o.stop(a.currentTime + d + .05); },
-  toggle() { this.on = !this.on; store.set('sound', this.on); if (this.master) this.master.gain.value = this.on ? .5 : 0; },
-};
-const Song = {
-  files: ['erika.mp3', 'Erika..mp3', 'Erika.mp3', "German Soldier's Song - _Erika_ (with English Subtitles) (128).mp3", 'ERIKA.mp3', 'erika.m4a', 'erika.ogg'],
-  el: null, k: 0, failed: false, busy: false,
-  update(on) {
-    if (!on || document.hidden || !Snd.on) { if (this.el && !this.el.paused) this.el.pause(); return; }
-    if (this.failed) return;
-    if (!this.el) { this.el = new Audio(encodeURIComponent(this.files[this.k])); this.el.loop = true; this.el.volume = 1; this.el.addEventListener('error', () => { this.el = null; this.busy = false; if (++this.k >= this.files.length) this.failed = true; }); }
-    if (this.el && this.el.paused && !this.busy) { const el = this.el; this.busy = true; const p = el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { if (this.el === el) this.busy = false; }); }
-  },
-};
-document.addEventListener('visibilitychange', () => { if (document.hidden && Song.el) Song.el.pause(); });
-
-// ------------------------------------------------------------------ input: keyboard, gamepad, touch
-const Input = {
-  k: {}, touch: { L: 0, R: 0, D: 0, B: 0, G: 0 }, prev: {}, pressed: {},
-  init() {
-    window.addEventListener('keydown', (e) => { if (e.target && e.target.matches && e.target.matches('input, textarea')) return; this.k[e.code] = true; this.pressed[e.code] = true;
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && Game.mode !== 'menu') e.preventDefault(); });
-    window.addEventListener('keyup', (e) => { this.k[e.code] = false; });
-    window.addEventListener('blur', () => { this.k = {}; });
-    for (const [id, key] of [['tL', 'L'], ['tR', 'R'], ['tD', 'D'], ['tB', 'B'], ['tG', 'G']]) {
-      const el = $(id), on = (v) => (e) => { e.preventDefault(); this.touch[key] = v; el.classList.toggle('on', !!v); };
-      el.addEventListener('pointerdown', on(1)); el.addEventListener('pointerup', on(0)); el.addEventListener('pointercancel', on(0)); el.addEventListener('pointerleave', on(0));
-    }
-  },
-  read() {
-    const k = this.k, t = this.touch; let steer = (k.ArrowRight || k.KeyD || t.R ? 1 : 0) - (k.ArrowLeft || k.KeyA || t.L ? 1 : 0), thr = k.ArrowUp || k.KeyW || t.G ? 1 : 0, brk = k.ArrowDown || k.KeyS || t.B ? 1 : 0,
-      drift = !!(k.Space || k.ShiftLeft || k.ShiftRight || t.D);
-    const gps = navigator.getGamepads ? navigator.getGamepads() : []; let pause = false, cam = false;
-    for (const g of gps) { if (!g || !g.connected) continue; const ax = g.axes[0] || 0, bt = (i) => g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > .5), val = (i) => g.buttons[i] ? g.buttons[i].value : 0;
-      if (Math.abs(ax) > .15) steer = ax; if (val(7) > .05) thr = Math.max(thr, val(7)); if (val(6) > .05) brk = Math.max(brk, val(6)); if (bt(0) || bt(5) || bt(4)) drift = true;
-      if (bt(9) && !this.prev.p) pause = true; this.prev.p = bt(9); if (bt(3) && !this.prev.c) cam = true; this.prev.c = bt(3); break; }
-    if (this.pressed.Escape || this.pressed.KeyP) pause = true; if (this.pressed.KeyC) cam = true; const mute = !!this.pressed.KeyM, restart = !!this.pressed.KeyR; this.pressed = {};
-    return { steer: clamp(steer, -1, 1), thr, brk, drift, pause, cam, mute, restart };
-  },
-};
-
-// ------------------------------------------------------------------ 3D world
+// ------------------------------------------------------------------ the 3D world
 const R3 = { renderer: null, scene: null, cam: null, world: null, sun: null, hemi: null };
 function canvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } t.anisotropy = 4; return t; }
 function noiseFill(x, w, h, base, spread, n, seed) { x.fillStyle = base; x.fillRect(0, 0, w, h); const r = rng(seed); for (let i = 0; i < n; i++) { const v = (r() - .5) * spread; x.fillStyle = v > 0 ? 'rgba(255,255,255,' + v + ')' : 'rgba(0,0,0,' + (-v) + ')'; x.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); } }
@@ -264,6 +218,7 @@ function initRenderer() {
   const resize = () => { const w = window.innerWidth, h = window.innerHeight; r.setSize(w, h, false); R3.cam.aspect = w / h; R3.cam.updateProjectionMatrix(); };
   window.addEventListener('resize', resize); resize();
 }
+
 function buildWorld(T) {
   const S = SKIES[T.t.sky], scene = R3.scene;
   if (R3.world) { scene.remove(R3.world); R3.world.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); }); }
@@ -308,12 +263,9 @@ function buildWorld(T) {
   // neon edge lines at night
   if (S.night) for (const sd of [-1, 1]) { const pts = []; for (let i = 0; i <= N; i += 2) { const p = P[i % N]; pts.push(new THREE.Vector3(p.x + p.rx * sd * (HW + 2.4), .12, p.z + p.rz * sd * (HW + 2.4))); }
     g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: sd < 0 ? 0x2be8ff : 0xff3df0, toneMapped: false }))); }
-  // start line (chequered) and boost pads
+  // start line (chequered)
   const chk = canvasTex(64, 16, (x, w, h) => { for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++) { x.fillStyle = (i + j) % 2 ? '#111' : '#f4f4f2'; x.fillRect(i * 4, j * 4, 4, 4); } });
   const sl = new THREE.Mesh(new THREE.PlaneGeometry(W, 2.2), new THREE.MeshLambertMaterial({ map: chk })); sl.rotation.x = -Math.PI / 2; sl.rotation.z = -P[0].h - Math.PI / 2; sl.position.set(P[0].x, .05, P[0].z); g.add(sl);
-  const padT = canvasTex(64, 128, (x, w, h) => { x.fillStyle = '#ff6b3d'; x.fillRect(0, 0, w, h); x.fillStyle = '#ffd36b'; for (let k = 0; k < 3; k++) { const y0 = 100 - k * 40; x.beginPath(); x.moveTo(8, y0); x.lineTo(32, y0 - 28); x.lineTo(56, y0); x.lineTo(56, y0 + 12); x.lineTo(32, y0 - 16); x.lineTo(8, y0 + 12); x.fill(); } });
-  const padM = new THREE.MeshBasicMaterial({ map: padT, toneMapped: false, transparent: true, opacity: .95 }); R3.padM = padM;
-  for (const pd of T.pads) { const p = P[pd.i], m = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 6), padM); m.rotation.x = -Math.PI / 2; m.rotation.z = -p.h - Math.PI / 2; m.position.set(p.x + p.rx * pd.d, .07, p.z + p.rz * pd.d); g.add(m); }   // arrows point down the track
   // tyre walls: stacks of tyres in alternating colours, instanced
   const tyreG = new THREE.CylinderGeometry(.42, .42, .9, 10), wallPts = [];
   for (let i = 0; i < N; i += 2) for (const sd of [-1, 1]) { const p = P[i], o = sd * (HW + GRASS + .5); wallPts.push([p.x + p.rx * o, p.z + p.rz * o, Math.floor(i / 2) % 4 < 2]); }
@@ -363,192 +315,480 @@ function stepParts(dt) {
     pos.setXYZ(i, q.x, q.y, q.z); col.setXYZ(i, q.c.r * f, q.c.g * f, q.c.b * f); }
   pos.needsUpdate = true; col.needsUpdate = true;
 }
-// a kart: a low chassis with side pods and a nose, a driver with a helmet in the team colour, four fat tyres (the front pair steers)
-function makeKart(T) {
+
+// ------------------------------------------------------------------ karts: real classes, real-ish numbers
+// m: kart + driver (kg), P: power at the rear axle (W), top: top speed (m/s, the gearing's limit; drag is set to match), mu: tyre grip,
+// frontBrakes: brakes on all four wheels (else the rear axle only, like most karts), gears: 0 = direct drive (centrifugal clutch),
+// cla: downforce (lift coefficient x area, superkart wings), eng: sound (2 = two-stroke, 4 = four-stroke, e = electric), rev: rpm range.
+// price in credits and the licence rank needed to buy one; fun: no prizes (the Erika Gold kart)
+const KARTS = {
+  rental: { name: 'Rental 270', cls: 'Hire kart', m: 205, P: 6.4e3, top: 18.5, mu: 1.0, frontBrakes: false, gears: 0, eng: 4, rev: [1800, 3800], price: 0, rank: 0, col: ['#ffd400', '#10161c'], blurb: 'A 9 hp four-stroke hire kart on hard tyres: heavy, slow and forgiving. Everyone starts here' },
+  cadet: { name: 'Cadet 60', cls: 'Cadet', m: 112, P: 6.4e3, top: 24, mu: 1.18, frontBrakes: false, gears: 0, eng: 2, rev: [3500, 14000], price: 1500, rank: 0, col: ['#2fd4c4', '#10161c'], blurb: 'The first racing kart: 60 cc, 9 hp and very light' },
+  junior: { name: 'Junior 100', cls: 'Junior', m: 145, P: 11.5e3, top: 28.5, mu: 1.28, frontBrakes: false, gears: 0, eng: 2, rev: [4000, 15000], price: 3500, rank: 1, col: ['#7ad000', '#10161c'], blurb: 'A 15 hp 100 cc two-stroke on soft slicks: quick and nimble' },
+  senior: { name: 'Rotax Max Senior', cls: 'Senior', m: 165, P: 21e3, top: 32.5, mu: 1.38, frontBrakes: false, gears: 0, eng: 2, rev: [4000, 14000], price: 6000, rank: 1, col: ['#ff3d3d', '#f4f4f2'], blurb: 'The world\'s favourite race kart: 125 cc, 30 hp, 117 km/h' },
+  x30: { name: 'X30 Senior', cls: 'Senior', m: 165, P: 22e3, top: 33.5, mu: 1.4, frontBrakes: false, gears: 0, eng: 2, rev: [4000, 16000], price: 6500, rank: 2, col: ['#3d5afe', '#ffd400'], blurb: 'The X30 125 cc: a little more power and revs than the Rotax' },
+  ekart: { name: 'E-Kart 30 kW', cls: 'Electric', m: 190, P: 30e3, top: 34, mu: 1.36, frontBrakes: true, gears: 0, eng: 'e', rev: [0, 9000], price: 8000, rank: 2, col: ['#f4f4f2', '#2fd4c4'], blurb: 'Battery-electric: instant torque from zero, silent, and heavy' },
+  dd2: { name: 'Rotax DD2', cls: 'DD2', m: 175, P: 24e3, top: 35, mu: 1.42, frontBrakes: true, gears: 2, eng: 2, rev: [4000, 13500], price: 9000, rank: 2, col: ['#b36bff', '#f4f4f2'], blurb: 'A two-speed 125 cc with front brakes: paddle shifts and late braking' },
+  kz2: { name: 'KZ2 Shifter', cls: 'KZ', m: 175, P: 35e3, top: 38.5, mu: 1.48, frontBrakes: true, gears: 6, eng: 2, rev: [8000, 14500], price: 14000, rank: 3, col: ['#10161c', '#ff6b3d'], blurb: 'A 125 cc six-speed gearbox kart, 48 hp: 140 km/h and brutal braking' },
+  kz1: { name: 'KZ1 World Shifter', cls: 'KZ', m: 175, P: 38e3, top: 40.5, mu: 1.56, frontBrakes: true, gears: 6, eng: 2, rev: [8000, 15000], price: 22000, rank: 4, col: ['#d8262e', '#f4f4f2'], blurb: 'The world championship gearbox kart: softer tyres and a sharper engine' },
+  superkart: { name: 'Superkart 250', cls: 'Superkart', m: 215, P: 66e3, top: 62, mu: 1.6, frontBrakes: true, gears: 6, cla: .9, eng: 2, rev: [8000, 13500], price: 40000, rank: 5, col: ['#1d4fd6', '#f4f4f2'], blurb: 'A 250 cc twin with full bodywork and a wing: 90 hp and 225 km/h' },
+  erika: { name: 'Erika Gold', cls: 'Erika', m: 165, P: 44e3, top: 45, mu: 1.62, frontBrakes: true, gears: 6, eng: 2, rev: [8000, 15500], price: 0, rank: 0, fun: true, music: true, col: ['#d4af37', '#10161c'], blurb: 'The gold kart: 60 hp, all the grip, and it plays the Erika song. Races in it pay no prizes' },
+};
+const KART_ORDER = Object.keys(KARTS);
+const RIVALS = ['Marlow', 'Ostrova', 'Tanaka', 'Delacroix', 'Okonkwo', 'Varga', 'Lindqvist', 'Moreau', 'Santoro', 'Kowalski', 'Ito'];
+const RIVAL_COLS = [['#2fd4c4', '#10161c'], ['#ff3d3d', '#f4f4f2'], ['#7ad000', '#10161c'], ['#3d5afe', '#ffd400'], ['#ffd400', '#10161c'], ['#b36bff', '#f4f4f2'], ['#f4f4f2', '#d8262e'], ['#ff8a1a', '#10161c'], ['#10161c', '#2fd4c4'], ['#e91e63', '#f4f4f2'], ['#5f7d8c', '#ffd400']];
+const G0 = 9.81, WB = 1.05, AX = .6, BX = .45, HCG = .13;   // a kart has no suspension and sits low: the load still moves, but gently   // wheelbase, CG to front and rear axle, CG height (m)
+// a kart's numbers with the player's upgrades: engine +4% power a level, tyres +3% grip, chassis -4 kg
+function spec(id, up) {
+  const T = Object.assign({ id }, KARTS[id] || KARTS.rental); up = up || {};
+  T.P *= 1 + .04 * (up.eng || 0); T.mu *= 1 + .03 * (up.tyre || 0); T.m -= 4 * (up.chas || 0); T.top *= 1 + .013 * (up.eng || 0);
+  // drag set so power balances drag and rolling at the top speed (the gearing then holds it there)
+  T.kd = Math.max(.05, (T.P * .97 - .016 * T.m * G0 * T.top) / (T.top ** 3)); T.Iz = T.m * .2;
+  return T;
+}
+
+// ------------------------------------------------------------------ sound: two-stroke buzz, four-stroke thump or electric whine; tyre squeal; beeps
+const Snd = {
+  ac: null, on: store.get('sound', true),
+  init() { if (this.ac) return; try { const AC = window.AudioContext || window.webkitAudioContext; this.ac = new AC(); } catch (e) { return; }
+    const a = this.ac; this.master = a.createGain(); this.master.gain.value = this.on ? .5 : 0; this.master.connect(a.destination);
+    this.o1 = a.createOscillator(); this.o2 = a.createOscillator(); this.lp = a.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 900;
+    this.eg = a.createGain(); this.eg.gain.value = 0; this.o1.connect(this.lp); this.o2.connect(this.lp); this.lp.connect(this.eg); this.eg.connect(this.master); this.o1.start(); this.o2.start();
+    const nb = a.createBuffer(1, a.sampleRate, a.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    this.ns = a.createBufferSource(); this.ns.buffer = nb; this.ns.loop = true; this.bp = a.createBiquadFilter(); this.bp.type = 'bandpass'; this.bp.frequency.value = 2200; this.bp.Q.value = 4;
+    this.dg = a.createGain(); this.dg.gain.value = 0; this.ns.connect(this.bp); this.bp.connect(this.dg); this.dg.connect(this.master); this.ns.start(); },
+  voice(T) { if (!this.ac || this.vT === T.eng) return; this.vT = T.eng; this.o1.type = T.eng === 'e' ? 'sine' : T.eng === 4 ? 'sawtooth' : 'square'; this.o2.type = T.eng === 'e' ? 'triangle' : 'sawtooth'; },
+  engine(T, rpm, thr, slip, live) { if (!this.ac) return; this.voice(T); const t = this.ac.currentTime;
+    const f = T.eng === 'e' ? 120 + rpm / 9000 * 1400 : rpm / 60 * (T.eng === 4 ? .5 : 1);   // firing frequency (a four-stroke fires every other turn)
+    this.o1.frequency.setTargetAtTime(Math.max(20, f), t, .03); this.o2.frequency.setTargetAtTime(Math.max(20, f * (T.eng === 'e' ? 1.5 : .5)), t, .03);
+    this.lp.frequency.setTargetAtTime((T.eng === 4 ? 350 : 700) + thr * (T.eng === 4 ? 900 : 2600), t, .06);
+    this.eg.gain.setTargetAtTime(live ? (T.eng === 'e' ? .03 + .03 * thr : .05 + .07 * thr) : 0, t, .06); this.dg.gain.setTargetAtTime(live ? Math.min(.09, slip * .12) : 0, t, .05); },
+  beep(f, d) { if (!this.ac || !this.on) return; const a = this.ac, o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; g.gain.setValueAtTime(.0001, a.currentTime); g.gain.exponentialRampToValueAtTime(.3, a.currentTime + .01); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + d); o.connect(g); g.connect(this.master); o.start(); o.stop(a.currentTime + d + .05); },
+  toggle() { this.on = !this.on; store.set('sound', this.on); if (this.master) this.master.gain.value = this.on ? .5 : 0; },
+};
+const Song = {
+  files: ['erika.mp3', 'Erika..mp3', 'Erika.mp3', "German Soldier's Song - _Erika_ (with English Subtitles) (128).mp3", 'ERIKA.mp3', 'erika.m4a', 'erika.ogg'],
+  el: null, k: 0, failed: false, busy: false,
+  update(on) {
+    if (!on || document.hidden || !Snd.on) { if (this.el && !this.el.paused) this.el.pause(); return; }
+    if (this.failed) return;
+    if (!this.el) { this.el = new Audio(encodeURIComponent(this.files[this.k])); this.el.loop = true; this.el.volume = 1; this.el.addEventListener('error', () => { this.el = null; this.busy = false; if (++this.k >= this.files.length) this.failed = true; }); }
+    if (this.el && this.el.paused && !this.busy) { const el = this.el; this.busy = true; const p = el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { if (this.el === el) this.busy = false; }); }
+  },
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden && Song.el) Song.el.pause(); });
+
+// ------------------------------------------------------------------ input: keyboard, gamepad, touch
+const Input = {
+  k: {}, touch: { L: 0, R: 0, B: 0, G: 0 }, prev: {}, pressed: {},
+  init() {
+    window.addEventListener('keydown', (e) => { if (e.target && e.target.matches && e.target.matches('input, textarea')) return; this.k[e.code] = true; this.pressed[e.code] = true;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && Game.mode !== 'menu') e.preventDefault(); });
+    window.addEventListener('keyup', (e) => { this.k[e.code] = false; });
+    window.addEventListener('blur', () => { this.k = {}; });
+    for (const [id, key] of [['tL', 'L'], ['tR', 'R'], ['tB', 'B'], ['tG', 'G']]) {
+      const el = $(id), on = (v) => (e) => { e.preventDefault(); this.touch[key] = v; el.classList.toggle('on', !!v); };
+      el.addEventListener('pointerdown', on(1)); el.addEventListener('pointerup', on(0)); el.addEventListener('pointercancel', on(0)); el.addEventListener('pointerleave', on(0));
+    }
+  },
+  read() {
+    const k = this.k, t = this.touch; let steer = (k.ArrowRight || k.KeyD || t.R ? 1 : 0) - (k.ArrowLeft || k.KeyA || t.L ? 1 : 0), thr = k.ArrowUp || k.KeyW || t.G ? 1 : 0, brk = k.ArrowDown || k.KeyS || k.Space || t.B ? 1 : 0, analog = false;
+    const gps = navigator.getGamepads ? navigator.getGamepads() : []; let pause = false, cam = false;
+    for (const g of gps) { if (!g || !g.connected) continue; const ax = g.axes[0] || 0, bt = (i) => g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > .5), val = (i) => g.buttons[i] ? g.buttons[i].value : 0;
+      if (Math.abs(ax) > .12) { steer = Math.sign(ax) * (Math.abs(ax) - .12) / .88; analog = true; } if (val(7) > .05) thr = Math.max(thr, val(7)); if (val(6) > .05) brk = Math.max(brk, val(6));
+      if (bt(9) && !this.prev.p) pause = true; this.prev.p = bt(9); if (bt(3) && !this.prev.c) cam = true; this.prev.c = bt(3); break; }
+    if (this.pressed.Escape || this.pressed.KeyP) pause = true; if (this.pressed.KeyC) cam = true; const mute = !!this.pressed.KeyM, restart = !!this.pressed.KeyR; this.pressed = {};
+    return { steer: clamp(steer, -1, 1), thr, brk, analog, pause, cam, mute, restart };
+  },
+};
+
+// ------------------------------------------------------------------ physics: a two-axle tyre model. The front tyres steer; each axle's grip is
+// its load times mu, and the rear axle shares its grip between driving or braking and cornering (a kart has no differential and most brake
+// the rear wheels only, so a hard stop in a turn swaps the ends). Slip angles give the lateral forces, saturating smoothly, so a kart slides
+// when you ask too much and catches when you ease off.
+function newKart(id, ai, name, up) { const T = spec(id, up); return { id, T, ai, name, x: 0, z: 0, h: 0, u: 0, v: 0, r: 0, delta: 0, ax: 0, gear: 1, rpm: 0, idx: 0, d: 0, lap: 0, half: true, prog: 0, done: null, laps: [], lapStart: 0, skill: 1, lane: 0, laneBase: 0, mesh: null, slip: 0, wall: 0 }; }
+function stepKart(k, inp, dt, Tk) {
+  const T = k.T, Lc = locate(Tk, k.x, k.z, k.idx); k.idx = Lc.i; k.d = Lc.d;
+  const off = Math.abs(k.d) > HW + .25, mu = T.mu * (off ? .62 : 1), m = T.m;
+  // steering: full lock (about 20 degrees) when slow; with keys or touch the lock tapers with speed like a careful driver's hands
+  const u = k.u, au = Math.abs(u), sf = inp.analog ? 1 / (1 + au / 34) : 1 / (1 + au / 19), dT = inp.steer * .36 * sf;
+  k.delta += clamp(dT - k.delta, -2.4 * dt, 2.4 * dt);
+  // loads: static split, weight moves back under power and forward under braking, wings add downforce at speed
+  const down = T.cla ? .6 * T.cla * u * u : 0, shift = m * clamp(k.axS || 0, -14, 12) * HCG / WB;
+  const Fzf = Math.max(50, m * G0 * BX / WB - shift + down * .42), Fzr = Math.max(50, m * G0 * AX / WB + shift + down * .58);
+  // longitudinal: power over speed up to the rear tyres' grip; rev limiter at the gearing's top speed; brakes
+  let drive = 0; if (inp.thr > 0 && u > -.5) drive = (u < T.top * 1.01 ? Math.min(T.P * inp.thr / Math.max(au, 2.2), mu * Fzr * .9) : 0);
+  if (inp.thr > 0 && u < -.5) drive = mu * Fzr * .7;   // throttle while rolling back: stop first
+  let bF = 0, bR = 0;
+  if (inp.brk > 0) { if (u > .4) { if (T.frontBrakes) { const tot = inp.brk * mu * (Fzf + Fzr) * .95; bR = Math.min(tot * .35, mu * Fzr * .85); bF = Math.min(tot - bR, mu * Fzf * .95); } else bR = inp.brk * mu * Fzr * .9; }
+    else if (u > -2.5 && inp.thr === 0) drive = -m * 1.6 * inp.brk;   // held on the brake when stopped: roll back slowly (to get off a wall)
+  }
+  const Fxr = drive - bR * Math.sign(u || 1), Fxf = -bF * Math.sign(u || 1);
+  // lateral: slip angles from the body's velocity at each axle (clamped speed keeps it sane when nearly stopped)
+  const uu = Math.max(au, 1.6) * (u < 0 ? -1 : 1), af = Math.atan2(k.v + AX * k.r, uu) - k.delta, ar = Math.atan2(k.v - BX * k.r, uu);
+  const capF = Math.sqrt(Math.max(0, (mu * Fzf) ** 2 - (.6 * Fxf) ** 2)), capR = Math.sqrt(Math.max(0, (1.25 * mu * Fzr) ** 2 - (.6 * Fxr) ** 2));   // a friction ellipse: driving or braking costs some cornering grip
+  const Fyf = -capF * Math.tanh(22 * Fzf * af / Math.max(20, capF)), Fyr = -capR * Math.tanh(30 * Fzr * ar / Math.max(20, capR));   // the stiffer, grippier rear (a solid axle on wider tyres) keeps a kart stable: at the limit the front washes wide first
+  const drag = T.kd * u * au + Math.sign(u) * (.016 * m * G0 + (off ? .1 * m * G0 : 0)) * Math.min(1, au / .3);
+  const cd = Math.cos(k.delta), sd = Math.sin(k.delta);
+  const du = (Fxr + Fxf * cd - Fyf * sd - drag) / m + k.v * k.r, dv = (Fyf * cd + Fxf * sd + Fyr) / m - u * k.r, dr = (AX * (Fyf * cd + Fxf * sd) - BX * Fyr) / T.Iz - 5 * k.r * Math.min(1, au / 6);   // the solid rear axle scrubs and resists yaw
+  k.u += du * dt; k.v += dv * dt; k.r += dr * dt; k.ax = du - k.v * k.r; k.axS = (k.axS || 0) + (k.ax - (k.axS || 0)) * Math.min(1, dt * 10);   // the chassis takes a moment to pitch
+  if (au < .6 && !(inp.thr > 0) && Math.abs(drive) < 1) { k.v *= Math.exp(-dt * 8); k.r *= Math.exp(-dt * 8); if (au < .15 && inp.brk > 0 && u >= 0) k.u = 0; }
+  k.h = wrapA(k.h + k.r * dt);
+  const ch = Math.cos(k.h), sh = Math.sin(k.h); k.x += (ch * k.u - sh * k.v) * dt; k.z += (sh * k.u + ch * k.v) * dt;
+  k.slip = Math.max(Math.abs(af), Math.abs(ar)) * Math.min(1, au / 8);   // for the tyre squeal and smoke
+  // engine revs and gears (direct drive karts rev with road speed above the clutch's bite; shifters change up and down by themselves)
+  const [r0, r1] = T.rev;
+  if (T.gears > 1) { const gTop = (g) => T.top * (.42 + .58 * g / T.gears); let g = k.gear; if (au > gTop(g) * .97 && g < T.gears) g++; else if (g > 1 && au < gTop(g - 1) * .7) g--; k.gear = g; k.rpm = clamp(au / gTop(g) * r1, r0, r1); }
+  else k.rpm = T.eng === 'e' ? au / T.top * r1 : clamp(r0 + (au / T.top) * (r1 - r0) * 1.08, r0, r1);
+  // tyre wall
+  const L2 = locate(Tk, k.x, k.z, k.idx), lim = HW + GRASS - .3;
+  if (Math.abs(L2.d) > lim) { const p = Tk.P[L2.i], back = Math.sign(L2.d) * (Math.abs(L2.d) - lim); k.x -= p.rx * back; k.z -= p.rz * back;
+    const sp = Math.hypot(k.u, k.v); if (sp > 3) k.wall++; k.u *= .5; k.v *= .2; k.r *= .3;
+    k.h = wrapA(k.h + wrapA(p.h + (Math.cos(wrapA(k.h - p.h)) < 0 ? Math.PI : 0) - k.h) * .3); }
+}
+function collide(a, b) {
+  const dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz), R = a.T.cla || b.T.cla ? 1.6 : 1.35;
+  if (d < R && d > .001) { const ma = a.T.m, mb = b.T.m, push = (R - d), nx = dx / d, nz = dz / d; a.x += nx * push * mb / (ma + mb); a.z += nz * push * mb / (ma + mb); b.x -= nx * push * ma / (ma + mb); b.z -= nz * push * ma / (ma + mb);
+    const ua = a.u, ub = b.u; a.u = lerp(ua, ub, .2 * mb / (ma + mb)); b.u = lerp(ub, ua, .2 * ma / (ma + mb)); }
+}
+// the racing speed for a kart class at each point of a track: cornering on most of its grip, braking with the brakes it has
+function profileFor(Tk, T) {
+  const key = Tk.key + ':' + T.id + ':' + T.mu.toFixed(3) + ':' + T.top.toFixed(2); Tk.prof = Tk.prof || {}; if (Tk.prof[key]) return Tk.prof[key];
+  const N = Tk.N, lat = .82 * T.mu * G0, dec = (T.frontBrakes ? .78 : .52) * T.mu * G0;
+  const v = Tk.P.map((p) => { const R = 1 / Math.max(1e-4, Math.abs(p.k)); let s = Math.sqrt(lat * R); if (T.cla) s = Math.sqrt(lat * R / Math.max(.3, 1 - .6 * T.cla * lat * R / (T.m * G0) * .86 * T.mu / lat)); return Math.min(T.top * 1.02, s); });
+  for (let pass = 0; pass < 2; pass++) for (let n = 0; n < N * 2; n++) { const i = (N * 2 - n) % N, j = (i + 1) % N; v[i] = Math.min(v[i], Math.sqrt(v[j] * v[j] + 2 * dec * DS)); }
+  return Tk.prof[key] = v;
+}
+function aiInput(k, Tk, others) {
+  const P = Tk.P, N = Tk.N, T = k.T, u = Math.max(0, k.u), look = 4.5 + u * .5, ti = (k.idx + Math.round(look / DS)) % N, p = P[ti];
+  let lane = k.laneBase;
+  for (const o of others) { if (o === k) continue; const ah = ((o.idx - k.idx + N) % N) * DS; if (ah > 0 && ah < 8 && Math.abs(o.d - k.lane) < 1.6) lane = o.d + (o.d > 0 ? -2.2 : 2.2); }
+  k.lane += clamp(lane - k.lane, -2, 2) * .04; k.lane = clamp(k.lane, -HW + 1.1, HW - 1.1);
+  const tx = p.x + p.rx * k.lane, tz = p.z + p.rz * k.lane, e = wrapA(Math.atan2(tz - k.z, tx - k.x) - k.h - Math.atan2(k.v, Math.max(u, 2))), kap = 2 * Math.sin(e) / look;   // aim the direction of travel (the kart slides a little), not the nose
+  const want = Math.atan(WB * kap) + .06 * (u * kap - k.r), steer = clamp(want / (.36 / (1 + u / 34)), -1, 1);
+  const prof = profileFor(Tk, T); let vt = 1e9; const dec = (T.frontBrakes ? .78 : .52) * T.mu * G0, bd = Math.min(140, u * u / (2 * dec) + 6);
+  for (let s = 0; s < bd; s += DS * 2) vt = Math.min(vt, Math.sqrt(prof[(k.idx + Math.round(s / DS)) % N] ** 2 + 2 * dec * s));
+  vt *= k.skill; const pk = P[k.idx].k; if (Math.abs(pk) > .004 && k.d * Math.sign(pk) < -HW + 2.2) vt *= .94;   // running out of road on the outside: ease off
+  return { steer, thr: u < vt ? clamp((vt - u) * .8, .3, 1) : u < vt * 1.025 ? .15 : 0, brk: u > vt * 1.05 ? clamp((u - vt) / 4, .2, 1) : 0, analog: true };
+}
+
+// ------------------------------------------------------------------ 3D karts: a tube chassis on a floor tray, the front fairing with the number panel, side pods,
+// a plastic rear bumper, the engine on the right with its exhaust (a radiator for the shifters), fat slicks (wider at the back), and the
+// driver in a suit and helmet. The superkart gets full bodywork and a rear wing.
+function makeKart(T, num) {
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const c1 = new THREE.Color(T.col[0]), c2 = new THREE.Color(T.col[1]);
-  const paint = new THREE.MeshStandardMaterial({ color: c1, roughness: .35, metalness: .2 }), trim = new THREE.MeshStandardMaterial({ color: c2, roughness: .5 }), dark = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: .7 }), metal = new THREE.MeshStandardMaterial({ color: 0x9aa3ab, roughness: .3, metalness: .8 });
-  const add = (geo, m, x, y, z, p) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; (p || body).add(o); return o; };
-  add(new THREE.BoxGeometry(1.7, .12, .95), dark, 0, .2, 0);
-  add(new THREE.BoxGeometry(.55, .28, 1.0), paint, .78, .3, 0);                              // nose
-  add(new THREE.BoxGeometry(.25, .12, 1.25), trim, 1.05, .2, 0);                             // front bumper
-  for (const sd of [-1, 1]) { add(new THREE.BoxGeometry(.9, .26, .22), paint, -.05, .32, sd * .6); }   // side pods
-  add(new THREE.BoxGeometry(.45, .38, .7), dark, -.62, .42, 0);                              // engine
-  const ex = add(new THREE.CylinderGeometry(.06, .06, .5, 8), metal, -.85, .5, .28); ex.rotation.z = Math.PI / 2;
-  add(new THREE.BoxGeometry(.4, .5, .5), trim, -.25, .52, 0);                                // seat back
-  const wheel = add(new THREE.TorusGeometry(.16, .025, 6, 14), dark, .3, .66, 0); wheel.rotation.y = Math.PI / 2; wheel.rotation.x = .5;
-  // driver
-  add(new THREE.CylinderGeometry(.2, .24, .55, 10), trim, -.12, .75, 0);
-  const helmet = add(new THREE.SphereGeometry(.2, 14, 10), paint, -.08, 1.12, 0);
-  const visor = add(new THREE.SphereGeometry(.205, 14, 8, -Math.PI / 3, Math.PI / 1.5, Math.PI / 3, Math.PI / 4), new THREE.MeshStandardMaterial({ color: 0x0a0f14, roughness: .1, metalness: .6 }), -.08, 1.12, 0); visor.rotation.y = -Math.PI / 2;
-  for (const sd of [-1, 1]) { const a = add(new THREE.CylinderGeometry(.05, .05, .45, 6), trim, .12, .78, sd * .17); a.rotation.z = -1.1; }
-  // wheels
-  const tyreG = new THREE.CylinderGeometry(.21, .21, .2, 16), rimG = new THREE.CylinderGeometry(.12, .12, .21, 10), wheels = [];
-  for (const [x, z, front] of [[.62, .58, true], [.62, -.58, true], [-.62, .62, false], [-.62, -.62, false]]) {
-    const w = new THREE.Group(); w.position.set(x, .21, z); body.add(w); const t = add(new THREE.CylinderGeometry(.21, .21, front ? .2 : .28, 16), dark, 0, 0, 0, w); t.rotation.x = Math.PI / 2;
-    const rm = add(rimG, metal, 0, 0, 0, w); rm.rotation.x = Math.PI / 2; wheels.push({ w, front });
+  const paint = new THREE.MeshStandardMaterial({ color: c1, roughness: .35, metalness: .15 }), trim = new THREE.MeshStandardMaterial({ color: c2, roughness: .5 }),
+    tube = new THREE.MeshStandardMaterial({ color: 0x9aa3ab, roughness: .3, metalness: .85 }), dark = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: .75 }),
+    alu = new THREE.MeshStandardMaterial({ color: 0xc9ced4, roughness: .35, metalness: .7 }), suit = new THREE.MeshStandardMaterial({ color: c2.clone().lerp(new THREE.Color(0x1b2530), .45), roughness: .7 });
+  const add = (geo, mm, x, y, z, p) => { const o = new THREE.Mesh(geo, mm); o.position.set(x, y, z); o.castShadow = true; (p || body).add(o); return o; };
+  const rod = (a, b, r, mm) => { const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]), o = add(new THREE.CylinderGeometry(r, r, d.length(), 8), mm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return o; };
+  // chassis rails and floor
+  for (const sd of [-1, 1]) { rod([-.62, .1, sd * .32], [.55, .1, sd * .22], .016, tube); rod([.55, .1, sd * .22], [.78, .12, sd * .2], .016, tube); }
+  rod([-.62, .1, -.32], [-.62, .1, .32], .02, tube); rod([.55, .1, -.22], [.55, .1, .22], .016, tube);
+  add(new THREE.BoxGeometry(.75, .015, .42), alu, .15, .09, 0);
+  rod([-.58, .18, -.62], [-.58, .18, .62], .025, tube);   // rear axle
+  for (const sd of [-1, 1]) rod([.52, .17, sd * .25], [.52, .17, sd * .55], .014, tube);   // front stub axles
+  if (T.cla) {   // superkart: a full shell, a long nose, side radiators and a rear wing on two posts
+    const shell = add(new THREE.BoxGeometry(1.7, .28, 1.05), paint, .05, .32, 0); shell.scale.set(1, 1, 1);
+    const nose = add(new THREE.BoxGeometry(.6, .16, .9), paint, 1.0, .22, 0); nose.rotation.z = -.15;
+    add(new THREE.BoxGeometry(.06, .12, 1.3), trim, 1.3, .14, 0);
+    for (const sd of [-1, 1]) { add(new THREE.BoxGeometry(.7, .22, .12), trim, -.1, .32, sd * .58); rod([-.75, .35, sd * .3], [-.85, .75, sd * .3], .02, dark); }
+    add(new THREE.BoxGeometry(.32, .04, 1.1), trim, -.88, .78, 0);
+    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.34, .2, .03), paint, -.88, .76, sd * .55);
+  } else {
+    // front fairing (the nassau panel carries the number), nose cone, side pods and the rear bumper
+    const nas = add(new THREE.BoxGeometry(.05, .32, .34), paint, .62, .33, 0); nas.rotation.z = -.35;
+    add(new THREE.BoxGeometry(.32, .14, .9), paint, .86, .17, 0);
+    for (const sd of [-1, 1]) add(new THREE.BoxGeometry(.66, .16, .16), paint, .03, .2, sd * .52);
+    add(new THREE.BoxGeometry(.22, .14, 1.3), trim, -.82, .18, 0);
+    // number on the nose
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'); x.fillStyle = '#f4f4f2'; x.fillRect(0, 0, 64, 64); x.fillStyle = '#111'; x.font = '700 44px "Barlow Condensed", Arial Narrow, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num || 1), 32, 36);
+    const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding; const np = add(new THREE.PlaneGeometry(.2, .2), new THREE.MeshBasicMaterial({ map: tex }), .66, .36, 0); np.rotation.y = Math.PI / 2; np.rotation.x = 0; np.rotateX(-.35);
+  }
+  // seat, steering column and wheel, pedals
+  add(new THREE.BoxGeometry(.36, .36, .4), dark, -.22, .32, 0).rotation.z = .25;
+  rod([.5, .2, 0], [.26, .5, 0], .015, tube); const sw = add(new THREE.TorusGeometry(.14, .02, 6, 16), dark, .25, .52, 0); sw.rotation.y = Math.PI / 2; sw.rotation.x = .9; sw.rotation.z = .5;
+  // engine on the right with carb and exhaust, radiator on the left for the water-cooled two-strokes
+  if (T.eng !== 'e') { add(new THREE.BoxGeometry(.26, .28, .22), alu, -.3, .3, .38); add(new THREE.CylinderGeometry(.07, .07, .18, 10), dark, -.18, .44, .38);
+    const ex = add(new THREE.CylinderGeometry(.045, .06, .55, 10), tube, -.62, .32, .45); ex.rotation.z = Math.PI / 2; }
+  else add(new THREE.BoxGeometry(.5, .16, .5), dark, -.28, .22, .1);   // battery box
+  if (T.gears || T.eng === 2) add(new THREE.BoxGeometry(.06, .3, .26), alu, -.05, .38, -.42);
+  // driver: suit, arms to the wheel, helmet with a visor
+  add(new THREE.CylinderGeometry(.17, .21, .5, 12), suit, -.18, .66, 0).rotation.z = .25;
+  for (const sd of [-1, 1]) { rod([-.12, .82, sd * .16], [.12, .6, sd * .15], .045, suit); rod([.12, .6, sd * .15], [.25, .55, sd * .1], .04, suit); rod([-.05, .35, sd * .12], [.42, .28, sd * .12], .055, suit); }
+  add(new THREE.SphereGeometry(.16, 16, 12), paint, -.08, 1.02, 0);
+  const visor = add(new THREE.SphereGeometry(.163, 16, 8, -Math.PI / 3, Math.PI / 1.5, Math.PI / 3, Math.PI / 4), new THREE.MeshStandardMaterial({ color: 0x0a0f14, roughness: .1, metalness: .6 }), -.08, 1.02, 0); visor.rotation.y = -Math.PI / 2;
+  // wheels: 10 in fronts, wider 11 in rears
+  const wheels = [];
+  for (const [x, z, front] of [[.52, .6, true], [.52, -.6, true], [-.58, .64, false], [-.58, -.64, false]]) {
+    const w = new THREE.Group(); w.position.set(x, .14, z); body.add(w); const wd = front ? .13 : .2;
+    const t = add(new THREE.CylinderGeometry(.14, .14, wd, 18), dark, 0, 0, 0, w); t.rotation.x = Math.PI / 2;
+    const rm = add(new THREE.CylinderGeometry(.08, .08, wd + .01, 10), alu, 0, 0, 0, w); rm.rotation.x = Math.PI / 2; wheels.push({ w, front });
   }
   g.userData = { body, wheels }; return g;
 }
 
-// ------------------------------------------------------------------ physics
-function newKart(type, ai, name) { const T = KARTS[type]; return { type, T, ai, name, x: 0, z: 0, h: 0, v: 0, steer: 0, slip: 0, drift: false, dDir: 0, dT: 0, boostT: 0, idx: 0, d: 0, lap: 0, half: false, prog: 0, done: null, laps: [], lapStart: 0, skill: 1, lane: 0, mesh: null, spin: 0 }; }
-function stepKart(k, inp, dt, Tk) {
-  const T = k.T, Lc = locate(Tk, k.x, k.z, k.idx); k.idx = Lc.i; k.d = Lc.d;
-  const off = Math.abs(k.d) > HW + .3, sk = k.ai ? k.skill : 1;
-  const vmax = T.vmax * sk * (off ? .55 : 1) * (k.boostT > 0 ? 1.32 : 1);
-  let a = 0;
-  if (inp.thr > 0 && k.v >= -.5) a += T.acc * inp.thr * Math.max(0, 1 - k.v / vmax) * (off ? .6 : 1) * (k.ai ? Math.min(1.08, sk) : 1);
-  if (inp.thr > 0 && k.v < -.5) a += 26 * inp.thr;   // gas while rolling backwards brakes first
-  if (k.v > vmax) a -= (k.v - vmax) * 2.2;
-  if (inp.brk > 0) { if (k.v > .5) a -= 26 * inp.brk; else a -= 7 * inp.brk; }
-  if (inp.thr === 0 && inp.brk === 0) a -= k.v * .35 + Math.sign(k.v) * .5;
-  if (k.boostT > 0) { a += 12; k.boostT -= dt; }
-  k.v = clamp(k.v + a * dt, -7, 60);
-  if (Math.abs(k.v) < .05 && inp.thr === 0 && inp.brk === 0) k.v = 0;
-  k.steer += clamp(inp.steer - k.steer, -7 * dt, 7 * dt);
-  const sp = Math.min(1, Math.abs(k.v) / 6), hi = Math.min(1, Math.abs(k.v) / T.vmax);
-  // drift: press with the wheel turned at speed; the kart swings its tail out and you steer within the slide. Let go for a boost
-  if (inp.drift && !k.drift && Math.abs(k.steer) > .3 && k.v > 10 && !off) { k.drift = true; k.dDir = Math.sign(k.steer); k.dT = 0; k.hop = .22; }
-  let yaw;
-  if (k.drift) {
-    if (!inp.drift || k.v < 7 || off) { const tier = k.dT > 2.2 ? 3 : k.dT > 1.35 ? 2 : k.dT > .65 ? 1 : 0; if (tier && !off) { k.boostT = Math.max(k.boostT, [0, .7, 1.2, 1.8][tier]); k.boosted = tier; } k.drift = false; }
-    else { k.dT += dt; yaw = T.turn * (k.dDir * .62 + k.steer * .5) * sp; const lim = 25 * T.grip / Math.max(4, k.v); yaw = clamp(yaw, -lim, lim); }
-  }
-  if (!k.drift) { yaw = T.turn * k.steer * sp * (1 - .3 * hi) * (k.v < 0 ? -1 : 1); const lim = 19.5 * T.grip / Math.max(4, Math.abs(k.v)); yaw = clamp(yaw, -lim, lim); }
-  if (k.spin > 0) { k.spin -= dt; yaw = 7; k.v *= Math.exp(-dt * 2); }
-  k.h = wrapA(k.h + yaw * dt);
-  const slipT = k.drift ? k.dDir * .42 : 0; k.slip += (slipT - k.slip) * Math.min(1, dt * 6);
-  const mh = k.h - k.slip * .55;
-  k.x += Math.cos(mh) * k.v * dt; k.z += Math.sin(mh) * k.v * dt;
-  if (k.drift) k.v *= Math.exp(-dt * .06);
-  // tyre wall
-  const L2 = locate(Tk, k.x, k.z, k.idx), lim = HW + GRASS - .2;
-  if (Math.abs(L2.d) > lim) { const p = Tk.P[L2.i], back = Math.sign(L2.d) * (Math.abs(L2.d) - lim); k.x -= p.rx * back; k.z -= p.rz * back;
-    const hit = Math.abs(Math.sin(wrapA(k.h - p.h))); if (hit > .15 || Math.abs(k.v) > 6) { k.v *= .6; k.wall = (k.wall || 0) + 1; }
-    k.h = wrapA(k.h + wrapA(p.h + (Math.cos(wrapA(k.h - p.h)) < 0 ? Math.PI : 0) - k.h) * .25); k.drift = false; }
-  // boost pads
-  for (const pd of Tk.pads) { if (Math.abs(((k.idx - pd.i + Tk.N + Tk.N / 2) % Tk.N) - Tk.N / 2) * DS < 3.2 && Math.abs(k.d - pd.d) < 1.8 && k.v > 0) { if (k.boostT < .9) k.padHit = true; k.boostT = Math.max(k.boostT, 1.0); } }
-  k.hop = Math.max(0, (k.hop || 0) - dt);
-}
-function collide(a, b) {
-  const dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz), R = 1.35;
-  if (d < R && d > .001) { const ma = a.T.mass, mb = b.T.mass, push = (R - d), nx = dx / d, nz = dz / d; a.x += nx * push * mb / (ma + mb); a.z += nz * push * mb / (ma + mb); b.x -= nx * push * ma / (ma + mb); b.z -= nz * push * ma / (ma + mb);
-    const va = a.v, vb = b.v; a.v = lerp(va, vb, .25 * mb / (ma + mb)); b.v = lerp(vb, va, .25 * ma / (ma + mb)); a.bump = b.bump = .2; }
-}
-function aiInput(k, Tk, others) {
-  const P = Tk.P, N = Tk.N, look = 6 + Math.max(0, k.v) * .5, ti = (k.idx + Math.round(look / DS)) % N, p = P[ti];
-  // pick a lane: drift towards a pad on a straight, move out of the way of a kart right ahead
-  let lane = k.laneBase; for (const pd of Tk.pads) { const ahead = (pd.i - k.idx + N) % N; if (ahead > 0 && ahead < 40) lane = pd.d; }
-  for (const o of others) { if (o === k) continue; const ah = ((o.idx - k.idx + N) % N) * DS; if (ah > 0 && ah < 9 && Math.abs(o.d - k.lane) < 2) lane = o.d + (o.d > 0 ? -2.6 : 2.6); }
-  k.lane += clamp(lane - k.lane, -2, 2) * .05; k.lane = clamp(k.lane, -HW + 1.4, HW - 1.4);
-  const tx = p.x + p.rx * k.lane, tz = p.z + p.rz * k.lane, e = wrapA(Math.atan2(tz - k.z, tx - k.x) - k.h);
-  let vt = 1e9; const bd = Math.min(120, k.v * k.v / 30 + 8); for (let s = 0; s < bd; s += DS * 2) vt = Math.min(vt, Math.sqrt(Tk.prof[(k.idx + Math.round(s / DS)) % N] ** 2 + 2 * 14 * s));
-  vt *= k.skill * (k.T.grip);
-  return { steer: clamp(e * 2.6, -1, 1), thr: k.v < vt ? 1 : 0, brk: k.v > vt * 1.1 ? 1 : 0, drift: false };
-}
+// ------------------------------------------------------------------ career: credits, the racing licence, karts and upgrades, events and championships
+const RANKS = [['Rookie', 0], ['Club', 100], ['Regional', 260], ['National', 520], ['International', 900], ['World', 1400]];
+// events: one race, or a championship of several rounds (points 25-18-15-12-10-8-6-4, and a bonus for the champion).
+// karts: the classes that may enter (you bring your own; the rivals race the same kart); purse: the winner's prize money per race
+const EVENTS = [
+  { id: 'arrive', name: 'Arrive and Drive', rounds: ['park'], laps: 4, karts: ['rental'], rank: 0, purse: 300, diff: .93 },
+  { id: 'hirecup', name: 'Hire Kart Cup', rounds: ['harbour', 'park', 'night'], laps: 4, karts: ['rental'], rank: 0, purse: 260, bonus: 900, diff: .95 },
+  { id: 'cadet', name: 'Cadet Trophy', rounds: ['park'], laps: 6, karts: ['cadet'], rank: 0, purse: 550, diff: .95 },
+  { id: 'cadetchamp', name: 'Cadet Championship', rounds: ['harbour', 'night', 'canyon'], laps: 5, karts: ['cadet'], rank: 1, purse: 500, bonus: 1800, diff: .96 },
+  { id: 'junior', name: 'Junior Open', rounds: ['harbour'], laps: 8, karts: ['junior'], rank: 1, purse: 950, diff: .97 },
+  { id: 'rotaxnight', name: 'Rotax Night Race', rounds: ['night'], laps: 8, karts: ['senior'], rank: 1, purse: 1300, diff: .97 },
+  { id: 'club', name: 'Club Championship', rounds: ['park', 'harbour', 'night', 'canyon'], laps: 6, karts: ['junior', 'senior', 'x30'], rank: 1, purse: 900, bonus: 4000, diff: .98 },
+  { id: 'x30canyon', name: 'X30 Canyon Classic', rounds: ['canyon'], laps: 6, karts: ['x30', 'senior'], rank: 2, purse: 1700, diff: .98 },
+  { id: 'etrophy', name: 'E-Kart Trophy', rounds: ['harbour', 'park'], laps: 6, karts: ['ekart'], rank: 2, purse: 1500, bonus: 3500, diff: .98 },
+  { id: 'dd2', name: 'DD2 Masters', rounds: ['canyon', 'night'], laps: 7, karts: ['dd2'], rank: 2, purse: 2200, bonus: 5000, diff: .99 },
+  { id: 'senior', name: 'Senior Series', rounds: ['park', 'canyon', 'night', 'harbour'], laps: 8, karts: ['senior', 'x30'], rank: 2, purse: 1500, bonus: 6000, diff: .99 },
+  { id: 'kz2', name: 'KZ2 Euro Cup', rounds: ['harbour', 'canyon', 'park'], laps: 8, karts: ['kz2'], rank: 3, purse: 2600, bonus: 9000, diff: 1 },
+  { id: 'kzworld', name: 'KZ World Final', rounds: ['night'], laps: 12, karts: ['kz1', 'kz2'], rank: 4, purse: 7000, diff: 1.01 },
+  { id: 'superkart', name: 'Superkart Canyon GP', rounds: ['canyon'], laps: 8, karts: ['superkart'], rank: 4, purse: 9000, diff: 1.01 },
+  { id: 'worlds', name: 'World Finals', rounds: ['park', 'harbour', 'canyon', 'night'], laps: 10, karts: ['kz1', 'superkart'], rank: 5, purse: 7000, bonus: 30000, diff: 1.03 },
+  { id: 'erikagold', name: 'Erika Gold Cup', rounds: ['park', 'night'], laps: 5, karts: ['erika'], rank: 0, purse: 0, diff: 1.02, fun: true },
+];
+const PAY = [1, .62, .44, .3, .2, .13, .08, .05], CPTS = [25, 18, 15, 12, 10, 8, 6, 4], LPTS = [40, 30, 24, 18, 14, 10, 7, 5];
+const Cr = {
+  w() { const w = store.get('wallet', null) || { credits: 1000, owned: ['rental', 'erika'], up: {} }; w.owned = (w.owned || []).filter((id) => KARTS[id]); if (!w.owned.length) w.owned.push('rental'); w.up = w.up || {}; return w; },
+  save(w) { store.set('wallet', w); },
+  credits() { return this.w().credits; }, add(n) { const w = this.w(); w.credits = Math.max(0, Math.round(w.credits + n)); this.save(w); },
+  owned(id) { return this.w().owned.indexOf(id) >= 0; }, up(id) { return this.w().up[id] || {}; },
+  pts() { return (store.get('lic', null) || { pts: 0 }).pts; }, addPts(n) { const d = store.get('lic', null) || { pts: 0 }; d.pts += Math.round(n); store.set('lic', d); },
+  rank() { const p = this.pts(); let i = 0; RANKS.forEach((r, k) => { if (p >= r[1]) i = k; }); return { i, name: RANKS[i][0], pts: p, next: RANKS[i + 1] || null }; },
+  buy(id) { const T = KARTS[id], w = this.w(); if (!T || this.owned(id) || w.credits < T.price || this.rank().i < T.rank) return false; w.credits -= T.price; w.owned.push(id); this.save(w); return true; },
+  upCost(id, kind, lvl) { return Math.round(Math.max(220, KARTS[id].price * .12) * lvl * (kind === 'chas' ? .7 : 1) / 10) * 10; },
+  upgrade(id, kind) { const w = this.w(), u = w.up[id] = w.up[id] || {}, lvl = (u[kind] || 0) + 1; if (lvl > 3 || !this.owned(id)) return false; const c = this.upCost(id, kind, lvl); if (w.credits < c) return false; w.credits -= c; u[kind] = lvl; this.save(w); return true; },
+  champ(id) { return (store.get('champ', {}) || {})[id] || null; }, setChamp(id, v) { const c = store.get('champ', {}) || {}; if (v) c[id] = v; else delete c[id]; store.set('champ', c); },
+  won(id) { return !!(store.get('won', {}) || {})[id]; }, setWon(id) { const c = store.get('won', {}) || {}; c[id] = (c[id] || 0) + 1; store.set('won', c); },
+};
 
-// ------------------------------------------------------------------ the game
+
+// ------------------------------------------------------------------ the game: menus (race, career, garage), the race itself, HUD and results
+const hp = (T) => Math.round(T.P / 745.7 / .97);   // engine horsepower (P is what reaches the tyres)
+const quickPurse = (id, laps, diff) => KARTS[id].fun ? 0 : Math.round((150 + KARTS[id].price * .05) * laps / 5 * (diff < .95 ? .7 : diff > 1 ? 1.35 : 1) / 10) * 10;
+function ordinal(n) { return n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'); }
+function hashS(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 const Game = {
-  mode: 'menu', cfg: { track: store.get('track', 'park'), kart: store.get('kart', 'blaze'), modeR: store.get('mode', 'race'), laps: store.get('laps', 3), diff: store.get('diff', .97) },
-  karts: [], player: null, T: null, clock: 0, camMode: 0, previewA: 0,
+  mode: 'menu', tab: store.get('tab', 'race'),
+  cfg: Object.assign({ track: 'park', kart: 'rental', modeR: 'race', laps: 5, diff: .98 }, store.get('cfg', {})),
+  karts: [], player: null, T: null, clock: 0, camMode: 0, previewA: 0, run: null, tok: 0,
+  saveCfg() { store.set('cfg', this.cfg); },
   init() {
-    initRenderer(); Input.init(); this.menu(); this.loadTrack(this.cfg.track);
-    $('mGo').addEventListener('click', () => { Snd.init(); this.start(); });
+    initRenderer(); Input.init();
+    if (!TRACKS[this.cfg.track]) this.cfg.track = 'park';
+    if (!Cr.owned(this.cfg.kart)) this.cfg.kart = Cr.w().owned[0] || 'rental';
+    if (['race', 'career', 'garage'].indexOf(this.tab) < 0) this.tab = 'race';
+    this.gSel = this.cfg.kart;
+    document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => { this.tab = b.dataset.tab; store.set('tab', this.tab); this.menu(); }));
+    $('mGo').addEventListener('click', () => { Snd.init(); this.ev = null; this.start(); });
     $('bPause').addEventListener('click', () => this.pause(true)); $('bCam').addEventListener('click', () => { this.camMode = (this.camMode + 1) % 3; });
     $('pRes').addEventListener('click', () => this.pause(false)); $('pRe').addEventListener('click', () => { this.pause(false); this.start(); }); $('pQuit').addEventListener('click', () => { this.pause(false); this.toMenu(); });
-    $('rAgain').addEventListener('click', () => this.start()); $('rMenu').addEventListener('click', () => this.toMenu());
-    $('rNext').addEventListener('click', () => { const i = TRACK_ORDER.indexOf(this.cfg.track); this.cfg.track = TRACK_ORDER[(i + 1) % TRACK_ORDER.length]; store.set('track', this.cfg.track); this.menu(); this.start(); });
-    $('mMsg').addEventListener('click', (e) => { e.preventDefault(); if (window.ErikaAccess && ErikaAccess.message) ErikaAccess.message(); });
+    document.querySelectorAll('.msgF').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); if (window.ErikaAccess && ErikaAccess.message) ErikaAccess.message(); }));
     if (matchMedia('(pointer: coarse)').matches) this.touch = true;
+    if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
+      credits: () => Cr.credits(),
+      setCredits: (n) => { const w = Cr.w(); w.credits = Math.max(0, Math.round(n)); Cr.save(w); },
+      ownedIds: () => Cr.w().owned.slice(),
+      give: (id) => { if (!KARTS[id]) return; const w = Cr.w(); if (w.owned.indexOf(id) < 0) w.owned.push(id); Cr.save(w); },
+      take: (id) => { const w = Cr.w(); w.owned = w.owned.filter((x) => x !== id); Cr.save(w); },
+      name: (id) => (KARTS[id] ? KARTS[id].name : id),
+      career: () => [{ id: 'licence', name: 'Racing licence', levels: RANKS.map((r) => r[0]), level: Cr.rank().i }],
+      setCareer: (t, lvl) => { if (t !== 'licence' || !RANKS[lvl]) return null; store.set('lic', { pts: RANKS[lvl][1] }); return 'racing licence: ' + RANKS[lvl][0]; },
+      refresh: () => { if (!Cr.owned(this.cfg.kart)) { this.cfg.kart = Cr.w().owned[0] || 'rental'; this.saveCfg(); } if (this.mode === 'menu') this.menu(); },
+    });
+    this.loadTrack(this.cfg.track); this.menu();
     let last = performance.now(); const loop = (now) => { requestAnimationFrame(loop); const dt = Math.min(.1, (now - last) / 1000); last = now; try { this.frame(dt); } catch (e) { if (!this._err) { this._err = true; console.error(e); } } }; requestAnimationFrame(loop);
   },
+  // ---------------------------------------------------------------- menus
   menu() {
-    const tr = $('mTracks'); tr.innerHTML = '';
-    for (const key of TRACK_ORDER) { const t = TRACKS[key], d = buildTrackData(key), b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-pressed', String(key === this.cfg.track));
-      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; d.P.forEach((p) => { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); });
-      const sc = Math.min(116 / (x1 - x0), 46 / (z1 - z0)), path = d.P.filter((_, i) => i % 6 === 0).map((p, i) => (i ? 'L' : 'M') + (6 + (p.x - x0) * sc + (116 - (x1 - x0) * sc) / 2).toFixed(1) + ' ' + (4 + (p.z - z0) * sc + (46 - (z1 - z0) * sc) / 2).toFixed(1)).join(' ') + 'Z';
-      const best = store.get('best.' + key, null);
-      b.innerHTML = '<svg viewBox="0 0 128 54"><path d="' + path + '"/></svg><b>' + t.name + '</b><small>' + (d.L / 1000).toFixed(2) + ' km &middot; ' + t.blurb + '</small><small style="color:#ffd36b">' + (best ? 'Best lap ' + fmtT(best) : '') + '</small>';
-      b.addEventListener('click', () => { this.cfg.track = key; store.set('track', key); this.menu(); this.loadTrack(key); }); tr.appendChild(b); }
+    const rk = Cr.rank();
+    $('mLic').innerHTML = 'Licence <b>' + rk.name + '</b>';
+    $('mWallet').textContent = fmtN(Cr.credits()) + ' credits';
+    document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === this.tab)));
+    $('pRace').hidden = this.tab !== 'race'; $('pCareer').hidden = this.tab !== 'career'; $('pGarage').hidden = this.tab !== 'garage';
+    if (this.tab === 'race') this.paintRace(); else if (this.tab === 'career') this.paintCareer(); else this.paintGarage();
+  },
+  trackSvg(key) {
+    const d = this._tdata = this._tdata || {}; const P = (d[key] = d[key] || buildTrackData(key)).P;
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; P.forEach((p) => { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); });
+    const sc = Math.min(116 / (x1 - x0), 46 / (z1 - z0));
+    return '<svg viewBox="0 0 128 54"><path d="' + P.filter((_, i) => i % 6 === 0).map((p, i) => (i ? 'L' : 'M') + (6 + (p.x - x0) * sc + (116 - (x1 - x0) * sc) / 2).toFixed(1) + ' ' + (4 + (p.z - z0) * sc + (46 - (z1 - z0) * sc) / 2).toFixed(1)).join(' ') + 'Z"/></svg>';
+  },
+  kartLine(id) { const T = spec(id, Cr.up(id)); return hp(T) + ' hp &middot; ' + Math.round(T.m) + ' kg &middot; ' + Math.round(T.top * 3.6) + ' km/h'; },
+  paintRace() {
+    const c = this.cfg, tr = $('mTracks'); tr.innerHTML = '';
+    for (const key of TRACK_ORDER) { const t = TRACKS[key], b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-pressed', String(key === c.track));
+      const best = store.get('best.' + key + '.' + c.kart, null), svg = this.trackSvg(key);
+      b.innerHTML = svg + '<b>' + t.name + '</b><small>' + (this._tdata[key].L / 1000).toFixed(2) + ' km &middot; ' + t.blurb + '</small><small class="pr">' + (best ? 'Best ' + fmtT(best) : '&nbsp;') + '</small>';
+      b.addEventListener('click', () => { c.track = key; this.saveCfg(); this.menu(); this.loadTrack(key); }); tr.appendChild(b); }
     const kr = $('mKarts'); kr.innerHTML = '';
-    for (const key of KART_ORDER) { const T = KARTS[key], b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-pressed', String(key === this.cfg.kart));
-      const bar = (n, v) => '<i>' + n + '<span style="--w:' + Math.round(clamp(v, .08, 1) * 100) + '%"></span></i>';
-      b.innerHTML = '<b><span class="sw" style="background:' + T.col[0] + '"></span>' + T.name + '</b><small>' + T.blurb + '</small><div class="bars">' + bar('Speed', (T.vmax - 24) / 9) + bar('Accel', (T.acc - 10) / 8) + bar('Grip', (T.turn * T.grip - 2) / 1.4) + '</div>';
-      b.addEventListener('click', () => { this.cfg.kart = key; store.set('kart', key); this.menu(); }); kr.appendChild(b); }
-    const seg = (id, key, conv, storeKey) => { const el = $(id); el.querySelectorAll('button').forEach((b) => { const v = conv(b.dataset.v); b.setAttribute('aria-pressed', String(v === this.cfg[key])); b.onclick = () => { this.cfg[key] = v; store.set(storeKey, v); this.menu(); }; }); };
-    seg('mMode', 'modeR', (v) => v, 'mode'); seg('mLaps', 'laps', (v) => +v, 'laps'); seg('mDiff', 'diff', (v) => +v, 'diff');
-    $('mGo').textContent = this.cfg.modeR === 'trial' ? 'Time trial' : 'Race';
-    const best = store.get('best.' + this.cfg.track, null); $('mBest').textContent = best ? TRACKS[this.cfg.track].name + ' best lap ' + fmtT(best) : '';
+    for (const id of KART_ORDER) { if (!Cr.owned(id)) continue; const T = KARTS[id], b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-pressed', String(id === c.kart));
+      b.innerHTML = '<b><span class="sw" style="background:' + T.col[0] + '"></span>' + T.name + '</b><small>' + T.cls + '</small><small>' + this.kartLine(id) + '</small>';
+      b.addEventListener('click', () => { c.kart = id; this.gSel = id; this.saveCfg(); this.menu(); }); kr.appendChild(b); }
+    if (Cr.w().owned.length < 3) { const b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.innerHTML = '<b>+ More karts</b><small>Buy race karts in the Garage with the credits you win</small>'; b.addEventListener('click', () => { this.tab = 'garage'; this.menu(); }); kr.appendChild(b); }
+    const seg = (id, key, conv) => { $(id).querySelectorAll('button').forEach((b) => { const v = conv(b.dataset.v); b.setAttribute('aria-pressed', String(v === c[key])); b.onclick = () => { c[key] = v; this.saveCfg(); this.menu(); }; }); };
+    seg('mMode', 'modeR', (v) => v); seg('mLaps', 'laps', (v) => +v); seg('mDiff', 'diff', (v) => +v);
+    $('mGo').textContent = c.modeR === 'trial' ? 'Time trial' : 'Race';
+    const pay = quickPurse(c.kart, c.laps, c.diff);
+    $('mPay').innerHTML = c.modeR === 'trial' ? 'Time trials pay no credits: they are for setting records.' : KARTS[c.kart].fun ? 'The Erika Gold kart races for fun: no prize money.'
+      : 'A win pays <b style="color:#ffd36b">' + fmtN(pay) + ' credits</b> (harder rivals and more laps pay more). Career events pay much more and earn licence points.';
+  },
+  evKart(ev) { if (ev.karts.indexOf(this.cfg.kart) >= 0 && Cr.owned(this.cfg.kart)) return this.cfg.kart; return ev.karts.find((id) => Cr.owned(id)) || null; },
+  standings(ev, st) { return Object.keys(st.pts).map((n) => [n, st.pts[n]]).sort((a, b) => b[1] - a[1]); },
+  paintCareer() {
+    const rk = Cr.rank(), nx = rk.next, pc = nx ? (rk.pts - RANKS[rk.i][1]) / (nx[1] - RANKS[rk.i][1]) : 1;
+    $('cRank').innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="lbl" style="margin:0">Racing licence</span><span class="note">' + fmtN(rk.pts) + ' points' + (nx ? ' &middot; ' + fmtN(nx[1] - rk.pts) + ' to ' + nx[0] : ' &middot; top rank') + '</span></div>'
+      + '<b style="font:700 30px/1 var(--disp);letter-spacing:.03em">' + rk.name + '</b><div class="bar"><i style="width:' + Math.round(pc * 100) + '%"></i></div>'
+      + '<span class="note">Race in events to earn prize money and licence points. A higher licence opens bigger events and faster karts in the Garage.</span>';
+    const box = $('cEvents'); box.innerHTML = '';
+    for (const ev of EVENTS) {
+      const locked = rk.i < ev.rank, st = Cr.champ(ev.id), won = (store.get('won', {}) || {})[ev.id] || 0, kid = this.evKart(ev), n = ev.rounds.length;
+      const d = document.createElement('div'); d.className = 'ev' + (locked ? ' locked' : '');
+      let status = '';
+      if (st) { const s = this.standings(ev, st), me = s.findIndex((r) => r[0] === 'You') + 1; status = '<span class="done" style="color:#ffd36b">Round ' + (st.round + 1) + ' of ' + n + ' next &middot; you are ' + ordinal(me || s.length) + ' on ' + (st.pts.You || 0) + ' pts</span>'; }
+      else if (won) status = '<span class="done">Won' + (won > 1 ? ' &times;' + won : '') + '</span>';
+      d.innerHTML = '<div><b>' + ev.name + '</b><small>' + (n > 1 ? n + '-round championship' : 'One race') + ' &middot; ' + ev.laps + ' laps &middot; ' + ev.karts.map((k) => KARTS[k].name).join(' or ') + '</small><small>' + ev.rounds.map((r) => TRACKS[r].name).join(', ') + '</small>' + status + '</div>'
+        + '<div style="display:grid;gap:6px;justify-items:end"><span class="pr">' + (ev.fun ? 'For fun' : 'Win ' + fmtN(ev.purse) + (ev.bonus ? ' + title ' + fmtN(ev.bonus) : '')) + '</span><span class="b"></span></div>';
+      const bx = d.querySelector('.b'), btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn sm';
+      if (locked) { btn.disabled = true; btn.className = 'btn sm ghost'; btn.textContent = 'Needs ' + RANKS[ev.rank][0]; }
+      else if (!kid) { btn.className = 'btn sm ghost'; btn.textContent = 'Get a ' + KARTS[ev.karts[0]].name; btn.onclick = () => { this.gSel = ev.karts[0]; this.tab = 'garage'; this.menu(); }; }
+      else { btn.textContent = st ? 'Continue' : 'Enter'; btn.title = 'Race in your ' + KARTS[kid].name; btn.onclick = () => { Snd.init(); this.ev = ev; this.start(); }; }
+      bx.appendChild(btn);
+      if (st) { const q = document.createElement('button'); q.type = 'button'; q.className = 'btn sm ghost'; q.textContent = 'Quit'; q.style.marginLeft = '6px'; q.title = 'Give up this championship (points are lost)'; q.onclick = () => { if (confirm('Quit the ' + ev.name + '? Your points so far are lost.')) { Cr.setChamp(ev.id, null); this.menu(); } }; bx.appendChild(q); }
+      box.appendChild(d);
+    }
+  },
+  paintGarage() {
+    const rk = Cr.rank(), g = $('gKarts'); g.innerHTML = ''; if (!KARTS[this.gSel]) this.gSel = this.cfg.kart;
+    for (const id of KART_ORDER) { const T = KARTS[id], own = Cr.owned(id), b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-pressed', String(id === this.gSel));
+      b.innerHTML = '<b><span class="sw" style="background:' + T.col[0] + '"></span>' + T.name + '</b><small>' + T.cls + '</small>' + (own ? '<small class="own">' + (id === this.cfg.kart ? 'Yours &middot; selected' : 'Yours') + '</small>' : rk.i < T.rank ? '<small>Needs ' + RANKS[T.rank][0] + ' licence</small>' : '<small class="pr">' + fmtN(T.price) + ' credits</small>');
+      b.addEventListener('click', () => { this.gSel = id; this.menu(); }); g.appendChild(b); }
+    const id = this.gSel, T0 = KARTS[id], T = spec(id, Cr.up(id)), own = Cr.owned(id), cr = Cr.credits();
+    const feat = [T.frontBrakes ? 'Brakes on all four wheels' : 'Rear brakes only', T.gears > 1 ? T.gears + '-speed gearbox' : T.eng === 'e' ? 'Electric motor' : 'Direct drive, centrifugal clutch', T.eng === 4 ? 'Four-stroke' : T.eng === 2 ? 'Two-stroke' : 'Battery', T.cla ? 'Wing and bodywork: downforce' : ''].filter(Boolean).join(' &middot; ');
+    let html = '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline"><b style="font:700 28px/1 var(--disp);letter-spacing:.03em"><span class="sw" style="background:' + T0.col[0] + ';width:16px;height:16px"></span>' + T0.name + '</b><span class="note">' + T0.cls + '</span></div>'
+      + '<span class="note">' + T0.blurb + '.</span>'
+      + '<div class="stats"><div><span>Power</span><b>' + hp(T) + ' hp</b></div><div><span>Weight</span><b>' + Math.round(T.m) + ' kg</b></div><div><span>Top speed</span><b>' + Math.round(T.top * 3.6) + ' km/h</b></div><div><span>Grip</span><b>' + T.mu.toFixed(2) + ' g</b></div></div>'
+      + '<span class="note">' + feat + '</span><div class="btns" id="gAct"></div>';
+    if (own && !T0.fun) { const up = Cr.up(id);
+      for (const [k, nm, what] of [['eng', 'Engine tune', '+4% power and a little more top speed a level'], ['tyre', 'Softer tyres', '+3% grip a level'], ['chas', 'Lighter parts', '4 kg lighter a level']]) {
+        const lvl = up[k] || 0, cost = lvl < 3 ? Cr.upCost(id, k, lvl + 1) : 0;
+        html += '<div class="upg"><div>' + nm + '<small>' + what + '</small></div><div class="pips">' + [1, 2, 3].map((i) => '<i class="' + (i <= lvl ? 'on' : '') + '"></i>').join('') + '</div><button type="button" class="btn sm' + (lvl >= 3 || cost > cr ? ' ghost' : '') + '" data-up="' + k + '"' + (lvl >= 3 || cost > cr ? ' disabled' : '') + '>' + (lvl >= 3 ? 'Max' : fmtN(cost) + ' cr') + '</button></div>'; } }
+    $('gDetail').innerHTML = html;
+    const act = $('gAct');
+    if (own) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = id === this.cfg.kart ? 'Selected: race it' : 'Race this kart'; b.onclick = () => { this.cfg.kart = id; this.saveCfg(); this.tab = 'race'; store.set('tab', 'race'); this.menu(); }; act.appendChild(b); }
+    else { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; const lockR = rk.i < T0.rank;
+      b.textContent = lockR ? 'Needs a ' + RANKS[T0.rank][0] + ' licence' : cr < T0.price ? 'Buy: ' + fmtN(T0.price) + ' credits (you have ' + fmtN(cr) + ')' : 'Buy for ' + fmtN(T0.price) + ' credits';
+      b.disabled = lockR || cr < T0.price; if (b.disabled) b.className = 'btn ghost';
+      b.onclick = () => { if (Cr.buy(id)) { this.cfg.kart = id; this.saveCfg(); Snd.init(); Snd.beep(880, .15); this.menu(); } }; act.appendChild(b); }
+    $('gDetail').querySelectorAll('[data-up]').forEach((b) => b.addEventListener('click', () => { if (Cr.upgrade(id, b.dataset.up)) { Snd.init(); Snd.beep(990, .12); this.menu(); } }));
   },
   loadTrack(key) { if (this.T && this.T.key === key) return; this.T = buildTrackData(key); buildWorld(this.T); },
+  // ---------------------------------------------------------------- racing
   start() {
-    this.loadTrack(this.cfg.track); const T = this.T, P = T.P, N = T.N;
+    const ev = this.ev, st = ev ? Cr.champ(ev.id) : null, kid = ev ? this.evKart(ev) : this.cfg.kart;
+    if (!kid || !Cr.owned(kid)) { this.toMenu(); return; }
+    const run = this.run = { ev, kid, round: st ? st.round : 0, track: ev ? ev.rounds[st ? st.round : 0] : this.cfg.track, laps: ev ? ev.laps : this.cfg.laps, diff: ev ? ev.diff : this.cfg.diff, trial: !ev && this.cfg.modeR === 'trial' };
+    this.loadTrack(run.track); const T = this.T, P = T.P, N = T.N;
     for (const k of this.karts) if (k.mesh) R3.world.remove(k.mesh);
-    this.karts = []; const trial = this.cfg.modeR === 'trial', n = trial ? 1 : 8, myslot = trial ? 0 : 5, r = rng((Date.now() & 0xffff) + 1);
-    const types = KART_ORDER.filter((x) => x !== 'erika');
+    this.karts = []; const n = run.trial ? 1 : 8, myslot = run.trial ? 0 : 5, r = rng((ev ? hashS(ev.id) + run.round * 7 : Date.now() & 0xffff) + 1);
+    // rivals: a fixed field for each event, random names for quick races; everyone drives the same kart
+    const names = RIVALS.slice(); const nr = ev ? rng(hashS(ev.id + 'n')) : r; for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(nr() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
+    const rl = ev ? Math.min(3, Math.round(ev.rank * .6)) : 0, rup = { eng: rl, tyre: rl, chas: rl };
     for (let s = 0; s < n; s++) {
-      const me = s === myslot, type = me ? this.cfg.kart : types[Math.floor(r() * types.length)], k = newKart(type, !me, me ? 'You' : RIVALS[s < myslot ? s : s - 1]);
-      if (!me) { k.T = Object.assign({}, KARTS[type], { col: [['#2fd4c4', '#10161c'], ['#ff3d3d', '#f4f4f2'], ['#7ad000', '#10161c'], ['#3d5afe', '#ffd400'], ['#ffd400', '#10161c'], ['#b36bff', '#f4f4f2'], ['#f4f4f2', '#d8262e']][s % 7] });
-        k.skill = this.cfg.diff * (.97 + r() * .05); k.laneBase = (r() - .5) * 4; k.lane = 0; }
-      const back = 6 + Math.floor(s / 2) * 6, i0 = (N - Math.round(back / DS)) % N, p = P[i0], off = (s % 2 ? 1 : -1) * 2.6;
-      k.x = p.x + p.rx * off; k.z = p.z + p.rz * off; k.h = p.h; k.idx = i0; k.lane = off; k.lap = 0; k.half = true; k.lapStart = 0; if (me) k.laneBase = 0;
-      k.mesh = makeKart(k.T); R3.world.add(k.mesh); this.karts.push(k); if (me) this.player = k;
+      const me = s === myslot, k = newKart(kid, !me, me ? 'You' : names[s < myslot ? s : s - 1], me ? Cr.up(kid) : rup);
+      if (!me) { const ci = RIVALS.indexOf(k.name); k.T.col = RIVAL_COLS[ci % RIVAL_COLS.length]; if (KARTS[kid].fun) k.T.col = [KARTS[kid].col[0], RIVAL_COLS[ci % RIVAL_COLS.length][0]]; k.T.music = false;
+        k.skill = run.diff * (.965 + r() * .05); k.laneBase = (r() - .5) * 3;
+        const f = 1 + (k.skill / run.diff - .99) * .9; k.T.P *= f; k.T.top *= Math.cbrt(f); }   // no two engines are quite the same
+      const back = 6 + Math.floor(s / 2) * 6, i0 = (N - Math.round(back / DS)) % N, p = P[i0], off = (s % 2 ? 1 : -1) * 2.3;
+      k.x = p.x + p.rx * off; k.z = p.z + p.rz * off; k.h = p.h; k.idx = i0; k.lane = off; k.lap = 0; k.half = true; k.lapStart = 0; k.num = s + 1;
+      k.mesh = makeKart(k.T, me ? 1 + (hashS(kid) % 98) : 2 + RIVALS.indexOf(k.name) * 7 % 97); R3.world.add(k.mesh); this.karts.push(k); if (me) this.player = k;
     }
-    this.clock = 0; this.countT = 3.6; this.mode = 'count'; this.finishT = null; this.lightsOn = -1; this.lapMsg = null;
-    $('menu').hidden = true; $('res').hidden = true; $('hud').hidden = false; $('touch').hidden = !this.touch; this.msg('');
+    this.tok++; this.clock = 0; this.countT = 3.6; this.mode = 'count'; this.cp = null; this.paused = false;
+    $('menu').hidden = true; $('res').hidden = true; $('pause').hidden = true; $('hud').hidden = false; $('touch').hidden = !this.touch; this.msg(ev ? ev.name : '', ev && ev.rounds.length > 1 ? 'Round ' + (run.round + 1) + ' of ' + ev.rounds.length + ' · ' + TRACKS[run.track].name : TRACKS[run.track].name, 2.4);
     R3.lights.forEach((m) => m.color.setHex(0x331010));
-    if (window.ErikaAccess && ErikaAccess.flew) ErikaAccess.flew('Karts: ' + KARTS[this.cfg.kart].name);
+    if (window.ErikaAccess && ErikaAccess.flew) ErikaAccess.flew('Karts: ' + KARTS[kid].name + (ev ? ' (' + ev.name + ')' : ''));
   },
-  toMenu() { this.mode = 'menu'; for (const k of this.karts) if (k.mesh) R3.world.remove(k.mesh); this.karts = []; this.player = null; $('hud').hidden = true; $('touch').hidden = true; $('res').hidden = true; $('menu').hidden = false; this.menu(); Snd.engine(0, 0, false, false, false); },
+  toMenu() { this.tok++; this.mode = 'menu'; for (const k of this.karts) if (k.mesh) R3.world.remove(k.mesh); this.karts = []; this.player = null; this.paused = false;
+    $('hud').hidden = true; $('touch').hidden = true; $('res').hidden = true; $('pause').hidden = true; $('menu').hidden = false; this.loadTrack(this.cfg.track); this.menu(); if (Snd.ac) Snd.engine(KARTS.rental, 0, 0, 0, false); },
   pause(on) { if (on && (this.mode === 'run' || this.mode === 'count')) { this.paused = true; $('pause').hidden = false; } else if (!on) { this.paused = false; $('pause').hidden = true; } },
   msg(t, sub, dur) { $('hMsg').innerHTML = t ? t + (sub ? '<small>' + sub + '</small>' : '') : ''; this.msgT = dur || 0; },
   frame(dt) {
-    const inp = this._testInp ? Object.assign({ pause: false, cam: false, mute: false, restart: false }, this._testInp) : Input.read();   // _testInp: automated tests drive the kart
+    const inp = this._testInp ? Object.assign({ steer: 0, thr: 0, brk: 0, analog: false, pause: false, cam: false, mute: false, restart: false }, this._testInp) : Input.read();   // _testInp: automated tests drive the kart
     if (inp.mute) Snd.toggle();
-    if (inp.pause && this.mode !== 'menu') this.pause(!this.paused);
+    if (inp.pause && this.mode !== 'menu' && $('res').hidden) this.pause(!this.paused);
     if (inp.cam) this.camMode = (this.camMode + 1) % 3;
-    if (inp.restart && (this.mode === 'run' || this.mode === 'done') && !this.paused) this.start();
-    const live = this.mode !== 'menu' && !this.paused, T = this.T;
+    if (inp.restart && (this.mode === 'run' || this.mode === 'count') && !this.paused) this.start();
+    const live = this.mode !== 'menu' && !this.paused, T = this.T, run = this.run;
     if (live) {
       if (this.mode === 'count') { const before = this.countT; this.countT -= dt; for (let n = 0; n < 5; n++) { const at = 3.4 - n * .6; if (before > at && this.countT <= at) { R3.lights[n].color.setHex(0xff2a2a); Snd.beep(520, .18); } }
         if (this.countT <= .2) { this.mode = 'run'; this.clock = 0; R3.lights.forEach((m) => m.color.setHex(0x1aff5a)); Snd.beep(1040, .4); this.msg('GO!', '', 1); for (const k of this.karts) k.lapStart = 0; } }
-      const sub = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / sub;
+      const go = this.mode === 'run' || this.mode === 'done', sub = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / sub, N = T.N;
       for (let s = 0; s < sub; s++) {
-        if (this.mode === 'run' || this.mode === 'done') this.clock += h;
+        if (go) this.clock += h;
         for (const k of this.karts) {
-          const go = this.mode === 'run' || this.mode === 'done';
-          let ki = !go ? { steer: 0, thr: 0, brk: 0, drift: false } : (k.ai || k.done != null ? aiInput(k, T, this.karts) : inp);
-          if (!go) k.v = 0;   // held on the grid until the lights go out
-          if (!k.ai && k.done != null) { k.skill = .9; }
-          stepKart(k, ki, h, T);
+          if (!go) { k.u = k.v = k.r = 0; const th = k.ai ? 0 : inp.thr; k.rpm = lerp(k.rpm || k.T.rev[0], k.T.rev[0] + th * (k.T.rev[1] - k.T.rev[0]) * .7, Math.min(1, h * 8)); continue; }   // held on the grid until the lights go out
+          const ki = k.ai || k.done != null ? aiInput(k, T, this.karts) : inp;
+          if (!k.ai && k.done != null) k.skill = .9;
+          stepKart(k, ki, h, T); k.thr = ki.thr;
           // laps: crossing the line forwards after passing the far side
-          const N = T.N; if (k.idx > N * .4 && k.idx < N * .6) k.half = true;
-          if (k.prevIdx != null && k.prevIdx > N * .85 && k.idx < N * .15 && k.half && go) { k.half = false; const lt = this.clock - k.lapStart; if (k.lap > 0) k.laps.push(lt); k.lap++; k.lapStart = this.clock; if (k === this.player) this.onLap(k, lt); else if (k.lap > this.cfg.laps && k.done == null) k.done = this.clock; }
-          k.prevIdx = k.idx; k.prog = (k.lap - (k.idx > N * .85 && !k.half && k.lap === 0 ? 1 : 0)) * N + k.idx;
+          if (k.idx > N * .4 && k.idx < N * .6) k.half = true;
+          if (k.prevIdx != null && k.prevIdx > N * .85 && k.idx < N * .15 && k.half) { k.half = false; const lt = this.clock - k.lapStart; if (k.lap > 0) k.laps.push(lt); k.lap++; k.lapStart = this.clock; if (k === this.player) this.onLap(k, lt); else if (k.lap > run.laps && k.done == null) k.done = this.clock; }
+          k.prevIdx = k.idx; k.prog = k.lap * N + k.idx - (k.lap === 0 && k.idx > N * .5 ? N : 0);
         }
-        for (let i = 0; i < this.karts.length; i++) for (let j = i + 1; j < this.karts.length; j++) collide(this.karts[i], this.karts[j]);
+        if (go) for (let i = 0; i < this.karts.length; i++) for (let j = i + 1; j < this.karts.length; j++) collide(this.karts[i], this.karts[j]);
       }
     }
-    // rubber band: rivals a long way behind you push a little harder, a long way ahead ease off
-    if (this.player && this.mode === 'run') for (const k of this.karts) if (k.ai) { const gap = (this.player.prog - k.prog) * DS; k.skill = clamp(k.skill + (clamp(gap / 400, -.04, .05) * this.cfg.diff + this.cfg.diff - k.skill) * dt * .2, this.cfg.diff * .92, this.cfg.diff * 1.08); }
+    // rivals a long way behind you push a little harder, a long way ahead ease off (only a little: they are racers, not a rubber band)
+    if (this.player && this.mode === 'run' && run) for (const k of this.karts) if (k.ai) { const gap = (this.player.prog - k.prog) * DS; k.skill = clamp(k.skill + (clamp(gap / 600, -.025, .03) + run.diff - k.skill) * dt * .15, run.diff * .94, run.diff * 1.05); }
     this.render(dt, inp);
   },
   onLap(k, lt) {
-    const T = this.T, laps = this.cfg.laps;
-    if (k.lap > 1) { const key = 'best.' + T.key, best = store.get(key, null); if (best == null || lt < best) { store.set(key, lt); this.msg('Best lap', fmtT(lt), 2.2); } }
-    if (k.lap > laps) { k.done = this.clock; this.mode = 'done'; const pos = this.position(); this.msg(pos === 1 ? 'You win!' : 'Finished', ordinal(pos) + ' place', 3); setTimeout(() => this.results(), 2600); return; }
-    if (k.lap === laps) this.msg('Final lap', '', 1.8); else if (k.lap > 1) this.msg('Lap ' + k.lap, fmtT(lt), 1.6);
+    const T = this.T, laps = this.run.laps, key = 'best.' + T.key + '.' + this.run.kid;
+    if (k.lap > 1) { const best = store.get(key, null); if (best == null || lt < best) { store.set(key, lt); this.msg('Best lap', fmtT(lt), 2.2); } }
+    if (k.lap > laps) { k.done = this.clock; this.mode = 'done'; const pos = this.position(); this.msg(this.run.trial ? 'Finish' : pos === 1 ? 'You win!' : 'Finished', this.run.trial ? 'Best lap ' + fmtT(Math.min(...k.laps)) : ordinal(pos) + ' place', 3); const tok = this.tok; setTimeout(() => { if (this.tok === tok) this.results(); }, 2600); return; }
+    if (k.lap === laps) this.msg('Final lap', k.lap > 1 ? fmtT(lt) : '', 1.8); else if (k.lap > 1) this.msg('Lap ' + k.lap, fmtT(lt), 1.6);
   },
-  position() { const p = this.player; if (!p) return 1; const sorted = this.karts.slice().sort((a, b) => (a.done != null && b.done != null ? a.done - b.done : a.done != null ? -1 : b.done != null ? 1 : b.prog - a.prog)); return sorted.indexOf(p) + 1; },
+  order() { return this.karts.slice().sort((a, b) => (a.done != null && b.done != null ? a.done - b.done : a.done != null ? -1 : b.done != null ? 1 : b.prog - a.prog)); },
+  position() { return this.player ? this.order().indexOf(this.player) + 1 : 1; },
   results() {
-    if (this.mode === 'menu') return;
-    const T = this.T, rows = this.karts.map((k) => { let t = k.done; if (t == null) { const left = (this.cfg.laps + 1) * T.N - k.prog; t = this.clock + left * DS / Math.max(8, k.T.vmax * .8); } return { k, t }; }).sort((a, b) => a.t - b.t);
-    const me = rows.findIndex((r) => r.k === this.player) + 1, trial = this.cfg.modeR === 'trial', best = Math.min(...this.player.laps);
-    $('rH').textContent = trial ? 'Time trial' : me === 1 ? 'You win!' : ordinal(me) + ' place';
-    $('rS').textContent = T.t.name + ' · ' + this.cfg.laps + ' laps · best lap ' + fmtT(best);
-    $('rT').innerHTML = rows.map((r, i) => '<tr class="' + (r.k === this.player ? 'me' : '') + '"><td>' + (i + 1) + '</td><td><span class="sw" style="background:' + r.k.T.col[0] + '"></span>' + r.k.name + '</td><td>' + KARTS[r.k.type].name + '</td><td>' + fmtT(r.t) + '</td></tr>').join('');
-    $('res').hidden = false;
+    if (this.mode === 'menu' || !this.player) return;
+    const run = this.run, ev = run.ev, T = this.T, me = this.player;
+    const rows = this.karts.map((k) => { let t = k.done; if (t == null) { const left = (run.laps + 1) * T.N - k.prog; t = this.clock + left * DS / Math.max(8, k.T.top * .72); } return { k, t }; }).sort((a, b) => a.t - b.t);
+    const pos = rows.findIndex((r) => r.k === me) + 1, best = me.laps.length ? Math.min(...me.laps) : null, fun = KARTS[run.kid].fun;
+    let earn = 0, pts = 0, html = '';
+    if (!run.trial && !fun) earn = Math.round((ev ? ev.purse : quickPurse(run.kid, run.laps, run.diff)) * PAY[pos - 1] / 10) * 10;
+    if (ev && !ev.fun) pts = Math.round(LPTS[pos - 1] * (1 + ev.rank * .15));
+    const rk0 = Cr.rank().i; let champLine = '', champDone = false, standing = null;
+    if (ev && ev.rounds.length > 1) {
+      const st = Cr.champ(ev.id) || { round: 0, pts: {} }; rows.forEach((r, i) => { st.pts[r.k.name] = (st.pts[r.k.name] || 0) + CPTS[i]; }); st.round = run.round + 1;
+      standing = this.standings(ev, st); const cp = standing.findIndex((s) => s[0] === 'You') + 1;
+      if (st.round >= ev.rounds.length) { champDone = true; Cr.setChamp(ev.id, null);
+        if (cp === 1) { Cr.setWon(ev.id); const b = fun ? 0 : ev.bonus || 0; earn += b; pts += ev.fun ? 0 : 30 + ev.rank * 10; champLine = 'Champion!' + (b ? ' Title bonus +' + fmtN(b) + ' credits' : ''); }
+        else champLine = 'Championship over: you finished ' + ordinal(cp) + ' on ' + st.pts.You + ' points'; }
+      else { Cr.setChamp(ev.id, st); champLine = 'Championship after round ' + st.round + ' of ' + ev.rounds.length + ': you are ' + ordinal(cp) + ' on ' + st.pts.You + ' points'; }
+    } else if (ev && pos === 1) Cr.setWon(ev.id);
+    if (earn) Cr.add(earn); if (pts) Cr.addPts(pts);
+    const rk1 = Cr.rank();
+    $('rH').textContent = run.trial ? 'Time trial' : pos === 1 ? 'You win!' : ordinal(pos) + ' place';
+    $('rS').textContent = (ev ? ev.name + ' · ' : '') + TRACKS[run.track].name + ' · ' + run.laps + ' laps · best lap ' + fmtT(best);
+    $('rT').innerHTML = rows.map((r, i) => '<tr class="' + (r.k === me ? 'me' : '') + '"><td>' + (i + 1) + '</td><td><span class="sw" style="background:' + r.k.T.col[0] + '"></span>' + r.k.name + '</td><td>' + (r.k.done != null ? fmtT(r.t) : '+' + fmtT(r.t - rows[0].t)) + '</td></tr>').join('');
+    if (earn) html += '+' + fmtN(earn) + ' credits'; if (pts) html += (html ? ' &middot; ' : '') + '+' + pts + ' licence points';
+    if (!html) html = run.trial ? 'Time trials pay no credits' : fun ? 'The Erika Gold kart races for fun' : 'No prize money this time';
+    if (champLine) html += '<small>' + champLine + '</small>';
+    if (standing) html += '<small>' + standing.slice(0, 8).map((s, i) => (i + 1) + '. ' + (s[0] === 'You' ? '<b style="color:var(--accent)">You</b>' : s[0]) + ' ' + s[1]).join(' &nbsp; ') + '</small>';
+    if (rk1.i > rk0) html += '<small style="color:#46d98a">New licence: ' + rk1.name + '! New events and karts are open.</small>';
+    html += '<small>You have ' + fmtN(Cr.credits()) + ' credits</small>';
+    $('rE').innerHTML = html;
+    const B = $('rB'); B.innerHTML = ''; const btn = (t, f, ghost) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (ghost ? ' ghost' : ''); b.textContent = t; b.onclick = f; B.appendChild(b); };
+    if (ev) { if (ev.rounds.length > 1 && !champDone) btn('Next round', () => this.start()); else btn('Race again', () => this.start(), ev.rounds.length > 1);
+      btn('Career', () => { this.tab = 'career'; this.toMenu(); }, true); btn('Garage', () => { this.tab = 'garage'; this.gSel = run.kid; this.toMenu(); }, true); }
+    else { btn('Race again', () => this.start()); btn('Next track', () => { this.cfg.track = TRACK_ORDER[(TRACK_ORDER.indexOf(this.cfg.track) + 1) % TRACK_ORDER.length]; this.saveCfg(); this.start(); }, true); btn('Menu', () => this.toMenu(), true); }
+    this.mode = 'res'; $('res').hidden = false;
+    if (window.ErikaAccess && ErikaAccess.flew) ErikaAccess.flew('Karts: ' + (ev ? ev.name + ' ' : '') + ordinal(pos));
   },
   render(dt, inp) {
     const cam = R3.cam, T = this.T;
@@ -558,45 +798,42 @@ const Game = {
       R3.sun.position.set(p.x + 220, 300, p.z + 140); R3.sun.target.position.set(p.x, 0, p.z); R3.sky.position.set(cam.position.x, 0, cam.position.z);
       Song.update(false); R3.renderer.render(R3.scene, cam); return;
     }
-    const me = this.player;
+    const me = this.player, live = (this.mode === 'run' || this.mode === 'done' || this.mode === 'count') && !this.paused;
     for (const k of this.karts) {
-      const m = k.mesh, ud = m.userData; m.position.set(k.x, (k.hop > 0 ? Math.sin(k.hop / .22 * Math.PI) * .15 : 0), k.z); m.rotation.y = -k.h;
-      ud.body.rotation.z = clamp(k.v * .002, -.03, .05) * (k.boostT > 0 ? 2 : 1); ud.body.rotation.x = -k.slip * .08 - k.steer * Math.min(1, k.v / 20) * .04;
-      for (const w of ud.wheels) { if (w.front) w.w.rotation.y = -k.steer * .45; w.w.children.forEach((c) => { c.rotation.y += k.v * dt / .21; }); }
-      // sparks while drifting (blue, orange, purple as the drift grows), flames while boosting, dust on the grass
+      const m = k.mesh, ud = m.userData, au = Math.abs(k.u); m.position.set(k.x, 0, k.z); m.rotation.y = -k.h;
+      ud.body.rotation.x = clamp(-k.u * k.r * .006, -.06, .06); ud.body.rotation.z = clamp(-(k.ax || 0) * .004, -.03, .03);
+      for (const w of ud.wheels) { if (w.front) w.w.rotation.y = -k.delta * 1.1; w.w.children.forEach((c) => { c.rotation.y += k.u * dt / .14; }); }
+      if (!live || this.mode === 'count') continue;
+      // tyre smoke when sliding, dust on the grass
       const f = [Math.cos(k.h), Math.sin(k.h)], s = [-f[1], f[0]];
-      if (k.drift && k.dT > .2 && Math.random() < .8) { const c = k.dT > 2.2 ? new THREE.Color(1, .3, 1) : k.dT > 1.35 ? new THREE.Color(1, .55, .1) : k.dT > .65 ? new THREE.Color(.3, .7, 1) : new THREE.Color(.8, .8, .8);
-        for (const sd of [-1, 1]) emit(k.x - f[0] * .7 + s[0] * sd * .6, .12, k.z - f[1] * .7 + s[1] * sd * .6, -f[0] * 2 + (Math.random() - .5) * 3, 1 + Math.random() * 2, -f[1] * 2 + (Math.random() - .5) * 3, c, .35); }
-      if (k.boostT > 0) emit(k.x - f[0] * 1.0, .5, k.z - f[1] * 1.0, -f[0] * 5 + (Math.random() - .5), .5, -f[1] * 5 + (Math.random() - .5), new THREE.Color(1, .45 + Math.random() * .3, .1), .25);
-      if (Math.abs(k.d) > HW + .3 && Math.abs(k.v) > 5 && Math.random() < .5) emit(k.x - f[0] * .8, .2, k.z - f[1] * .8, (Math.random() - .5) * 2, 1.5, (Math.random() - .5) * 2, new THREE.Color(.45, .38, .25), .6);
+      if (k.slip > .09 && au > 6 && Math.random() < Math.min(1, (k.slip - .09) * 12)) for (const sd of [-1, 1]) emit(k.x - f[0] * .6 + s[0] * sd * .62, .15, k.z - f[1] * .6 + s[1] * sd * .62, (Math.random() - .5) * 1.5, .8 + Math.random(), (Math.random() - .5) * 1.5, new THREE.Color(.42, .42, .44), .7);
+      if (Math.abs(k.d) > HW + .3 && au > 5 && Math.random() < .5) emit(k.x - f[0] * .8, .2, k.z - f[1] * .8, (Math.random() - .5) * 2, 1.5, (Math.random() - .5) * 2, new THREE.Color(.45, .38, .25), .6);
     }
     stepParts(dt);
-    // camera: chase (two distances) or bumper
-    const f = [Math.cos(me.h), Math.sin(me.h)], boost = me.boostT > 0;
-    if (this.camMode === 2) { cam.position.set(me.x + f[0] * .4, .95, me.z + f[1] * .4); cam.lookAt(me.x + f[0] * 10, .8, me.z + f[1] * 10); }
-    else { const back = this.camMode === 1 ? 9.5 : 5.6, up = this.camMode === 1 ? 3.6 : 2.4, hd = me.h - me.slip * .5, tx = me.x - Math.cos(hd) * back, tz = me.z - Math.sin(hd) * back;
-      this.cp = this.cp || { x: tx, z: tz }; const k2 = 1 - Math.exp(-dt * 9); this.cp.x += (tx - this.cp.x) * k2; this.cp.z += (tz - this.cp.z) * k2;
-      cam.position.set(this.cp.x, up, this.cp.z); cam.lookAt(me.x + f[0] * 4, .9, me.z + f[1] * 4); }
-    cam.fov += ((70 + Math.min(14, Math.max(0, me.v) * .3) + (boost ? 8 : 0)) - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix();
+    // camera: chase (two distances, following the direction of travel when sliding) or the driver's eyes
+    const f = [Math.cos(me.h), Math.sin(me.h)], au = Math.abs(me.u);
+    if (this.camMode === 2) { cam.position.set(me.x - f[0] * .1, 1.08, me.z - f[1] * .1); cam.lookAt(me.x + f[0] * 10, .7, me.z + f[1] * 10); }
+    else { const back = this.camMode === 1 ? 8.5 : 4.6, up = this.camMode === 1 ? 3.2 : 1.9, slipA = au > 3 ? clamp(Math.atan2(me.v, me.u), -.7, .7) : 0, hd = me.h + slipA * .6, tx = me.x - Math.cos(hd) * back, tz = me.z - Math.sin(hd) * back;
+      this.cp = this.cp || { x: tx, z: tz }; const k2 = 1 - Math.exp(-dt * 10); this.cp.x += (tx - this.cp.x) * k2; this.cp.z += (tz - this.cp.z) * k2;
+      cam.position.set(this.cp.x, up, this.cp.z); cam.lookAt(me.x + f[0] * 4, .8, me.z + f[1] * 4); }
+    cam.fov += ((66 + Math.min(16, au * .32)) - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix();
     R3.sun.position.set(me.x + 220, 300, me.z + 140); R3.sun.target.position.set(me.x, 0, me.z); R3.sky.position.set(cam.position.x, 0, cam.position.z);
-    if (R3.padM) R3.padM.opacity = .75 + .25 * Math.sin(this.clock * 8);
     R3.renderer.render(R3.scene, cam);
     // HUD
-    const N = T.N, pos = this.position(), trial = this.cfg.modeR === 'trial';
-    $('hP').innerHTML = trial ? 'TT' : pos + '<small>/' + this.karts.length + '</small>';
-    $('hL').textContent = 'Lap ' + clamp(me.lap, 1, this.cfg.laps) + ' / ' + this.cfg.laps;
-    $('hC').textContent = fmtT(this.mode === 'count' ? 0 : me.done != null ? me.done - me.lapStart + (me.laps.length ? 0 : 0) : this.clock - me.lapStart);
-    const best = me.laps.length ? Math.min(...me.laps) : null, rec = store.get('best.' + T.key, null);
+    const run = this.run, pos = this.position(), MT = me.T;
+    $('hP').innerHTML = run.trial ? 'TT' : pos + '<small>/' + this.karts.length + '</small>';
+    $('hL').textContent = 'Lap ' + clamp(me.lap, 1, run.laps) + ' / ' + run.laps;
+    $('hC').textContent = fmtT(this.mode === 'count' ? 0 : me.done != null ? me.laps[me.laps.length - 1] : this.clock - me.lapStart);
+    const best = me.laps.length ? Math.min(...me.laps) : null, rec = store.get('best.' + T.key + '.' + run.kid, null);
     $('hS').textContent = 'Best ' + fmtT(best) + (rec ? ' · Record ' + fmtT(rec) : '');
-    $('hV').textContent = Math.round(Math.abs(me.v) * 3.6);
-    const di = $('hDi'); if (me.drift) { const t = me.dT; di.style.width = Math.min(100, t / 2.2 * 100) + '%'; di.style.background = t > 2.2 ? '#ff4df0' : t > 1.35 ? '#ff9a1a' : t > .65 ? '#4db8ff' : '#cfd8e0'; } else if (boost) { di.style.width = Math.min(100, me.boostT / 1.8 * 100) + '%'; di.style.background = '#ff6b3d'; } else di.style.width = '0';
-    // wrong way
-    const p = T.P[me.idx]; if (this.mode === 'run' && me.v > 3 && Math.cos(wrapA(me.h - p.h)) < -.4) { this.msg('Wrong way', '', .3); }
-    if (me.boosted) { this.msg(['', 'Boost', 'Super boost', 'Ultra boost'][me.boosted], '', .7); me.boosted = 0; }
+    $('hV').textContent = Math.round(au * 3.6);
+    $('hG').textContent = MT.gears > 1 ? (me.u < -.5 ? 'R' : String(me.gear)) : MT.eng === 'e' ? 'E' : 'D';
+    const rp = clamp((me.rpm - MT.rev[0]) / (MT.rev[1] - MT.rev[0]), 0, 1), ri = $('hRi'); ri.style.width = Math.round(rp * 100) + '%'; ri.style.background = rp > .93 ? '#ff3d3d' : rp > .8 ? '#ffb52e' : '#cfd8e0';
+    const p = T.P[me.idx]; if (this.mode === 'run' && au > 3 && Math.cos(wrapA(me.h - p.h)) < -.4 && me.u > 0) this.msg('Wrong way', '', .3);
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg(''); }
     this.drawMap();
-    Snd.engine(me.v, (this.mode === 'run' ? inp.thr : 0), boost, me.drift, this.mode !== 'menu' && !this.paused);
-    Song.update(this.mode !== 'menu' && !this.paused && !!me.T.music);
+    Snd.engine(MT, me.rpm, this.mode === 'count' ? inp.thr : me.thr || 0, me.slip, live);
+    Song.update(live && !!MT.music);
   },
   drawMap() {
     const c = $('hMap'), x = c.getContext('2d'), T = this.T, w = c.width;
@@ -604,11 +841,11 @@ const Game = {
       const sc = (w - 40) / Math.max(x1 - x0, z1 - z0); this._map = { key: T.key, f: (p) => [20 + (p.x - x0) * sc + ((w - 40) - (x1 - x0) * sc) / 2, 20 + (p.z - z0) * sc + ((w - 40) - (z1 - z0) * sc) / 2] }; }
     const F = this._map.f; x.clearRect(0, 0, w, w); x.lineWidth = 10; x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineJoin = 'round'; x.beginPath(); T.P.forEach((p, i) => { if (i % 4) return; const [a, b] = F(p); if (!i) x.moveTo(a, b); else x.lineTo(a, b); }); x.closePath(); x.stroke();
     const [sa, sb] = F(T.P[0]); x.fillStyle = '#fff'; x.fillRect(sa - 4, sb - 4, 8, 8);
-    for (const k of this.karts) { const [a, b] = F(k); x.fillStyle = k.T.col[0]; x.beginPath(); x.arc(a, b, k === this.player ? 9 : 6, 0, 7); x.fill(); if (k === this.player) { x.lineWidth = 3; x.strokeStyle = '#fff'; x.stroke(); } }
+    for (const k of this.karts) { if (k === this.player) continue; const [a, b] = F(k); x.fillStyle = k.T.col[0]; x.beginPath(); x.arc(a, b, 6, 0, 7); x.fill(); }
+    const [a, b] = F(this.player); x.fillStyle = '#ff6b3d'; x.beginPath(); x.arc(a, b, 9, 0, 7); x.fill(); x.lineWidth = 3; x.strokeStyle = '#fff'; x.stroke();
   },
 };
-function ordinal(n) { return n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'); }
-window.__karts = { Game, TRACKS, KARTS, buildTrackData, stepKart, aiInput, locate };
+window.__karts = { Game, TRACKS, KARTS, EVENTS, Cr, spec, buildTrackData, stepKart, aiInput, profileFor, locate, newKart };
 (window.__gateReady || Promise.resolve()).then(() => Game.init());
 })();
 </script>
