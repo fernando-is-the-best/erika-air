@@ -38,7 +38,7 @@
 #chooser .card b { font: 700 32px/1 var(--f-display); letter-spacing: 0.06em; text-transform: uppercase; }
 #chooser .card span { color: var(--dim); line-height: 1.5; }
 #chooser .card em { margin-top: auto; font: 600 13px var(--f-body); font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; }
-#chooser .fly { --c: #ffb52e; } #chooser .race { --c: #3cc4ff; } #chooser .boat { --c: #2fd4c4; }
+#chooser .fly { --c: #ffb52e; } #chooser .race { --c: #3cc4ff; } #chooser .boat { --c: #2fd4c4; } #chooser .kart { --c: #ff6b3d; } #chooser .moto { --c: #ff3355; }
 #chooser .card svg, #chooser .card em, #chooser .card b i { color: var(--c); font-style: normal; }
 #chooser .card:hover, #chooser .card:focus-visible { transform: translateY(-3px); border-color: var(--c); box-shadow: 0 10px 34px rgba(0,0,0,0.45), 0 0 0 1px var(--c); outline: none; }
 @media (prefers-reduced-motion: reduce) { #chooser .card { transition: none; } #chooser .card:hover { transform: none; } }
@@ -244,12 +244,12 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 body { font-family: var(--f-body); letter-spacing: -0.005em; }
 /* game chooser: three poster cards */
 #chooser { background: radial-gradient(70% 60% at 50% -10%, rgba(255,255,255,0.06), transparent 60%), #06080c; }
-#chooser .wrap { width: min(1080px, 100%); gap: 34px; }
+#chooser .wrap { width: min(1240px, 100%); gap: 30px; }
 #chooser .hero { display: grid; justify-items: center; gap: 8px; text-align: center; }
 #chooser .mark { font: 700 13px var(--f-body); letter-spacing: 0.5em; text-transform: uppercase; color: var(--pro-dim); padding-left: 0.5em; }
 #chooser h1 { font: 700 clamp(34px, 5vw, 52px)/1.05 var(--f-display); letter-spacing: 0.04em; color: #f4f7fa; background: none; }
 #chooser .sub { margin: 0; color: var(--pro-dim); font-size: 14px; }
-#chooser .cards { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+#chooser .cards { grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
 #chooser .card { position: relative; overflow: hidden; min-height: 380px; padding: 26px 24px 24px; gap: 10px; align-content: end; justify-items: start; text-align: left; border-radius: 18px;
   border: 1px solid var(--pro-line); background: radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--c) 26%, transparent), transparent 62%), linear-gradient(180deg, #121821, #0a0d12);
   box-shadow: 0 20px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05); transition: transform .25s ease, border-color .25s, box-shadow .25s; }
@@ -14288,6 +14288,8 @@ SIM.Game = (function () {
         + '<span class="kick">Circuit racing</span><b>Erika <i>Racing</i></b><span class="desc">Road cars, GT3 and F1 on world circuits. Career, teams and online races.</span><span class="meta">42 cars &middot; 41 circuits</span><em>Race &rsaquo;</em></a>'
         + '<a class="card boat" href="boat.html"><span class="art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h15.5l2.5-3H8.5L6 9H4z"/><path d="M9 11V8.5h5L15.5 11"/><path d="M2 18c1.7 0 1.7-1 3.3-1s1.7 1 3.4 1 1.6-1 3.3-1 1.7 1 3.3 1 1.7-1 3.4-1 1.6 1 3.3 1"/></svg></span><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h15.5l2.5-3H8.5L6 9H4z"/><path d="M9 11V8.5h5L15.5 11"/><path d="M2 18c1.7 0 1.7-1 3.3-1s1.7 1 3.4 1 1.6-1 3.3-1 1.7 1 3.3 1 1.7-1 3.4-1 1.6 1 3.3 1"/></svg></span>'
         + '<span class="kick">Powerboat racing</span><b>Erika <i>Boats</i></b><span class="desc">From jet skis to 270-knot record hydroplanes, round buoy courses.</span><span class="meta">57 boats &middot; 14 courses</span><em>Race boats &rsaquo;</em></a>'
+        + '<a class="card kart" href="kart.html"><span class="art" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 15.2h3.2l1.6-1.8h5.6l1.2-1.6h3.1l1.4 1.6h2.4c.9 0 1.5.7 1.5 1.5v1.1h-1.6a2.6 2.6 0 0 0-5 0H8.2a2.6 2.6 0 0 0-5 0H2z"/><circle cx="12.6" cy="8.6" r="2.1" fill="currentColor"/><path fill="currentColor" d="M11 10.6h3.4l.6 2.2h-4.6z"/><circle cx="5.7" cy="16.9" r="2.1" fill="currentColor"/><circle cx="17.2" cy="16.9" r="2.3" fill="currentColor"/><circle cx="5.7" cy="16.9" r=".8" fill="#0b0e13"/><circle cx="17.2" cy="16.9" r=".9" fill="#0b0e13"/></svg></span><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 15.2h3.2l1.6-1.8h5.6l1.2-1.6h3.1l1.4 1.6h2.4c.9 0 1.5.7 1.5 1.5v1.1h-1.6a2.6 2.6 0 0 0-5 0H8.2a2.6 2.6 0 0 0-5 0H2z"/><circle cx="12.6" cy="8.6" r="2.1" fill="currentColor"/><path fill="currentColor" d="M11 10.6h3.4l.6 2.2h-4.6z"/><circle cx="5.7" cy="16.9" r="2.1" fill="currentColor"/><circle cx="17.2" cy="16.9" r="2.3" fill="currentColor"/><circle cx="5.7" cy="16.9" r=".8" fill="#0b0e13"/><circle cx="17.2" cy="16.9" r=".9" fill="#0b0e13"/></svg></span>'
+        + '<span class="kick">Kart racing</span><b>Erika <i>Karts</i></b><span class="desc">Drift through the corners for a boost, hit the boost pads and beat seven rivals.</span><span class="meta">6 karts &middot; 4 tracks</span><em>Race karts &rsaquo;</em></a>'
         + '</div></div>';
       document.body.appendChild(el);
       el.querySelector('[data-g="fly"]').addEventListener('click', () => { el.remove(); resolve(); });

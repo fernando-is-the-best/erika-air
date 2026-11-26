@@ -7,7 +7,9 @@
   let release;
   window.__gateReady = new Promise((r) => { release = r; });
   const GAMES = { air: { name: 'Erika Air', word: 'Air', verb: 'fly' }, race: { name: 'Erika Racing', word: 'Racing', verb: 'race', accent: '#3cc4ff', ink: '#04121d' },
-    boat: { name: 'Erika Boats', word: 'Boats', verb: 'race boats', accent: '#2fd4c4', ink: '#022320' } };
+    boat: { name: 'Erika Boats', word: 'Boats', verb: 'race boats', accent: '#2fd4c4', ink: '#022320' },
+    kart: { name: 'Erika Karts', word: 'Karts', verb: 'race karts', accent: '#ff6b3d', ink: '#1f0a03' },
+    moto: { name: 'Erika Moto', word: 'Moto', verb: 'race bikes', accent: '#ff3355', ink: '#22030a' } };
   const GAME = GAMES[window.ERIKA_GAME] ? window.ERIKA_GAME : 'air', G = GAMES[GAME], NAME = G.name;
 
   const KEY = GAME === 'air' ? 'erika.access.v1' : 'erika.access.' + GAME + '.v1';
@@ -147,7 +149,12 @@
       send.disabled = true; say2('Sending…');
       try {
         const u = auth.currentUser || (await auth.signInAnonymously()).user;
-        await db.collection('messages').add({ kind: k, game: GAME, name, contact, text, by: u.uid, at: firebase.firestore.FieldValue.serverTimestamp(), seen: false });
+        const msg = { kind: k, game: GAME, name, contact, text, by: u.uid, at: firebase.firestore.FieldValue.serverTimestamp(), seen: false };
+        try { await db.collection('messages').add(msg); }
+        catch (err0) {   // rules published before this game existed only know air, race and boat: send it as a Racing message, labelled
+          if (!(err0 && err0.code === 'permission-denied') || ['air', 'race', 'boat'].includes(GAME)) throw err0;
+          await db.collection('messages').add(Object.assign(msg, { game: 'race', text: ('[' + NAME + '] ' + text).slice(0, 1000), at: firebase.firestore.FieldValue.serverTimestamp() }));
+        }
         try { localStorage.setItem('erika.msg.at', String(Date.now())); localStorage.setItem('erika.msg.me', JSON.stringify({ name, contact })); } catch (err) { /* storage unavailable */ }
         say2(k === 'code' ? 'Sent. Fernando will see your code request.' : 'Sent. Fernando will see your message.', 'ok');
         q('text').value = ''; setTimeout(close, 2600);
