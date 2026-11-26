@@ -111,21 +111,25 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 @media (max-width: 640px) { .tm { flex-direction: column; align-items: stretch } }
 @media (max-width: 640px) { .ev { flex-direction: column; align-items: stretch } .ev .evr { justify-content: space-between } .stat { grid-template-columns: 90px 1fr 60px } }
 @media (max-width: 640px) { #tower { min-width: 140px; font-size: 12px } #timing { min-width: 140px } #timing .cur { font-size: 20px } #mini { width: 110px; height: 110px; bottom: 116px } #dash { bottom: 112px } }
-/* minimal look: normal sizes, flat panels, no borders or boxes, fewer words; colour only on what is selected */
-#menu .card { border: 0; border-radius: 12px; background: rgba(6, 22, 31, .93) }
+/* modern look: a frosted glass card, pill tabs and options, gradient accents and soft glows */
+#menu .card { border: 1px solid rgba(255, 255, 255, .09); border-radius: 26px; background: linear-gradient(160deg, rgba(12, 38, 52, .86), rgba(4, 16, 24, .9)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 30px 90px rgba(0, 0, 0, .45) }
+#menu h1 b { background: linear-gradient(90deg, #5ff2e0, #2fa8ff); -webkit-background-clip: text; background-clip: text; color: transparent }
 #pRace > p { display: none }
-.keys { opacity: .7 }
-.wallet { border: 0; background: none; padding: 4px 0 }
-.tabs { gap: 0; overflow-x: auto; scrollbar-width: none } .tabs::-webkit-scrollbar { display: none }
-.tabs button { white-space: nowrap }
-.seg button { background: rgba(255, 255, 255, .04); border-color: transparent }
+.wallet { border-radius: 999px; border: 1px solid rgba(255, 211, 107, .3); background: rgba(255, 181, 46, .1) }
+.tabs { border: 0; background: rgba(255, 255, 255, .05); border-radius: 999px; padding: 4px; gap: 2px; overflow-x: auto; scrollbar-width: none } .tabs::-webkit-scrollbar { display: none }
+.tabs button { border: 0; border-radius: 999px; padding: 8px 16px; white-space: nowrap; transition: background .2s, color .2s }
+.tabs button[aria-selected="true"] { background: linear-gradient(135deg, #46f0dc, #1fa8ff); color: #022320; box-shadow: 0 4px 16px rgba(47, 212, 196, .35) }
+.seg { gap: 6px } .seg button { border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .07); padding: 8px 15px; transition: background .2s }
+.seg button:hover { background: rgba(255, 255, 255, .11) }
 .seg button small { display: none }
-.seg button[aria-pressed="true"] { background: rgba(47, 212, 196, .12); color: var(--accent); border-color: rgba(47, 212, 196, .6) }
-.ev, .tm, .ggrid button { background: rgba(255, 255, 255, .04); border-color: transparent }
-.ggrid button[aria-pressed="true"], .tm.on { border-color: rgba(47, 212, 196, .7); box-shadow: none }
-#rankBox, #gDetail, #teamBox, #gPaint, #pMulti .mpbox { background: rgba(255, 255, 255, .035); border-color: transparent }
-#pMulti select, #pMulti input { background: rgba(255, 255, 255, .05); border-color: transparent }
-#menu .btn { border-radius: 8px } #menu .btn:not(.main) { background: rgba(255, 255, 255, .06); border-color: transparent }
+.seg button[aria-pressed="true"] { background: linear-gradient(135deg, #46f0dc, #1fa8ff); color: #022320; border-color: transparent; box-shadow: 0 4px 14px rgba(47, 212, 196, .3) }
+.keys { opacity: .75 }
+.ev, .tm, .ggrid button { border-radius: 16px; background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02)); border-color: rgba(255, 255, 255, .07) }
+.ggrid button[aria-pressed="true"], .tm.on { border-color: rgba(47, 212, 196, .85); box-shadow: 0 8px 26px rgba(47, 212, 196, .22) }
+#rankBox, #gDetail, #teamBox, #gPaint, #pMulti .mpbox { border-radius: 18px; background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02)); border-color: rgba(255, 255, 255, .07) }
+#pMulti select, #pMulti input { border-radius: 12px; background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .09) }
+#menu .btn { border-radius: 14px } #menu .btn.main { background: linear-gradient(135deg, #46f0dc, #1fa8ff); box-shadow: 0 10px 28px rgba(47, 212, 196, .35) }
+#menu .btn:not(.main) { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .12) }
 .foot .links { display: flex; gap: 16px; margin-left: auto }
 </style>
 </head>

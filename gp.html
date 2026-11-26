@@ -333,18 +333,10 @@ table.records{width:100%;border-collapse:collapse;font-size:13px}table.records t
   h1,.item b,.sub{font-style:normal!important}
   #hintbar .tag{font-style:normal;letter-spacing:.24em}
 
-  /* ---- minimal look: normal sizes, a quiet flat dock, no icons, subtitles, glows or button hints; colour only on the selected item ---- */
-  #menu:is([data-screen=home],[data-screen=title]) .menu-box{background:rgba(6,14,24,.72);border:0;box-shadow:none}
-  #menu:is([data-screen=home],[data-screen=title]) .logo svg{display:none}
-  #menu:is([data-screen=home],[data-screen=title]) .logo::after{display:none}
-  #menu:is([data-screen=home],[data-screen=title]) .item.hm{grid-template-columns:1fr 22px;border:1px solid transparent!important;background:rgba(255,255,255,.05);box-shadow:none}
-  #menu:is([data-screen=home],[data-screen=title]) .item.hm svg,.item.hm small{display:none}
-  .item.hm .chev{opacity:.4}
-  #menu:is([data-screen=home],[data-screen=title]) .item.hm:hover,#menu:is([data-screen=home],[data-screen=title]) .item.hm.sel{background:rgba(60,196,255,.1);border-color:rgba(60,196,255,.6)!important;box-shadow:none;transform:none}
-  #menu:is([data-screen=home],[data-screen=title]) #topbar{background:rgba(6,14,24,.6);border-color:transparent}
-  #hintbar{background:none}
-  #hintbar .keys span,#hintbar .tag{display:none}
-  .item.next{background:rgba(255,255,255,.05);border-color:transparent}
+  /* ---- modern look: the frosted glass dock with gradient icons; a stronger blur and a softer, rounder finish ---- */
+  #menu:is([data-screen=home],[data-screen=title]) .menu-box{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:26px;box-shadow:0 30px 80px rgba(0,10,25,.45)}
+  #menu:is([data-screen=home],[data-screen=title]) .item.hm{transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}
+  #menu:is([data-screen=home],[data-screen=title]) .item.hm:hover,#menu:is([data-screen=home],[data-screen=title]) .item.hm.sel{transform:translateX(4px);background:linear-gradient(90deg,rgba(60,196,255,.28),rgba(60,196,255,.08))}
 </style>
 </head>
 <body>
