@@ -783,18 +783,33 @@ B.World.prototype.build = function (c) {
   }
   if (city) this.city(blocks);
   if (veg) this.vegDone(veg);
-  // buoys: red on the left of each gate, yellow on the right; the start/finish gate is a floating gantry
+  // buoys: big neon cones, red on the left of each gate and green on the right, each with a glowing lamp on top that pulses
+  // (all the lamps share two materials, so the pulse is one change per frame); the start/finish gate is a floating gantry
   this.buoys = [];
-  const bGeo = new THREE.CylinderGeometry(.9, 1.2, 2.6, 14), cap = new THREE.ConeGeometry(.9, 1.2, 14), band = new THREE.CylinderGeometry(1.02, 1.08, .4, 14);
-  const mats = [new THREE.MeshStandardMaterial({ color: 0xd6302a, roughness: .5 }), new THREE.MeshStandardMaterial({ color: 0xf2c418, roughness: .5 })], white = new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: .5 });
+  const BS = 1.7;   // buoy size: 1.7 times the old cans
+  const bGeo = new THREE.CylinderGeometry(.55, 1.25, 3.2, 18), band = new THREE.CylinderGeometry(.98, 1.05, .32, 18), band2 = new THREE.CylinderGeometry(.72, .78, .28, 18),
+    base = new THREE.CylinderGeometry(1.35, 1.45, .45, 18), post = new THREE.CylinderGeometry(.08, .08, .5, 8), bulb = new THREE.SphereGeometry(.34, 16, 12);
+  // neon: unlit colours that skip the tone mapping, so they stay a saturated red and green in sun, fog and at night
+  const neon = (c) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
+  const mats = [neon(0xff0a1e), neon(0x00e04c)], tube = [neon(0xffb3ba), neon(0xb3ffd0)];
+  const dark = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: .6, metalness: .3 });
+  const lamps = [new THREE.MeshBasicMaterial({ color: 0xffd0d6, toneMapped: false }), new THREE.MeshBasicMaterial({ color: 0xd6ffe4, toneMapped: false })];
+  const gc = document.createElement('canvas'); gc.width = gc.height = 64; const gx = gc.getContext('2d'), gr = gx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.25, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); gx.fillStyle = gr; gx.fillRect(0, 0, 64, 64);
+  const gTex = new THREE.CanvasTexture(gc), glows = [0xff2a44, 0x2aff74].map((c) => new THREE.SpriteMaterial({ map: gTex, color: c, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  this.buoyLamps = { lamps, glows, mats };
   c.gates.forEach((gi, n) => {
     const p = c.P[gi];
     for (const sd of [-1, 1]) {
-      const g = new THREE.Group(), x = p.x + p.rx * sd * c.laneW / 2, z = p.z + p.rz * sd * c.laneW / 2;
-      const body = new THREE.Mesh(bGeo, mats[sd < 0 ? 0 : 1]); body.position.y = .9; g.add(body);
-      const tp = new THREE.Mesh(cap, mats[sd < 0 ? 0 : 1]); tp.position.y = 2.8; g.add(tp);
-      const bd = new THREE.Mesh(band, white); bd.position.y = 1.5; g.add(bd);
-      g.position.set(x, 0, z); g.scale.setScalar(c.buoy); R.add(g); this.buoys.push({ g, x, z, x0: x, z0: z, gate: n, rad: 2.6 * c.buoy });
+      const g = new THREE.Group(), x = p.x + p.rx * sd * c.laneW / 2, z = p.z + p.rz * sd * c.laneW / 2, k = sd < 0 ? 0 : 1;
+      const bs = new THREE.Mesh(base, dark); bs.position.y = .1; g.add(bs);
+      const body = new THREE.Mesh(bGeo, mats[k]); body.position.y = 1.9; g.add(body);
+      const b1 = new THREE.Mesh(band, tube[k]); b1.position.y = 1.3; g.add(b1);
+      const b2 = new THREE.Mesh(band2, tube[k]); b2.position.y = 2.5; g.add(b2);
+      const ps = new THREE.Mesh(post, dark); ps.position.y = 3.7; g.add(ps);
+      const lb = new THREE.Mesh(bulb, lamps[k]); lb.position.y = 4.1; g.add(lb);
+      const gl = new THREE.Sprite(glows[k]); gl.position.y = 4.1; gl.scale.set(4.4, 4.4, 1); g.add(gl);
+      g.position.set(x, 0, z); g.scale.setScalar(c.buoy * BS); R.add(g); this.buoys.push({ g, x, z, x0: x, z0: z, gate: n, rad: 2.2 * c.buoy * BS });
     }
     if (n === 0) {   // start / finish gantry on two pontoons
       const gt = new THREE.Group(), q = c.buoy; gt.position.set(p.x, 0, p.z); gt.rotation.y = -p.h; R.add(gt);
@@ -2381,6 +2396,10 @@ B.Game = function () {
       this._place(m, o); if (X) m.visible = !X.gone;
       if (m.userData.fan) m.userData.fan.rotation.x += (6 + 40 * o.thr) * dt;   // airboat propellers
       (m.userData.sheets || (m.userData.sheets = new B.BowSheets(m, B.seaTex(this.world.renderer).foam))).update(o, this.clock);
+    }
+    if (W.buoyLamps) {   // the buoy lamps pulse together, red and green a beat apart
+      const t = this.clock, pr = .5 + .5 * Math.sin(t * 3.4), pg = .5 + .5 * Math.sin(t * 3.4 + Math.PI), L = W.buoyLamps;
+      L.glows[0].opacity = .35 + .65 * pr; L.glows[1].opacity = .35 + .65 * pg; L.lamps[0].color.setRGB(1, .55 + .45 * pr, .6 + .4 * pr); L.lamps[1].color.setRGB(.6 + .4 * pg, 1, .7 + .3 * pg);
     }
     W.buoys.forEach((y) => { const k = Math.min(1, dt * .4); y.x += (y.x0 - y.x) * k; y.z += (y.z0 - y.z) * k; y.g.position.x = y.x; y.g.position.z = y.z; y.g.position.y = B.waveAt(y.x, y.z, this.clock, c.calm) - .4; y.g.rotation.z = Math.sin(this.clock * 1.3 + y.x) * .08; });
     W.waterMat.uniforms.t.value = this.clock;
