@@ -411,6 +411,18 @@ table.records{width:100%;border-collapse:collapse;font-size:13px}table.records t
   #scr-world .wtitle h2{letter-spacing:.06em;text-transform:uppercase}
   /* in-race panels: the same hairline look */
   .panel{border-radius:10px;border:1px solid var(--line);border-left:3px solid var(--acc);background:rgba(8,12,17,.78)}
+  /* Erika Moto: the same engine with a red accent and no career bar */
+  body.moto{--acc:#ff3355;--acc-ink:#22030a}
+  body.moto #topbar{display:none!important}
+  body.moto .logo::after{background:linear-gradient(90deg,#ff3355,rgba(255,51,85,0) 70%)!important}
+  body.moto #menu:is([data-screen=home],[data-screen=title]) .item.hm svg,body.moto .item.hm svg{background:rgba(255,51,85,.12);border-color:rgba(255,51,85,.3)}
+  body.moto #menu:is([data-screen=home],[data-screen=title]) .item.hm:hover,body.moto #menu:is([data-screen=home],[data-screen=title]) .item.hm.sel,body.moto .item.hm:hover,body.moto .item.hm.sel{background:linear-gradient(90deg,rgba(255,51,85,.14),rgba(255,51,85,.03));border-color:rgba(255,51,85,.55)!important}
+  body.moto .world.sel,body.moto .world:focus-visible{border-color:rgba(255,51,85,.75);background:linear-gradient(180deg,rgba(255,51,85,.11),rgba(255,51,85,.02))}
+  body.moto .item.sel{border-color:#ff3355!important;box-shadow:0 0 0 1px #ff3355}
+  body.moto .item.back:hover,body.moto .item.back.sel{border-color:#ff3355}
+  body.moto .btn,body.moto .setup .summary .startbtn{box-shadow:0 10px 26px rgba(255,51,85,.22)}
+  body.moto .world:hover .trk-line,body.moto .world.sel .trk-line,body.moto #trackPreview .trk-line{stroke:#ff3355;filter:drop-shadow(0 0 3px rgba(255,51,85,.7))}
+  body.moto .panel{border-left-color:#ff3355} body.moto #info .title,body.moto #gear{color:#ff3355} body.moto #tachFill{background:#ff3355}
 </style>
 </head>
 <body>
@@ -1083,6 +1095,8 @@ function loadTune(cls) { return Object.assign({}, TUNE_DEF, load('cargame.v2.tun
 
 /* Car models: each class has a standard car and versions with different engines and setups.
    (Same body shape per class, own paint and stats.) Career: buy them at the dealer. */
+// Erika Moto (moto.html) is this same engine with only the Grand Prix bikes: moto.html sets window.ERIKA_MOTO (see tools/make-moto.py)
+const MOTO = !!window.ERIKA_MOTO;
 const VARIANTS = {
   road: [
     { id: 'road', name: 'Coupe 490', desc: 'The standard 5.0 V8 coupe', price: 0 },
@@ -7016,6 +7030,8 @@ const Menu = {
     }
   },
   back() {
+    if (MOTO && this.screen === 'home') return;
+    if (MOTO && this.screen === 'track') { this.show('home'); return; }
     if (this.screen === 'home' || this.screen === 'saves') { this.show('title'); return; }
     if (this.screen === 'title') return;
     if (this.screen === 'mp') {
@@ -7121,6 +7137,11 @@ const Menu = {
       : !nb ? "You've done it all, champ. Come say hi at the pit wall."
       : !todo ? "You finished the briefing! Bring it to my pit wall."
       : `Next on your briefing: ${todo[0]}.`;
+    if (MOTO) {   // Erika Moto: straight to a Grand Prix bike race, or the settings
+      $('modeCards').innerHTML = hm('flag', 'Race', 'Grand Prix bikes on ' + TRACK_ORDER.length + ' circuits: 1000 cc V4, about 270 hp and 157 kg. Choose a track, the field and the weather.', 'bikes', 'big')
+        + hm('gear', 'Settings', 'Graphics, sound, steering and controls.', 'settings');
+      $('nextEvent').innerHTML = ''; this.bind('modeCards'); return;
+    }
     $('modeCards').innerHTML = hm('island', 'Your World', 'The island: circuits, championships, the garage, challenges and more.', 'world', 'big')
       + hm('flag', 'Multiplayer', Net.state === 'lobby' && Net.room ? `In ${escHTML(Net.room.name)} — back to the lobby.` : 'Race up to 5 friends online. Join a server or create your own.', 'mp')
       + hm('gear', 'Settings', 'Graphics, sound, steering and controls.', 'settings');
@@ -7185,8 +7206,8 @@ const Menu = {
     $('raceCards').innerHTML = this.card('back', '← Back', 'back')
       + ['gt', 'f1'].map(k => { const S = CAR_SPECS[k]; return this.card('world big', `${CAR_SIL[k]}<h3>${k === 'gt' ? 'GT3 Race' : 'F1 Race'}</h3><p>${MODES[k].desc}</p>
         <div class="stats" style="margin-top:12px"><div><span>Power</span><b>${S.hp} hp</b></div><div><span>Weight</span><b>${S.mass} kg</b></div><div><span>Top speed</span><b>${Math.round(topSpeedOf(S))} km/h</b></div></div>`, 'mode:' + k); }).join('')
-      + this.card('world big', `${CAR_SIL.moto}<h3>GP Bikes</h3><p>Grand Prix motorcycles: 1000 cc V4, about 270 hp and 157 kg. Lean into the corners, brake upright, and feed the power in gently on the way out.</p>
-        <div class="stats" style="margin-top:12px"><div><span>Power</span><b>~270 hp</b></div><div><span>Weight</span><b>157 kg</b></div><div><span>Top speed</span><b>~360 km/h</b></div></div>`, 'bikes')
+      + (!MOTO ? '' : this.card('world big', `${CAR_SIL.moto}<h3>GP Bikes</h3><p>Grand Prix motorcycles: 1000 cc V4, about 270 hp and 157 kg. Lean into the corners, brake upright, and feed the power in gently on the way out.</p>
+        <div class="stats" style="margin-top:12px"><div><span>Power</span><b>~270 hp</b></div><div><span>Weight</span><b>157 kg</b></div><div><span>Top speed</span><b>~360 km/h</b></div></div>`, 'bikes'))
       + this.card('world big rushcard', `${CAR_SIL.rick}<h3>🛺 Rickshaw Rush</h3><p>Its own mode: a rocket-powered auto-rickshaw on the Grand Trunk Expressway. 1,000 mph, easy drifting, Indian music.</p>
         <div class="stats" style="margin-top:12px"><div><span>Top speed</span><b>~1,000 mph</b></div><div><span>Map</span><b>14 km oval</b></div><div><span>Drifting</span><b>Easy</b></div></div>`, 'rush');
     this.bind('raceCards');
@@ -8569,7 +8590,7 @@ const MenuScene = {
     const L = ISLE.S.free; let best = 1e9, ux = 1, uz = 0;   // u: from the lighthouse towards the nearest open sea
     for (let k = 0; k < 72; k++) { const a = k / 72 * 6.2832, cx = Math.cos(a), cz = Math.sin(a); for (let d = 10; d < best; d += 5) if (ISLE.coast(L.x + cx * d, L.z + cz * d) < 0) { best = d; ux = cx; uz = cz; break; } }
     SKY.sunDir.set(-ux * .55 + uz * .6, .66, -uz * .55 - ux * .6).normalize(); buildEnv(); WX.envCloud = 0; WX.apply();
-    this.obj = createCarObject('gt', PLAYER_LIVERY.gt, { number: 1, team: 'ERIKA RACING' });
+    this.obj = MOTO ? createCarObject('road', GP_BIKE.paint, { number: 1, team: 'ERIKA MOTO', model: 'moto' }) : createCarObject('gt', PLAYER_LIVERY.gt, { number: 1, team: 'ERIKA RACING' });   // Erika Moto shows its bike
     GFX.carsRoot.add(this.obj.group);
     const x = L.x + ux * 11 + uz * 10, y = L.z + uz * 11 - ux * 10;   // beside the lighthouse, on the seaward side of its pad
     this.pose = { x, y, h: Math.atan2(-uz, -ux) + .55, s: 0, steer: .15, axS: 0, latG: 0, v: 0, yawRate: 0 };
@@ -8884,7 +8905,7 @@ if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
   save: () => Career.save(),
   refresh: () => { if (!game.world && Menu.screen && Menu.screen !== 'title' && Menu.screen !== 'saves') Menu.show(Menu.screen); },
 });
-Menu.show('title');
+if (MOTO) { document.body.classList.add('moto'); if (Saves.active < 0 || !Saves.slot(Saves.active)) Saves.fresh(0); Menu.show('home'); } else Menu.show('title');
 requestAnimationFrame(frame);
 setTimeout(() => { try { MenuScene.start(); } catch (e) { console.error('menu backdrop', e); } }, 60);
 </script>
