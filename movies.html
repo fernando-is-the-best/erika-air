@@ -88,6 +88,8 @@ select { background: var(--raise); border: 1px solid var(--line); border-radius:
 #player .ph { display: flex; align-items: center; gap: 12px } #player .ph b { flex: 1; font: 700 22px var(--disp); letter-spacing: .04em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 #player .ph a { color: var(--dim); font-size: 13px } #player .ph button { background: var(--raise); border: 1px solid var(--line2); border-radius: 8px; padding: 7px 14px; font-weight: 600 }
 #player .scr { aspect-ratio: 16 / 9; width: 100%; max-height: 80vh; background: #000; border-radius: 12px; overflow: hidden }
+#player .msgbox { height: 100%; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; background: radial-gradient(70% 70% at 50% 0%, rgba(167, 139, 250, .14), transparent 70%), #0a0d12; overflow: auto }
+#player .msgbox h3 { margin: 0; font: 700 clamp(24px, 4vw, 34px) var(--disp); letter-spacing: .04em; text-transform: uppercase } #player .msgbox p { margin: 0; max-width: 56ch; color: #cdd6de } #player .msgbox .btn { text-decoration: none }
 #player iframe, #player video { width: 100%; height: 100%; border: 0; display: block; background: #000 }
 .foot { margin-top: 34px; color: var(--dim); font-size: 12.5px; max-width: 80ch }
 @media (max-width: 520px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 10px } .poster .t { font-size: 21px } .poster svg.ic { width: 90px; height: 90px } .acts { grid-template-columns: 1fr } }
@@ -96,7 +98,7 @@ select { background: var(--raise); border: 1px solid var(--line); border-radius:
 <body>
 <div class="wrap">
   <header><h1>Erika <b>Movies</b></h1><a class="back" href="./">&larr; All games</a></header>
-  <p class="lead">War, plane and disaster films. The best long ones (over two hours) with where to stream, rent or buy them, free classics you can play right here, and your own videos.</p>
+  <p class="lead">War, plane and disaster films. Press <b>Play free</b> on any film: if a free, legal copy exists it plays right here; if not, you get the free (with ads) places to watch it.</p>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" data-tab="top">Top films</button>
     <button type="button" role="tab" data-tab="free">Watch free</button>
@@ -244,8 +246,8 @@ function paintTop() {
     return '<article class="film"><div class="poster" style="--c:var(' + CAT[c0][1] + ')">' + ICON[c0]
       + '<button type="button" class="star" data-star="' + f.i + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove from' : 'Add to') + ' my list"><svg viewBox="0 0 24 24" fill="' + (on ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1-4.5-4.2 6.1-.8z"/></svg></button>'
       + '<span class="yr">' + f.y + '</span><div class="t">' + esc(f.t) + '</div><div class="m"><span class="tag">' + hm(f.m) + '</span>' + f.c.split('').map((c) => '<span class="tag ' + c + '">' + CAT[c][0] + '</span>').join('') + '</div></div>'
-      + '<div class="acts"><a class="wide" href="https://www.justwatch.com/us/search?q=' + encodeURIComponent(f.t) + '" target="_blank" rel="noopener">Where to watch</a>'
-      + '<a href="https://www.youtube.com/results?search_query=' + qs + '+trailer" target="_blank" rel="noopener">Trailer</a><button type="button" data-free="' + f.i + '">Free copy?</button></div></article>';
+      + '<div class="acts"><button type="button" class="wide" data-free="' + f.i + '">&#9654; Play free</button>'
+      + '<a href="https://www.youtube.com/results?search_query=' + qs + '+trailer" target="_blank" rel="noopener">Trailer</a><a href="https://www.justwatch.com/us/search?q=' + encodeURIComponent(f.t) + '" target="_blank" rel="noopener">Where to watch</a></div></article>';
   }).join('');
 }
 $('tQ').addEventListener('input', paintTop);
@@ -253,7 +255,7 @@ $('tSort').value = S.sort; $('tSort').addEventListener('change', () => { S.sort 
 $('tGrid').addEventListener('click', (e) => {
   const st = e.target.closest('[data-star]'), fr = e.target.closest('[data-free]');
   if (st) { const k = keyOf(FILMS[+st.dataset.star]); S.list = S.list.includes(k) ? S.list.filter((x) => x !== k) : S.list.concat(k); store.set('list', S.list); paintTop(); }
-  if (fr) { const f = FILMS[+fr.dataset.free]; $('fQ').value = f.t; S.fcat = ''; S.flen = 0; showTab('free'); Free.search(true); window.scrollTo(0, 0); }
+  if (fr) Lookup.play(FILMS[+fr.dataset.free]);
 });
 
 // ---------------------------------------------------------------- free films from the Internet Archive (public domain and freely licensed)
@@ -347,6 +349,7 @@ const Player = {
     const scr = $('plScr');
     if (o.kind === 'video') { const v = document.createElement('video'); v.src = o.src; v.controls = true; v.autoplay = true; v.playsInline = true; scr.appendChild(v); this.blob = o.blob ? o.src : null;
       v.addEventListener('error', () => { scr.innerHTML = '<div class="status bad" style="padding:60px 20px">This browser cannot play that video format. MP4 (H.264) and WebM work best.</div>'; }); }
+    else if (o.kind === 'html') { const d = document.createElement('div'); d.className = 'msgbox'; d.innerHTML = o.html; scr.appendChild(d); }
     else { const f = document.createElement('iframe'); f.src = o.src; f.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; scr.appendChild(f); }
     $('player').hidden = false; document.body.style.overflow = 'hidden'; $('plX').focus();
   },
@@ -356,7 +359,38 @@ $('plX').addEventListener('click', () => Player.close());
 $('player').addEventListener('click', (e) => { if (e.target.id === 'player') Player.close(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('player').hidden) Player.close(); });
 
-window.__movies = { FILMS, minutesOf, embedOf, Free };
+// ---------------------------------------------------------------- "Play free": find a free, legal copy of a film on the Internet Archive and play it here.
+// Only the Archive's curated film collections are searched (public domain and freely licensed films), never random uploads.
+const norm = (t) => String(t).toLowerCase().replace(/^the\s+|^a\s+/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const Lookup = {
+  cache: {},
+  async find(f) {
+    const k = f.t + f.y; if (k in this.cache) return this.cache[k];
+    const tq = f.t.replace(/["\\:()]/g, ' ').trim();
+    const q = 'title:("' + tq + '") AND mediatype:(movies) AND collection:(feature_films OR classic_cinema OR film_noir OR silent_films OR sci-fi_horror) AND -collection:(trailers)';
+    const u = 'https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) + '&fl[]=identifier&fl[]=title&fl[]=year&fl[]=runtime&fl[]=downloads&sort[]=downloads+desc&rows=25&output=json';
+    let d = null; try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); d = await r.json(); } catch (e) { try { d = await jsonp(u); } catch (e2) { return null; } }   // null: could not ask
+    const want = norm(f.t), docs = (d && d.response && d.response.docs) || [];
+    const ok = docs.filter((x) => { const t = norm(Array.isArray(x.title) ? x.title[0] : x.title || ''), y = parseInt(x.year, 10), m = minutesOf(x.runtime);
+      return (t === want || t.startsWith(want + ' ')) && (!y || Math.abs(y - f.y) <= 2) && (m == null || m > 40); });   // the same film: same title, about the same year, not a clip
+    const gap = (x) => { const m = minutesOf(x.runtime); return m == null ? 60 : Math.abs(m - f.m); }; ok.sort((a, b) => gap(a) - gap(b) || (b.downloads || 0) - (a.downloads || 0));   // closest running time, then most watched
+    return this.cache[k] = ok.length ? ok[0].identifier : false;
+  },
+  async play(f) {
+    Player.open({ kind: 'html', title: f.t + ' (' + f.y + ')', html: '<div class="status">Looking for a free copy&hellip;</div>' });
+    const id = await this.find(f); if ($('player').hidden) return;
+    if (id) { Player.open({ kind: 'frame', src: 'https://archive.org/embed/' + encodeURIComponent(id), title: f.t + ' (' + f.y + ')', link: 'https://archive.org/details/' + encodeURIComponent(id) }); return; }
+    const q = encodeURIComponent(f.t);
+    Player.open({ kind: 'html', title: f.t + ' (' + f.y + ')', html: (id === null ? '<h3>Could not reach the Internet Archive</h3><p>Check the connection and try again.</p>'
+      : '<h3>No free copy to play here</h3><p><b>' + esc(f.t) + '</b> is still under copyright, so it can only be watched where the film company allows it. Some of those places are free with ads:</p>')
+      + '<div class="row" style="justify-content:center"><a class="btn" href="https://www.justwatch.com/us/search?q=' + q + '&monetization_types=free,ads" target="_blank" rel="noopener">Free places to watch it</a>'
+      + '<a class="btn ghost" href="https://tubitv.com/search/' + q + '" target="_blank" rel="noopener">Search Tubi (free)</a><a class="btn ghost" href="https://www.justwatch.com/us/search?q=' + q + '" target="_blank" rel="noopener">Rent or stream</a></div>'
+      + '<p class="note">Old classics that are free to everyone play right here: see <a href="#" data-gofree>Watch free</a>.</p>' });
+  },
+};
+$('plScr').addEventListener('click', (e) => { if (e.target.closest('[data-gofree]')) { e.preventDefault(); Player.close(); S.fcat = 'war'; store.set('fcat', 'war'); showTab('free'); window.scrollTo(0, 0); } });
+
+window.__movies = { FILMS, minutesOf, embedOf, Free, Lookup };
 paintTop(); showTab(['top', 'free', 'mine'].includes(S.tab) ? S.tab : 'top');
 })();
 </script>
