@@ -235,6 +235,49 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 }
 @media (max-height: 520px) and (min-width: 600px) { .brand h1 { font-size: 26px; } .sheet { padding-top: 8px; } .panes { padding-top: 8px; } }
 .em{display:inline-block;font:700 10px/1 system-ui;letter-spacing:.06em;background:#c2331f;color:#fff;border-radius:4px;padding:3px 5px;margin-right:6px;vertical-align:2px}
+
+/* ---------- minimal look: fewer boxes, borders and words; colour only where something is selected ---------- */
+#chooser { background: #070b10; }
+#chooser .wrap { width: min(760px, 100%); gap: 28px; }
+#chooser h1 { font-size: clamp(22px, 4vw, 30px); letter-spacing: 0.3em; font-weight: 600; color: var(--dim); }
+#chooser .sub { font-size: 13px; opacity: 0.7; }
+#chooser .cards { gap: 8px; }
+#chooser .card { min-height: 0; padding: 26px 18px; border-radius: 10px; border-color: transparent; background: transparent; justify-items: center; text-align: center; gap: 14px; }
+#chooser .card span, #chooser .card em { display: none; }
+#chooser .card svg { width: 46px; height: 46px; }
+#chooser .card b { font-size: 26px; font-weight: 600; }
+#chooser .card:hover, #chooser .card:focus-visible { transform: none; background: rgba(255,255,255,0.04); box-shadow: none; border-color: var(--c); }
+.sheet { background: linear-gradient(90deg, rgba(7,11,16,0.93) 0%, rgba(7,11,16,0.9) 86%, rgba(7,11,16,0) 100%); }
+.brand { align-items: center; gap: 4px 14px; }
+.brand h1 { font-size: 28px; font-weight: 600; letter-spacing: 0.2em; }
+.brand > span { display: none; }
+.brand h1 { margin-right: auto; }
+.racelink { margin-left: 0; border: 0; padding: 4px 2px; font-size: 12px; font-weight: 500; color: var(--dim); }
+.racelink:hover, .racelink:focus-visible { background: none; color: var(--text); }
+.wallet { border: 0; background: none; padding: 4px 0; font-size: 13px; font-weight: 500; }
+.tabs { margin-top: 14px; gap: 0; }
+.tab { font-size: 13px; font-weight: 500; padding: 8px 11px 9px; }
+.tab[aria-selected="true"] { border-bottom-width: 1px; }
+.lbl { font-size: 11px; font-weight: 500; margin: 16px 0 6px; opacity: 0.8; }
+.chip { background: none; border: 1px solid transparent; padding: 5px 9px; min-height: 32px; font-size: 12px; font-weight: 500; color: var(--dim); white-space: nowrap; }
+.chip:hover { color: var(--text); }
+.chip[aria-pressed="true"] { background: none; color: var(--accent); border-color: rgba(255,181,46,0.5); }
+.acfilter { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 2px; margin-bottom: 8px; }
+.acfilter::-webkit-scrollbar { display: none; }
+.ac { flex-basis: 140px; min-height: 0; background: rgba(255,255,255,0.035); border-color: transparent; border-radius: 6px; padding: 10px 11px; }
+.ac .c { display: none; }
+.ac .n { font-size: 17px; font-weight: 600; }
+.ac .s { margin-top: 8px; color: var(--dim); font-size: 11px; }
+.seg button[aria-pressed="true"] { background: rgba(255,181,46,0.12); color: var(--accent); }
+.ac[aria-pressed="true"] { background: rgba(255,181,46,0.07); border-color: rgba(255,181,46,0.7); box-shadow: none; }
+.ac-blurb { color: var(--dim); font-size: 13px; }
+.sel, .seg { background: rgba(255,255,255,0.035); border-color: transparent; }
+.seg button { border-right-color: transparent; font-weight: 500; }
+.chal, .crcard { background: rgba(255,255,255,0.035); border-color: transparent; border-radius: 6px; }
+.chal[aria-pressed="true"] { border-color: rgba(255,181,46,0.7); background: rgba(255,181,46,0.06); }
+.chal .b, .crcard p { color: var(--dim); }
+.btn { font-weight: 600; letter-spacing: 0.2em; border-radius: 6px; }
+.btn.ghost { border-color: rgba(160,190,215,0.28); }
 </style>
 
 <div id="app">
