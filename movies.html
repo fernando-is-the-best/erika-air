@@ -286,6 +286,15 @@ function minutesOf(r) {
   m = r.match(/^(\d+(?:\.\d+)?)$/); if (m) return +m[1] > 400 ? +m[1] / 60 : +m[1];
   return null;
 }
+const NETMSG = '<b>Could not reach the Internet Archive.</b> Try this: open <a href="https://archive.org/details/feature_films" target="_blank" rel="noopener">archive.org</a> in a new tab. If it opens, press <a href="#" data-retry>Try again</a>. If it does not open, your network (for example a school filter) blocks archive.org, so its free films cannot play here.';
+// ask the Internet Archive: a normal request first (given up after 12 s so a stuck connection does not hang), then the older script method, then once more
+async function ask(u) {
+  for (let tries = 0; tries < 2; tries++) {
+    try { const ac = new AbortController(), t = setTimeout(() => ac.abort(), 12000); const r = await fetch(u, { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (!r.ok) throw new Error(r.status); const d = await r.json(); if (d && d.response) return d; } catch (e) { /* try the script method */ }
+    try { const d = await jsonp(u); if (d && d.response) return d; } catch (e) { /* try again */ }
+  }
+  return null;
+}
 function jsonp(url) { return new Promise((res, rej) => { const cb = '__ia' + Date.now() + Math.floor(Math.random() * 1e4), s = document.createElement('script'), done = () => { delete window[cb]; s.remove(); };
   const t = setTimeout(() => { done(); rej(new Error('timeout')); }, 15000); window[cb] = (d) => { clearTimeout(t); done(); res(d); }; s.onerror = () => { clearTimeout(t); done(); rej(new Error('blocked')); }; s.src = url + '&callback=' + cb; document.head.appendChild(s); }); }
 const Free = {
@@ -301,9 +310,9 @@ const Free = {
     const seq = ++this.seq; this.busy = true; this.loaded = true; $('fMore').hidden = true; $('fStatus').className = 'status'; $('fStatus').textContent = 'Searching the Internet Archive…';
     chips('fCat', S.fcat, (v) => { S.fcat = v; store.set('fcat', v); this.search(true); }); chips('fLen', S.flen, (v) => { S.flen = +v; store.set('flen', S.flen); this.paint(); });
     let d = null; const u = this.url(this.page);
-    try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); d = await r.json(); } catch (e) { try { d = await jsonp(u); } catch (e2) { d = null; } }
+    d = await ask(u);
     if (seq !== this.seq) return; this.busy = false;
-    if (!d || !d.response) { $('fStatus').className = 'status bad'; $('fStatus').innerHTML = 'Could not reach the Internet Archive. Check the connection, or open <a href="https://archive.org/details/feature_films" target="_blank" rel="noopener">archive.org feature films</a> directly.'; return; }
+    if (!d || !d.response) { $('fStatus').className = 'status bad'; $('fStatus').innerHTML = NETMSG; return; }
     const docs = d.response.docs || []; this.total = d.response.numFound || 0;
     for (const x of docs) if (x.identifier && !this.items.some((y) => y.id === x.identifier)) this.items.push({ id: x.identifier, t: Array.isArray(x.title) ? x.title[0] : (x.title || x.identifier), y: x.year ? String(x.year).slice(0, 4) : '', min: minutesOf(x.runtime), dl: x.downloads || 0 });
     this.more = docs.length === 100 && this.page * 100 < this.total; this.paint();
@@ -320,6 +329,7 @@ const Free = {
   },
 };
 let fT = 0; $('fQ').addEventListener('input', () => { clearTimeout(fT); fT = setTimeout(() => Free.search(true), 450); });
+$('fStatus').addEventListener('click', (e) => { if (e.target.closest('[data-retry]')) { e.preventDefault(); Free.search(true); } });
 $('fMore').addEventListener('click', () => { if (!Free.busy) { Free.page++; Free.search(false); } });
 $('fGrid').addEventListener('click', (e) => { const b = e.target.closest('.vid'); if (b) Player.open({ kind: 'frame', src: 'https://archive.org/embed/' + encodeURIComponent(b.dataset.id), title: b.dataset.t, link: 'https://archive.org/details/' + encodeURIComponent(b.dataset.id) }); });
 
@@ -381,7 +391,7 @@ const Lookup = {
     const tq = f.t.replace(/["\\:()]/g, ' ').trim();
     const q = 'title:("' + tq + '") AND mediatype:(movies) AND collection:(feature_films OR classic_cinema OR film_noir OR silent_films OR sci-fi_horror) AND -collection:(trailers)';
     const u = 'https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) + '&fl[]=identifier&fl[]=title&fl[]=year&fl[]=runtime&fl[]=downloads&sort[]=downloads+desc&rows=25&output=json';
-    let d = null; try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); d = await r.json(); } catch (e) { try { d = await jsonp(u); } catch (e2) { return null; } }   // null: could not ask
+    const d = await ask(u); if (!d) return null;   // null: could not ask
     const want = norm(f.t), docs = (d && d.response && d.response.docs) || [];
     const ok = docs.filter((x) => { const t = norm(Array.isArray(x.title) ? x.title[0] : x.title || ''), y = parseInt(x.year, 10), m = minutesOf(x.runtime);
       return (t === want || t.startsWith(want + ' ')) && (!y || Math.abs(y - f.y) <= 2) && (m == null || m > 40); });   // the same film: same title, about the same year, not a clip
@@ -393,18 +403,19 @@ const Lookup = {
     const id = await this.find(f); if ($('player').hidden) return;
     if (id) { Player.open({ kind: 'frame', src: 'https://archive.org/embed/' + encodeURIComponent(id), title: f.t + ' (' + f.y + ')', link: 'https://archive.org/details/' + encodeURIComponent(id) }); return; }
     const q = encodeURIComponent(f.t);
-    Player.open({ kind: 'html', title: f.t + ' (' + f.y + ')', html: (id === null ? '<h3>Could not reach the Internet Archive</h3><p>Check the connection and try again.</p>'
+    Player.open({ kind: 'html', title: f.t + ' (' + f.y + ')', html: (id === null ? '<h3>Could not reach the Internet Archive</h3><p>' + NETMSG + '</p>'
       : '<h3>No free copy to play here</h3><p><b>' + esc(f.t) + '</b> is still under copyright, so it can only be watched where the film company allows it. Some of those places are free with ads:</p>')
       + '<div class="row" style="justify-content:center"><a class="btn" href="https://www.justwatch.com/us/search?q=' + q + '&monetization_types=free,ads" target="_blank" rel="noopener">Free places to watch it</a>'
       + '<a class="btn ghost" href="https://tubitv.com/search/' + q + '" target="_blank" rel="noopener">Search Tubi (free)</a><a class="btn ghost" href="https://www.justwatch.com/us/search?q=' + q + '" target="_blank" rel="noopener">Rent or stream</a></div>'
       + '<p class="note">Old classics that are free to everyone play right here: see <a href="#" data-gofree>Watch free</a>.</p>' });
   },
 };
+$('plScr').addEventListener('click', (e) => { if (e.target.closest('[data-retry]')) { e.preventDefault(); Player.close(); } });
 $('plScr').addEventListener('click', (e) => { if (e.target.closest('[data-gofree]')) { e.preventDefault(); Player.close(); S.fcat = 'war'; store.set('fcat', 'war'); showTab('free'); window.scrollTo(0, 0); } });
 
 // ---------------------------------------------------------------- "Free here": every film that plays right on this page.
 // The old films from the list that have a free copy, plus the most watched free war, plane and disaster films of feature length.
-async function ask(u) { try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return await r.json(); } catch (e) { try { return await jsonp(u); } catch (e2) { return null; } } }
+// (ask is defined next to jsonp)
 const BASEQ = 'mediatype:(movies) AND collection:(feature_films OR classic_cinema OR film_noir OR silent_films OR sci-fi_horror) AND -collection:(trailers)';
 const FreeHere = {
   items: null, busy: false, found: 0, failed: false,
@@ -424,14 +435,14 @@ const FreeHere = {
       let n = 0; for (const x of d.response.docs || []) { const m = minutesOf(x.runtime); if (!x.identifier || m == null || m < 75 || n >= 15) continue; n++;
         add({ id: x.identifier, t: Array.isArray(x.title) ? x.title[0] : (x.title || x.identifier), y: x.year ? String(x.year).slice(0, 4) : '', min: Math.round(m), c, dl: x.downloads || 0 }); }
     }
-    this.busy = false; this.failed = !out.length && lost === asked; this.items = out;
+    this.busy = false; this.failed = !out.length && lost === asked; this.items = this.failed ? null : out;
     if (out.length) store.set('freehere', { at: Date.now(), items: out });
     if (S.cat === 'free') this.paint();
   },
   paint() {
     const q = $('tQ').value.trim().toLowerCase(), all = this.items || [];
     const l = all.filter((x) => !q || (x.t + ' ' + x.y).toLowerCase().includes(q)).sort((a, b) => b.dl - a.dl);
-    $('tCount').textContent = this.busy ? 'Checking which films play free right here… ' + this.found + ' found so far' : this.failed ? 'Could not reach the Internet Archive. Check the connection and try again.'
+    $('tCount').textContent = this.busy ? 'Checking which films play free right here… ' + this.found + ' found so far' : this.failed ? 'Could not reach the Internet Archive. Open archive.org in a new tab: if it does not open, your network blocks it. Tap Free here again to retry.'
       : l.length + (l.length === 1 ? ' film plays' : ' films play') + ' right here, free and legal (old films whose copyright has run out)';
     $('tGrid').innerHTML = l.map((x) => '<button type="button" class="vid" data-id="' + esc(x.id) + '" data-t="' + esc(x.t) + '"><div class="th" style="background-image:url(\'https://archive.org/services/img/' + encodeURIComponent(x.id) + '\')">'
       + (x.min ? '<span>' + hm(x.min) + '</span>' : '') + '<i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,.5)"/><path d="M10 8v8l6-4z"/></svg></i></div>'
