@@ -135,7 +135,7 @@ td:last-child { text-align: right } tr.me td { color: var(--accent); font-weight
         <div><div class="lbl">Rivals</div><div class="seg" id="mDiff"><button type="button" data-v="0.93">Easy</button><button type="button" data-v="0.98">Medium</button><button type="button" data-v="1.02">Hard</button></div></div>
       </div>
       <div class="note" id="mPay"></div>
-      <div class="keys"><b>&uarr; / W</b><span>Throttle</span><b>&darr; / S</b><span>Brake (most karts brake the rear wheels only: brake in a straight line). Hold when stopped to roll back</span><b>&larr; &rarr; / A D</b><span>Steer. Too much lock or too much speed and the tyres slide</span><b>C &middot; M &middot; R &middot; Esc</b><span>Camera &middot; sound &middot; restart &middot; pause</span></div>
+      <div class="keys"><b>&uarr; / W</b><span>Throttle</span><b>&darr; / S</b><span>Brake (most karts brake the rear wheels only: brake in a straight line). Hold when stopped to roll back</span><b>&larr; &rarr; / A D</b><span>Steer. Too much lock or too much speed and the tyres slide</span><b>Q / E</b><span>Shift down / up on gearbox karts (they shift by themselves until you do)</span><b>C &middot; M &middot; R &middot; Esc</b><span>Camera &middot; sound &middot; restart &middot; pause</span></div>
       <div class="foot"><button class="btn" id="mGo" type="button">Race</button><span class="links"><a href="#" class="msgF" title="Send Fernando a message">Message Fernando</a><a href="./" title="Back to the game choice">&larr; All games</a></span></div>
     </div>
     <div class="pane" id="pCareer" hidden>
@@ -176,6 +176,11 @@ const TRACKS = {
   harbour: { name: 'Harbour Twist', blurb: 'Tight and twisty along the quay', R: 175, sx: 1.15, h: [[3, .17, 0], [4, .09, .9], [6, .03, 2]], sky: 'sunset', seed: 23 },
   canyon: { name: 'Red Canyon', blurb: 'Fast sweeping bends between red rocks', R: 270, sx: 1.4, h: [[2, .22, .5], [3, .09, 2.1], [7, .02, .4]], sky: 'desert', seed: 37 },
   night: { name: 'Neon Night', blurb: 'Under the lights, with neon kerbs', R: 165, sx: 1.25, h: [[2, .16, 1.2], [4, .12, .3], [5, .04, 1.7]], sky: 'night', seed: 41 },
+  // proper kart circuits: about a kilometre, tight hairpins and quick changes of direction
+  lakeside: { name: 'Lakeside Kartodromo', blurb: 'A classic kart track: five corners, one long hairpin', R: 120, sx: 1.3, h: [[2, .18, .4], [3, .1, 1.3], [5, .08, .2], [7, .05, 1.1]], sky: 'morning', seed: 53 },
+  oldtown: { name: 'Old Town Streets', blurb: 'Six tight turns between the walls of the old town', R: 140, sx: 1.1, h: [[3, .2, 1.5], [4, .1, .2], [6, .07, 1], [9, .03, 2]], sky: 'sunset', seed: 61 },
+  alpine: { name: 'Alpine Ring', blurb: 'Grey skies, cold tyres and a fast sweeping section', R: 115, sx: 1.45, h: [[2, .22, 1], [4, .1, .5], [6, .06, 2.2], [8, .03, .7]], sky: 'overcast', seed: 67 },
+  hairpins: { name: 'Neon Hairpins', blurb: 'The tightest track of all, at night: hairpin after hairpin', R: 130, sx: 1.2, h: [[3, .15, .2], [5, .09, 1.7], [7, .05, .9], [9, .025, .3]], sky: 'night', seed: 71 },
 };
 const TRACK_ORDER = Object.keys(TRACKS);
 const W = 11, HW = W / 2, GRASS = 7, DS = 2;   // track width, grass run-off before the tyre wall, sample spacing (m)
@@ -183,6 +188,8 @@ const SKIES = {
   day: { sky: [0x7fb3e6, 0xdcecf7], fog: 0xcfe3f0, ground: 0x4f9a3a, ground2: 0x5fae45, sun: 1.0, amb: .55, near: 160, far: 900 },
   sunset: { sky: [0x3d4f8c, 0xf2a05c], fog: 0xe0a27a, ground: 0x4a7f3a, ground2: 0x5a8f44, sun: .85, amb: .5, near: 140, far: 850, sunCol: 0xffc08a },
   desert: { sky: [0x6aa6dc, 0xf3dcc0], fog: 0xead2b4, ground: 0xc4793f, ground2: 0xd48a4e, sun: 1.05, amb: .55, near: 200, far: 1100 },
+  morning: { sky: [0x8fc1ef, 0xf4e6c8], fog: 0xe8e2d0, ground: 0x5a9a3c, ground2: 0x67a948, sun: 1.0, amb: .55, near: 150, far: 850, sunCol: 0xfff0d0 },
+  overcast: { sky: [0x8d97a3, 0xc9d0d6], fog: 0xbcc4cb, ground: 0x4c7a3e, ground2: 0x568747, sun: .45, amb: .8, near: 110, far: 700 },
   night: { sky: [0x04060c, 0x162038], fog: 0x0b1222, ground: 0x15301f, ground2: 0x1b3a26, sun: .18, amb: .32, near: 90, far: 600, night: true },
 };
 function buildTrackData(key) {
@@ -305,9 +312,20 @@ function buildWorld(T) {
     R3.renderer.toneMappingExposure = 1.35; } else R3.renderer.toneMappingExposure = 1.05;
   // particles: drift sparks, boost flames and grass dust
   const PN = 600, pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(PN * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(PN * 3), 3));
-  const pts = new THREE.Points(pg, new THREE.PointsMaterial({ size: .35, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); pts.frustumCulled = false; g.add(pts);
+  const pts = new THREE.Points(pg, new THREE.PointsMaterial({ size: .9, map: canvasTex(64, 64, (x, w, h) => { const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.45, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); }), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); pts.frustumCulled = false; g.add(pts);
   R3.parts = { pts, n: PN, list: [], k: 0 };
+  // tyre marks: a ring of thin dark strips laid where tyres slide or lock
+  const SK = 2400, sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(SK * 18), 3));
+  const skid = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color: 0x080808, transparent: true, opacity: S.night ? .55 : .34, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  skid.frustumCulled = false; skid.renderOrder = 1; g.add(skid); R3.skid = { mesh: skid, n: SK, k: 0 };
 }
+function skidMark(a, b, wd) {   // one strip of rubber from point a to point b
+  const S = R3.skid; if (!S) return; const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < .05 || L > 3) return;
+  const nx = -dz / L * wd / 2, nz = dx / L * wd / 2, y = .045, i = (S.k++ % S.n) * 18, p = S.mesh.geometry.attributes.position.array;
+  const v = [a[0] + nx, y, a[1] + nz, b[0] + nx, y, b[1] + nz, a[0] - nx, y, a[1] - nz, a[0] - nx, y, a[1] - nz, b[0] + nx, y, b[1] + nz, b[0] - nx, y, b[1] - nz];
+  for (let j = 0; j < 18; j++) p[i + j] = v[j]; S.mesh.geometry.attributes.position.needsUpdate = true;
+}
+function clearSkids() { const S = R3.skid; if (!S) return; S.mesh.geometry.attributes.position.array.fill(0); S.mesh.geometry.attributes.position.needsUpdate = true; S.k = 0; }
 function emit(x, y, z, vx, vy, vz, col, life) { const P = R3.parts; if (!P) return; const i = P.k++ % P.n; P.list[i] = { x, y, z, vx, vy, vz, c: col, life, t: life }; }
 function stepParts(dt) {
   const P = R3.parts; if (!P) return; const pos = P.pts.geometry.attributes.position, col = P.pts.geometry.attributes.color;
@@ -396,9 +414,10 @@ const Input = {
     const gps = navigator.getGamepads ? navigator.getGamepads() : []; let pause = false, cam = false;
     for (const g of gps) { if (!g || !g.connected) continue; const ax = g.axes[0] || 0, bt = (i) => g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > .5), val = (i) => g.buttons[i] ? g.buttons[i].value : 0;
       if (Math.abs(ax) > .12) { steer = Math.sign(ax) * (Math.abs(ax) - .12) / .88; analog = true; } if (val(7) > .05) thr = Math.max(thr, val(7)); if (val(6) > .05) brk = Math.max(brk, val(6));
-      if (bt(9) && !this.prev.p) pause = true; this.prev.p = bt(9); if (bt(3) && !this.prev.c) cam = true; this.prev.c = bt(3); break; }
-    if (this.pressed.Escape || this.pressed.KeyP) pause = true; if (this.pressed.KeyC) cam = true; const mute = !!this.pressed.KeyM, restart = !!this.pressed.KeyR; this.pressed = {};
-    return { steer: clamp(steer, -1, 1), thr, brk, analog, pause, cam, mute, restart };
+      if (bt(9) && !this.prev.p) pause = true; this.prev.p = bt(9); if (bt(3) && !this.prev.c) cam = true; this.prev.c = bt(3);
+      if (bt(5) && !this.prev.u) this.pressed.KeyE = true; this.prev.u = bt(5); if (bt(4) && !this.prev.d) this.pressed.KeyQ = true; this.prev.d = bt(4); break; }
+    if (this.pressed.Escape || this.pressed.KeyP) pause = true; if (this.pressed.KeyC) cam = true; const mute = !!this.pressed.KeyM, restart = !!this.pressed.KeyR, up = !!(this.pressed.KeyE || this.pressed.ShiftRight), down = !!(this.pressed.KeyQ || this.pressed.ControlRight); this.pressed = {};
+    return { steer: clamp(steer, -1, 1), thr, brk, analog, pause, cam, mute, restart, up, down };
   },
 };
 
@@ -417,7 +436,10 @@ function stepKart(k, inp, dt, Tk) {
   const down = T.cla ? .6 * T.cla * u * u : 0, shift = m * clamp(k.axS || 0, -14, 12) * HCG / WB;
   const Fzf = Math.max(50, m * G0 * BX / WB - shift + down * .42), Fzr = Math.max(50, m * G0 * AX / WB + shift + down * .58);
   // longitudinal: power over speed up to the rear tyres' grip; rev limiter at the gearing's top speed; brakes
-  let drive = 0; if (inp.thr > 0 && u > -.5) drive = (u < T.top * 1.01 ? Math.min(T.P * inp.thr / Math.max(au, 2.2), mu * Fzr * .9) : 0);
+  // gearbox karts in manual: each gear has its own rev limit, and a gear too tall for the speed bogs the engine down (first gear has the clutch)
+  const gTop = (gg) => T.top * (.42 + .58 * gg / T.gears); let pw = T.P, revLim = T.top * 1.01;
+  if (T.gears > 1 && k.manual) { revLim = gTop(k.gear) * 1.01; if (k.gear > 1) pw *= clamp(.35 + 1.2 * au / gTop(k.gear), .35, 1); }
+  let drive = 0; if (inp.thr > 0 && u > -.5) drive = (u < revLim ? Math.min(pw * inp.thr / Math.max(au, 2.2), mu * Fzr * .9) : 0);
   if (inp.thr > 0 && u < -.5) drive = mu * Fzr * .7;   // throttle while rolling back: stop first
   let bF = 0, bR = 0;
   if (inp.brk > 0) { if (u > .4) { if (T.frontBrakes) { const tot = inp.brk * mu * (Fzf + Fzr) * .95; bR = Math.min(tot * .35, mu * Fzr * .85); bF = Math.min(tot - bR, mu * Fzf * .95); } else bR = inp.brk * mu * Fzr * .9; }
@@ -428,7 +450,8 @@ function stepKart(k, inp, dt, Tk) {
   const uu = Math.max(au, 1.6) * (u < 0 ? -1 : 1), af = Math.atan2(k.v + AX * k.r, uu) - k.delta, ar = Math.atan2(k.v - BX * k.r, uu);
   const capF = Math.sqrt(Math.max(0, (mu * Fzf) ** 2 - (.6 * Fxf) ** 2)), capR = Math.sqrt(Math.max(0, (1.25 * mu * Fzr) ** 2 - (.6 * Fxr) ** 2));   // a friction ellipse: driving or braking costs some cornering grip
   const Fyf = -capF * Math.tanh(22 * Fzf * af / Math.max(20, capF)), Fyr = -capR * Math.tanh(30 * Fzr * ar / Math.max(20, capR));   // the stiffer, grippier rear (a solid axle on wider tyres) keeps a kart stable: at the limit the front washes wide first
-  const drag = T.kd * u * au + Math.sign(u) * (.016 * m * G0 + (off ? .1 * m * G0 : 0)) * Math.min(1, au / .3);
+  const drag = T.kd * (1 - .32 * (k.draft || 0)) * u * au +   // tucked in behind another kart the air is already moving: less drag
+    Math.sign(u) * (.016 * m * G0 + (off ? .1 * m * G0 : 0)) * Math.min(1, au / .3);
   const cd = Math.cos(k.delta), sd = Math.sin(k.delta);
   const du = (Fxr + Fxf * cd - Fyf * sd - drag) / m + k.v * k.r, dv = (Fyf * cd + Fxf * sd + Fyr) / m - u * k.r, dr = (AX * (Fyf * cd + Fxf * sd) - BX * Fyr) / T.Iz - 5 * k.r * Math.min(1, au / 6);   // the solid rear axle scrubs and resists yaw
   k.u += du * dt; k.v += dv * dt; k.r += dr * dt; k.ax = du - k.v * k.r; k.axS = (k.axS || 0) + (k.ax - (k.axS || 0)) * Math.min(1, dt * 10);   // the chassis takes a moment to pitch
@@ -438,7 +461,7 @@ function stepKart(k, inp, dt, Tk) {
   k.slip = Math.max(Math.abs(af), Math.abs(ar)) * Math.min(1, au / 8);   // for the tyre squeal and smoke
   // engine revs and gears (direct drive karts rev with road speed above the clutch's bite; shifters change up and down by themselves)
   const [r0, r1] = T.rev;
-  if (T.gears > 1) { const gTop = (g) => T.top * (.42 + .58 * g / T.gears); let g = k.gear; if (au > gTop(g) * .97 && g < T.gears) g++; else if (g > 1 && au < gTop(g - 1) * .7) g--; k.gear = g; k.rpm = clamp(au / gTop(g) * r1, r0, r1); }
+  if (T.gears > 1) { let g = k.gear; if (!k.manual) { if (au > gTop(g) * .97 && g < T.gears) g++; else if (g > 1 && au < gTop(g - 1) * .7) g--; } k.gear = g; k.rpm = clamp(au / gTop(g) * r1, r0, r1); }
   else k.rpm = T.eng === 'e' ? au / T.top * r1 : clamp(r0 + (au / T.top) * (r1 - r0) * 1.08, r0, r1);
   // tyre wall
   const L2 = locate(Tk, k.x, k.z, k.idx), lim = HW + GRASS - .3;
@@ -529,26 +552,58 @@ function makeKart(T, num) {
   g.userData = { body, wheels }; return g;
 }
 
+// the driver's view: what you see from the seat (the kart's own model is hidden in this camera). The steering wheel sits
+// where your eyes can find it, your gloves turn it, and the nose and the front of the kart are ahead of you
+function makeCockpit(T) {
+  const g = new THREE.Group(), c1 = new THREE.Color(T.col[0]), c2 = new THREE.Color(T.col[1]);
+  const paint = new THREE.MeshStandardMaterial({ color: c1, roughness: .35, metalness: .15 }), dark = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: .7 }),
+    tube = new THREE.MeshStandardMaterial({ color: 0x9aa3ab, roughness: .3, metalness: .85 }), alu = new THREE.MeshStandardMaterial({ color: 0xc9ced4, roughness: .35, metalness: .7 }),
+    suit = new THREE.MeshStandardMaterial({ color: c2.clone().lerp(new THREE.Color(0x1b2530), .45), roughness: .75 }), glove = new THREE.MeshStandardMaterial({ color: 0x1d1f24, roughness: .8 });
+  const box = (w, h, d, m, x, y, z, p) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); (p || g).add(o); return o; };
+  if (T.cla) { box(.9, .2, 1.05, paint, .75, .34, 0); box(.6, .14, .9, paint, 1.25, .22, 0); }
+  else { box(.32, .14, .9, paint, .86, .17, 0); box(.05, .32, .34, paint, .62, .33, 0).rotation.z = -.35; for (const sd of [-1, 1]) box(.66, .16, .16, paint, .03, .2, sd * .52); }
+  for (const sd of [-1, 1]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, .13, 18), dark); w.rotation.x = Math.PI / 2; w.position.set(.52, .14, sd * .6); g.add(w); }
+  // steering column and the wheel, tilted towards you
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(.016, .016, .62, 8), tube); col.position.set(.42, .45, 0); col.rotation.z = Math.PI / 2 - 1.0; g.add(col);
+  const n = new THREE.Vector3(-.62, .78, 0).normalize(), mount = new THREE.Group(); mount.position.set(.3, .7, 0); mount.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); g.add(mount);
+  const spin = new THREE.Group(); mount.add(spin);
+  spin.add(new THREE.Mesh(new THREE.TorusGeometry(.15, .021, 8, 28), dark));
+  box(.3, .03, .012, alu, 0, -.01, 0, spin); box(.03, .14, .012, alu, 0, -.07, 0, spin); box(.09, .07, .03, dark, 0, -.01, .01, spin);
+  box(.03, .022, .03, new THREE.MeshBasicMaterial({ color: 0xff6b3d, toneMapped: false }), 0, .15, 0, spin);   // the top mark, so you can see how far the wheel is turned
+  const gl = []; for (const sd of [-1, 1]) { const h = new THREE.Mesh(new THREE.SphereGeometry(.045, 10, 8), glove); h.scale.set(1, 1.25, 1); h.position.set(sd * .15, 0, .01); spin.add(h); gl.push(h); }
+  const arms = [-1, 1].map(() => { const a = new THREE.Mesh(new THREE.CylinderGeometry(.032, .04, 1, 10), suit); g.add(a); return a; });
+  g.userData = { spin, gl, arms, v: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0) };
+  return g;
+}
+function poseCockpit(c, k) {   // turn the wheel with the front wheels (a kart's steering is direct: about 4 turns of the wheel to 1 of the tyres) and keep the arms on it
+  const U = c.userData; U.spin.rotation.z = -k.delta * 4;
+  c.updateMatrixWorld(true);
+  U.gl.forEach((h, i) => { const v = U.v; h.getWorldPosition(v); c.worldToLocal(v); const sh = new THREE.Vector3(-.12, .66, (i ? 1 : -1) * .3), d = v.clone().sub(sh), L = d.length(), a = U.arms[i];
+    a.position.copy(sh).addScaledVector(d, .5); a.scale.set(1, L, 1); a.quaternion.setFromUnitVectors(U.up, d.normalize()); });
+}
+
 // ------------------------------------------------------------------ career: credits, the racing licence, karts and upgrades, events and championships
 const RANKS = [['Rookie', 0], ['Club', 100], ['Regional', 260], ['National', 520], ['International', 900], ['World', 1400]];
 // events: one race, or a championship of several rounds (points 25-18-15-12-10-8-6-4, and a bonus for the champion).
 // karts: the classes that may enter (you bring your own; the rivals race the same kart); purse: the winner's prize money per race
 const EVENTS = [
-  { id: 'arrive', name: 'Arrive and Drive', rounds: ['park'], laps: 4, karts: ['rental'], rank: 0, purse: 300, diff: .93 },
-  { id: 'hirecup', name: 'Hire Kart Cup', rounds: ['harbour', 'park', 'night'], laps: 4, karts: ['rental'], rank: 0, purse: 260, bonus: 900, diff: .95 },
+  { id: 'arrive', name: 'Arrive and Drive', rounds: ['lakeside'], laps: 5, karts: ['rental'], rank: 0, purse: 300, diff: .93 },
+  { id: 'hirecup', name: 'Hire Kart Cup', rounds: ['lakeside', 'park', 'night'], laps: 4, karts: ['rental'], rank: 0, purse: 260, bonus: 900, diff: .95 },
   { id: 'cadet', name: 'Cadet Trophy', rounds: ['park'], laps: 6, karts: ['cadet'], rank: 0, purse: 550, diff: .95 },
   { id: 'cadetchamp', name: 'Cadet Championship', rounds: ['harbour', 'night', 'canyon'], laps: 5, karts: ['cadet'], rank: 1, purse: 500, bonus: 1800, diff: .96 },
+  { id: 'alpinesprint', name: 'Alpine Junior Sprint', rounds: ['alpine'], laps: 10, karts: ['junior'], rank: 1, purse: 1000, diff: .97 },
   { id: 'junior', name: 'Junior Open', rounds: ['harbour'], laps: 8, karts: ['junior'], rank: 1, purse: 950, diff: .97 },
   { id: 'rotaxnight', name: 'Rotax Night Race', rounds: ['night'], laps: 8, karts: ['senior'], rank: 1, purse: 1300, diff: .97 },
-  { id: 'club', name: 'Club Championship', rounds: ['park', 'harbour', 'night', 'canyon'], laps: 6, karts: ['junior', 'senior', 'x30'], rank: 1, purse: 900, bonus: 4000, diff: .98 },
+  { id: 'club', name: 'Club Championship', rounds: ['park', 'oldtown', 'night', 'canyon'], laps: 6, karts: ['junior', 'senior', 'x30'], rank: 1, purse: 900, bonus: 4000, diff: .98 },
   { id: 'x30canyon', name: 'X30 Canyon Classic', rounds: ['canyon'], laps: 6, karts: ['x30', 'senior'], rank: 2, purse: 1700, diff: .98 },
-  { id: 'etrophy', name: 'E-Kart Trophy', rounds: ['harbour', 'park'], laps: 6, karts: ['ekart'], rank: 2, purse: 1500, bonus: 3500, diff: .98 },
-  { id: 'dd2', name: 'DD2 Masters', rounds: ['canyon', 'night'], laps: 7, karts: ['dd2'], rank: 2, purse: 2200, bonus: 5000, diff: .99 },
-  { id: 'senior', name: 'Senior Series', rounds: ['park', 'canyon', 'night', 'harbour'], laps: 8, karts: ['senior', 'x30'], rank: 2, purse: 1500, bonus: 6000, diff: .99 },
-  { id: 'kz2', name: 'KZ2 Euro Cup', rounds: ['harbour', 'canyon', 'park'], laps: 8, karts: ['kz2'], rank: 3, purse: 2600, bonus: 9000, diff: 1 },
+  { id: 'streets', name: 'Old Town Street Classic', rounds: ['oldtown'], laps: 12, karts: ['senior', 'x30'], rank: 2, purse: 1900, diff: .98 },
+  { id: 'etrophy', name: 'E-Kart Trophy', rounds: ['harbour', 'lakeside'], laps: 6, karts: ['ekart'], rank: 2, purse: 1500, bonus: 3500, diff: .98 },
+  { id: 'dd2', name: 'DD2 Masters', rounds: ['alpine', 'canyon', 'hairpins'], laps: 7, karts: ['dd2'], rank: 2, purse: 2200, bonus: 5000, diff: .99 },
+  { id: 'senior', name: 'Senior Series', rounds: ['lakeside', 'canyon', 'hairpins', 'harbour', 'alpine'], laps: 8, karts: ['senior', 'x30'], rank: 2, purse: 1500, bonus: 6000, diff: .99 },
+  { id: 'kz2', name: 'KZ2 Euro Cup', rounds: ['lakeside', 'canyon', 'oldtown', 'alpine'], laps: 8, karts: ['kz2'], rank: 3, purse: 2600, bonus: 9000, diff: 1 },
   { id: 'kzworld', name: 'KZ World Final', rounds: ['night'], laps: 12, karts: ['kz1', 'kz2'], rank: 4, purse: 7000, diff: 1.01 },
   { id: 'superkart', name: 'Superkart Canyon GP', rounds: ['canyon'], laps: 8, karts: ['superkart'], rank: 4, purse: 9000, diff: 1.01 },
-  { id: 'worlds', name: 'World Finals', rounds: ['park', 'harbour', 'canyon', 'night'], laps: 10, karts: ['kz1', 'superkart'], rank: 5, purse: 7000, bonus: 30000, diff: 1.03 },
+  { id: 'worlds', name: 'World Finals', rounds: ['lakeside', 'harbour', 'canyon', 'hairpins', 'oldtown'], laps: 10, karts: ['kz1', 'superkart'], rank: 5, purse: 7000, bonus: 30000, diff: 1.03 },
   { id: 'erikagold', name: 'Erika Gold Cup', rounds: ['park', 'night'], laps: 5, karts: ['erika'], rank: 0, purse: 0, diff: 1.02, fun: true },
 ];
 const PAY = [1, .62, .44, .3, .2, .13, .08, .05], CPTS = [25, 18, 15, 12, 10, 8, 6, 4], LPTS = [40, 30, 24, 18, 14, 10, 7, 5];
@@ -707,12 +762,13 @@ const Game = {
       k.x = p.x + p.rx * off; k.z = p.z + p.rz * off; k.h = p.h; k.idx = i0; k.lane = off; k.lap = 0; k.half = true; k.lapStart = 0; k.num = s + 1;
       k.mesh = makeKart(k.T, me ? 1 + (hashS(kid) % 98) : 2 + RIVALS.indexOf(k.name) * 7 % 97); R3.world.add(k.mesh); this.karts.push(k); if (me) this.player = k;
     }
+    clearSkids(); if (this.cock) R3.world.remove(this.cock); this.cock = makeCockpit(this.player.T); this.cock.visible = false; R3.world.add(this.cock);
     this.tok++; this.clock = 0; this.countT = 3.6; this.mode = 'count'; this.cp = null; this.paused = false;
     $('menu').hidden = true; $('res').hidden = true; $('pause').hidden = true; $('hud').hidden = false; $('touch').hidden = !this.touch; this.msg(ev ? ev.name : '', ev && ev.rounds.length > 1 ? 'Round ' + (run.round + 1) + ' of ' + ev.rounds.length + ' · ' + TRACKS[run.track].name : TRACKS[run.track].name, 2.4);
     R3.lights.forEach((m) => m.color.setHex(0x331010));
     if (window.ErikaAccess && ErikaAccess.flew) ErikaAccess.flew('Karts: ' + KARTS[kid].name + (ev ? ' (' + ev.name + ')' : ''));
   },
-  toMenu() { this.tok++; this.mode = 'menu'; for (const k of this.karts) if (k.mesh) R3.world.remove(k.mesh); this.karts = []; this.player = null; this.paused = false;
+  toMenu() { this.tok++; this.mode = 'menu'; for (const k of this.karts) if (k.mesh) R3.world.remove(k.mesh); if (this.cock) { R3.world.remove(this.cock); this.cock = null; } this.karts = []; this.player = null; this.paused = false;
     $('hud').hidden = true; $('touch').hidden = true; $('res').hidden = true; $('pause').hidden = true; $('menu').hidden = false; this.loadTrack(this.cfg.track); this.menu(); if (Snd.ac) Snd.engine(KARTS.rental, 0, 0, 0, false); },
   pause(on) { if (on && (this.mode === 'run' || this.mode === 'count')) { this.paused = true; $('pause').hidden = false; } else if (!on) { this.paused = false; $('pause').hidden = true; } },
   msg(t, sub, dur) { $('hMsg').innerHTML = t ? t + (sub ? '<small>' + sub + '</small>' : '') : ''; this.msgT = dur || 0; },
@@ -723,10 +779,15 @@ const Game = {
     if (inp.cam) this.camMode = (this.camMode + 1) % 3;
     if (inp.restart && (this.mode === 'run' || this.mode === 'count') && !this.paused) this.start();
     const live = this.mode !== 'menu' && !this.paused, T = this.T, run = this.run;
+    // gearbox karts: Q / E (or the shoulder buttons) take over the gears from the automatic for the rest of the race
+    const me0 = this.player; if (me0 && live && (inp.up || inp.down) && me0.T.gears > 1 && me0.done == null) { const MT = me0.T, gTop = (gg) => MT.top * (.42 + .58 * gg / MT.gears); me0.manual = true;
+      if (inp.up && me0.gear < MT.gears) me0.gear++; else if (inp.down && me0.gear > 1) { if (Math.abs(me0.u) < gTop(me0.gear - 1) * 1.04) me0.gear--; else Snd.beep(200, .08); } }
     if (live) {
       if (this.mode === 'count') { const before = this.countT; this.countT -= dt; for (let n = 0; n < 5; n++) { const at = 3.4 - n * .6; if (before > at && this.countT <= at) { R3.lights[n].color.setHex(0xff2a2a); Snd.beep(520, .18); } }
         if (this.countT <= .2) { this.mode = 'run'; this.clock = 0; R3.lights.forEach((m) => m.color.setHex(0x1aff5a)); Snd.beep(1040, .4); this.msg('GO!', '', 1); for (const k of this.karts) k.lapStart = 0; } }
       const go = this.mode === 'run' || this.mode === 'done', sub = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / sub, N = T.N;
+      // slipstream: right behind another kart (up to 14 m back, nearly in line) the air is already moving, so there is less drag
+      if (go) for (const k of this.karts) { let dr = 0; const ch = Math.cos(k.h), sh = Math.sin(k.h); for (const o of this.karts) { if (o === k) continue; const dx = o.x - k.x, dz = o.z - k.z, al = dx * ch + dz * sh, lt = Math.abs(-dx * sh + dz * ch); if (al > 1.2 && al < 14 && lt < 1.3) dr = Math.max(dr, 1 - al / 14); } k.draft = dr; }
       for (let s = 0; s < sub; s++) {
         if (go) this.clock += h;
         for (const k of this.karts) {
@@ -800,19 +861,26 @@ const Game = {
     }
     const me = this.player, live = (this.mode === 'run' || this.mode === 'done' || this.mode === 'count') && !this.paused;
     for (const k of this.karts) {
-      const m = k.mesh, ud = m.userData, au = Math.abs(k.u); m.position.set(k.x, 0, k.z); m.rotation.y = -k.h;
+      const m = k.mesh, ud = m.userData, au = Math.abs(k.u); m.position.set(k.x, 0, k.z); m.rotation.y = -k.h; m.visible = !(k === me && this.camMode === 2);
       ud.body.rotation.x = clamp(-k.u * k.r * .006, -.06, .06); ud.body.rotation.z = clamp(-(k.ax || 0) * .004, -.03, .03);
       for (const w of ud.wheels) { if (w.front) w.w.rotation.y = -k.delta * 1.1; w.w.children.forEach((c) => { c.rotation.y += k.u * dt / .14; }); }
       if (!live || this.mode === 'count') continue;
       // tyre smoke when sliding, dust on the grass
       const f = [Math.cos(k.h), Math.sin(k.h)], s = [-f[1], f[0]];
-      if (k.slip > .09 && au > 6 && Math.random() < Math.min(1, (k.slip - .09) * 12)) for (const sd of [-1, 1]) emit(k.x - f[0] * .6 + s[0] * sd * .62, .15, k.z - f[1] * .6 + s[1] * sd * .62, (Math.random() - .5) * 1.5, .8 + Math.random(), (Math.random() - .5) * 1.5, new THREE.Color(.42, .42, .44), .7);
+      // rubber on the track where the rear tyres slide
+      if (k.slip > .13 && au > 5 && Math.abs(k.d) < HW) for (const sd of [-1, 1]) { const p = [k.x - f[0] * .58 + s[0] * sd * .64, k.z - f[1] * .58 + s[1] * sd * .64], key = sd < 0 ? 'skL' : 'skR', q = k[key];
+        if (!q) k[key] = p; else if (Math.hypot(p[0] - q[0], p[1] - q[1]) > .45) { skidMark(q, p, .19); k[key] = p; } }
+      else k.skL = k.skR = null;
+      if (k.slip > .12 && au > 6 && Math.random() < Math.min(.6, (k.slip - .12) * 8)) for (const sd of [-1, 1]) emit(k.x - f[0] * .6 + s[0] * sd * .62, .15, k.z - f[1] * .6 + s[1] * sd * .62, (Math.random() - .5) * 1.5, .8 + Math.random(), (Math.random() - .5) * 1.5, new THREE.Color(.22, .22, .23), .8);
       if (Math.abs(k.d) > HW + .3 && au > 5 && Math.random() < .5) emit(k.x - f[0] * .8, .2, k.z - f[1] * .8, (Math.random() - .5) * 2, 1.5, (Math.random() - .5) * 2, new THREE.Color(.45, .38, .25), .6);
     }
     stepParts(dt);
     // camera: chase (two distances, following the direction of travel when sliding) or the driver's eyes
     const f = [Math.cos(me.h), Math.sin(me.h)], au = Math.abs(me.u);
-    if (this.camMode === 2) { cam.position.set(me.x - f[0] * .1, 1.08, me.z - f[1] * .1); cam.lookAt(me.x + f[0] * 10, .7, me.z + f[1] * 10); }
+    if (this.cock) { this.cock.visible = this.camMode === 2; if (this.cock.visible) { this.cock.position.set(me.x, 0, me.z); this.cock.rotation.y = -me.h; poseCockpit(this.cock, me); } }
+    const near = this.camMode === 2 ? .06 : .3; if (cam.near !== near) { cam.near = near; cam.updateProjectionMatrix(); }
+    if (this.camMode === 2) { const lean = clamp(me.u * me.r * .004, -.05, .05), ex = -.02, ez = lean, ey = .98;   // your head leans out in the corners
+      cam.position.set(me.x + f[0] * ex - f[1] * ez, ey, me.z + f[1] * ex + f[0] * ez); cam.lookAt(me.x + f[0] * 10 - f[1] * ez, ey - 1.7, me.z + f[1] * 10 + f[0] * ez); }
     else { const back = this.camMode === 1 ? 8.5 : 4.6, up = this.camMode === 1 ? 3.2 : 1.9, slipA = au > 3 ? clamp(Math.atan2(me.v, me.u), -.7, .7) : 0, hd = me.h + slipA * .6, tx = me.x - Math.cos(hd) * back, tz = me.z - Math.sin(hd) * back;
       this.cp = this.cp || { x: tx, z: tz }; const k2 = 1 - Math.exp(-dt * 10); this.cp.x += (tx - this.cp.x) * k2; this.cp.z += (tz - this.cp.z) * k2;
       cam.position.set(this.cp.x, up, this.cp.z); cam.lookAt(me.x + f[0] * 4, .8, me.z + f[1] * 4); }
@@ -845,7 +913,7 @@ const Game = {
     const [a, b] = F(this.player); x.fillStyle = '#ff6b3d'; x.beginPath(); x.arc(a, b, 9, 0, 7); x.fill(); x.lineWidth = 3; x.strokeStyle = '#fff'; x.stroke();
   },
 };
-window.__karts = { Game, TRACKS, KARTS, EVENTS, Cr, spec, buildTrackData, stepKart, aiInput, profileFor, locate, newKart };
+window.__karts = { Game, R3, TRACKS, KARTS, EVENTS, Cr, spec, buildTrackData, stepKart, aiInput, profileFor, locate, newKart };
 (window.__gateReady || Promise.resolve()).then(() => Game.init());
 })();
 </script>
