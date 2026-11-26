@@ -6,7 +6,7 @@
 <title>Erika Boats</title>
 <meta name="description" content="Powerboat racing round buoy courses: fifty-seven boats, fourteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: full-screen 3D water with a race HUD (positions left, timing right, speed bottom centre, course map bottom right) and a menu card on top. */
 :root {
@@ -111,26 +111,40 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 @media (max-width: 640px) { .tm { flex-direction: column; align-items: stretch } }
 @media (max-width: 640px) { .ev { flex-direction: column; align-items: stretch } .ev .evr { justify-content: space-between } .stat { grid-template-columns: 90px 1fr 60px } }
 @media (max-width: 640px) { #tower { min-width: 140px; font-size: 12px } #timing { min-width: 140px } #timing .cur { font-size: 20px } #mini { width: 110px; height: 110px; bottom: 116px } #dash { bottom: 112px } }
-/* modern look: a frosted glass card, pill tabs and options, gradient accents and soft glows */
-#menu .card { border: 1px solid rgba(255, 255, 255, .09); border-radius: 26px; background: linear-gradient(160deg, rgba(12, 38, 52, .86), rgba(4, 16, 24, .9)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 30px 90px rgba(0, 0, 0, .45) }
-#menu h1 b { background: linear-gradient(90deg, #5ff2e0, #2fa8ff); -webkit-background-clip: text; background-clip: text; color: transparent }
+/* Erika Pro look: one design for every screen. Inter for text, Barlow Condensed for titles, a solid dark panel with hairline borders,
+   colour only on what is selected and on the main button */
+:root { --f-body: "Inter", "Barlow", system-ui, sans-serif; --pro-line: rgba(255, 255, 255, .08); --pro-line2: rgba(255, 255, 255, .16); --pro-raise: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025)); --pro-dim: #8d9fa8 }
+html, body { font-family: var(--f-body) }
+#menu { background: linear-gradient(90deg, rgba(4, 10, 14, .82) 0%, rgba(4, 10, 14, .55) 55%, rgba(4, 10, 14, .2) 100%) }
+#menu .card { border: 1px solid var(--pro-line); border-radius: 18px; background: linear-gradient(180deg, rgba(14, 26, 33, .97), rgba(7, 14, 19, .97)); box-shadow: 0 30px 80px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05); padding: 28px }
+#menu h1 { font-size: 42px; letter-spacing: .1em }
+#menu h1 b { color: var(--accent) }
 #pRace > p { display: none }
-.wallet { border-radius: 999px; border: 1px solid rgba(255, 211, 107, .3); background: rgba(255, 181, 46, .1) }
-.tabs { border: 0; background: rgba(255, 255, 255, .05); border-radius: 999px; padding: 4px; gap: 2px; overflow-x: auto; scrollbar-width: none } .tabs::-webkit-scrollbar { display: none }
-.tabs button { border: 0; border-radius: 999px; padding: 8px 16px; white-space: nowrap; transition: background .2s, color .2s }
-.tabs button[aria-selected="true"] { background: linear-gradient(135deg, #46f0dc, #1fa8ff); color: #022320; box-shadow: 0 4px 16px rgba(47, 212, 196, .35) }
-.seg { gap: 6px } .seg button { border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .07); padding: 8px 15px; transition: background .2s }
-.seg button:hover { background: rgba(255, 255, 255, .11) }
+.wallet { border-radius: 8px; border: 1px solid rgba(255, 211, 107, .28); background: rgba(255, 181, 46, .08); font-size: 14px }
+.lic { color: var(--pro-dim) }
+.tabs { gap: 4px; border-bottom: 1px solid var(--pro-line); overflow-x: auto; scrollbar-width: none } .tabs::-webkit-scrollbar { display: none }
+.tabs button { font: 600 12.5px var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 12px 12px 11px; border-bottom-width: 2px; white-space: nowrap; color: var(--pro-dim); transition: color .15s, border-color .15s }
+.tabs button:hover { color: #e6f2f6 }
+.tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--accent) }
+.lbl { font: 600 11px var(--f-body); letter-spacing: .14em; color: var(--pro-dim) }
+.seg { gap: 6px } .seg button { border-radius: 8px; background: transparent; border: 1px solid var(--pro-line); padding: 8px 13px; font: 500 13.5px var(--f-body); transition: border-color .15s, background .15s }
+.seg button:hover { border-color: var(--pro-line2) }
 .seg button small { display: none }
-.seg button[aria-pressed="true"] { background: linear-gradient(135deg, #46f0dc, #1fa8ff); color: #022320; border-color: transparent; box-shadow: 0 4px 14px rgba(47, 212, 196, .3) }
-.keys { opacity: .75 }
-.ev, .tm, .ggrid button { border-radius: 16px; background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02)); border-color: rgba(255, 255, 255, .07) }
-.ggrid button[aria-pressed="true"], .tm.on { border-color: rgba(47, 212, 196, .85); box-shadow: 0 8px 26px rgba(47, 212, 196, .22) }
-#rankBox, #gDetail, #teamBox, #gPaint, #pMulti .mpbox { border-radius: 18px; background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02)); border-color: rgba(255, 255, 255, .07) }
-#pMulti select, #pMulti input { border-radius: 12px; background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .09) }
-#menu .btn { border-radius: 14px } #menu .btn.main { background: linear-gradient(135deg, #46f0dc, #1fa8ff); box-shadow: 0 10px 28px rgba(47, 212, 196, .35) }
-#menu .btn:not(.main) { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .12) }
-.foot .links { display: flex; gap: 16px; margin-left: auto }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600 }
+.prize { font: 500 13px var(--f-body); color: #ffd36b }
+.keys { opacity: .8 } .keys b { font-weight: 600 }
+.ev, .tm, .ggrid button { border-radius: 12px; background: var(--pro-raise); border-color: var(--pro-line) }
+.ev:hover, .tm:hover, .ggrid button:hover { border-color: var(--pro-line2) }
+.ggrid button[aria-pressed="true"], .tm.on { border-color: color-mix(in srgb, var(--accent) 80%, transparent); background: linear-gradient(180deg, rgba(47, 212, 196, .12), rgba(47, 212, 196, .02)); box-shadow: none }
+#rankBox, #gDetail, #teamBox, #gPaint, #pMulti .mpbox { border-radius: 14px; background: var(--pro-raise); border-color: var(--pro-line) }
+#rankBox .rk b, #teamBox .rk b, #gDetail h2 { color: #fff }
+#pMulti select, #pMulti input { border-radius: 10px; background: rgba(255, 255, 255, .04); border-color: var(--pro-line) }
+#menu .btn { border-radius: 10px; font-weight: 600 } #menu .btn.main { background: var(--accent); color: var(--accent-ink); padding: 11px 22px; font: 700 15px var(--f-display); letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 10px 26px rgba(47, 212, 196, .22) }
+#menu .btn.main:hover { filter: brightness(1.07) }
+#menu .btn:not(.main) { background: transparent; border-color: var(--pro-line2) }
+.foot .links { display: flex; gap: 16px; margin-left: auto } .foot a { color: var(--pro-dim); text-decoration: none } .foot a:hover { color: #fff }
+/* in-race panels: the same hairline look */
+.box { border: 1px solid var(--pro-line); border-left: 3px solid var(--accent); border-radius: 10px; background: rgba(5, 14, 20, .78) }
 </style>
 </head>
 <body>

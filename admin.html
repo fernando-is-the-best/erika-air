@@ -6,7 +6,7 @@
 <title>Fernando's Desk</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: a flight-ops desk — pilot card (who is signed in) and live readouts across the top, code maker, then the roster of issued codes. */
 :root {
@@ -142,6 +142,19 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
 .self .it { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; padding: 7px 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--line) }
 .self .it .n { font-weight: 600 } .self .it .n small { font-weight: 400; color: var(--dim); margin-left: 6px } .self .it.own { border-left: 3px solid var(--ok) }
 .self .it .b { display: flex; gap: 6px } .self .it .b button { padding: 5px 10px; font-size: 13px } #selfItems { display: grid; gap: 6px; max-height: 420px; overflow: auto }
+/* Erika Pro look, the same as the games: Inter text, neutral dark panels with hairline borders */
+:root { --bg: #06080c; --panel: #10141b; --raise: #171c25; --line: rgba(255, 255, 255, 0.08); --dim: #8d99a7; --f-body: "Inter", "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif }
+body { background: radial-gradient(70% 50% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 60%) fixed, var(--bg); letter-spacing: -0.005em }
+h1 { letter-spacing: .08em }
+h2 { font-weight: 700; letter-spacing: .12em }
+.card { background: linear-gradient(180deg, #141922, #0d1117); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04) }
+label, .lbl { font-size: 11px; font-weight: 600; letter-spacing: .14em }
+input, select { border-radius: 10px; background: rgba(255, 255, 255, .03) }
+input:focus, select:focus { outline: none; border-color: var(--accent) }
+button { border-radius: 10px; background: rgba(255, 255, 255, .04); font-weight: 500; font-size: 14px }
+button:hover { border-color: rgba(255, 255, 255, .22) }
+button.main { font-weight: 700 }
+.gauge { background: linear-gradient(180deg, #141922, #0d1117); border-radius: 14px }
 </style>
 </head>
 <body>
