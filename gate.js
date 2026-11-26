@@ -41,7 +41,7 @@
       <input id="gateCode" name="code" spellcheck="false" autocapitalize="off" maxlength="64" placeholder="35-character code, or 10-digit one-time code" required>
       <button id="gateGo" type="submit">Unlock</button>
       <div class="msg" id="gateMsg" role="status" aria-live="polite"></div>
-      <div class="foot"><span>Ask the admin for a code.</span><a href="admin.html">Admin</a></div>
+      <div class="foot"><span>No code? <a href="#" id="gateAsk">Ask Fernando</a></span><a href="admin.html">Fernando's desk</a></div>
     </form>`;
 
   function run() {
@@ -64,13 +64,78 @@
 
   const cfg = window.ERIKA_FIREBASE || {};
   if (!window.firebase || !cfg.apiKey || /PASTE_/.test(cfg.apiKey + cfg.projectId)) {
-    busy(true); say('The access system is not set up yet. Ask the admin to finish the setup.', 'bad');
+    busy(true); say('The access system is not set up yet. Ask Fernando to finish the setup.', 'bad');
     return;
   }
 
   firebase.initializeApp(cfg);
   const auth = firebase.auth(), db = firebase.firestore();
   let uid = null, unwatch = null;
+
+  // ---- messages to Fernando: anyone can ask for a code or send a note. They land on Fernando's desk (admin.html).
+  // Only the name, an optional way to reply, the text, the game and this browser's anonymous id are stored.
+  const MSG_CSS = `
+    #erikaMsg{position:fixed;inset:0;z-index:1001;display:grid;place-items:center;padding:16px;background:rgba(4,8,12,.78);overflow:auto}
+    #erikaMsg form{width:min(420px,100%);box-sizing:border-box;background:var(--panel-solid,#0d1620);border-radius:14px;padding:24px;display:grid;gap:12px;color:var(--text,#e8f0f6);
+      font:15px/1.45 var(--f-body,system-ui,sans-serif);box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:left;margin:auto}
+    #erikaMsg h2{margin:0;font:600 26px/1.1 var(--f-display,'Arial Narrow',sans-serif);letter-spacing:.03em}
+    #erikaMsg p{margin:0;color:var(--dim,#8ea3b4);font-size:14px}
+    #erikaMsg label{display:grid;gap:5px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim,#8ea3b4)}
+    #erikaMsg input,#erikaMsg textarea{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid rgba(160,190,215,.22);background:#070b10;color:var(--text,#e8f0f6);
+      font:15px var(--f-body,system-ui,sans-serif);letter-spacing:0;text-transform:none;-webkit-user-select:text;user-select:text}
+    #erikaMsg textarea{min-height:90px;resize:vertical}
+    #erikaMsg input:focus-visible,#erikaMsg textarea:focus-visible,#erikaMsg button:focus-visible{outline:2px solid var(--accent,#ffb52e);outline-offset:2px}
+    #erikaMsg .acts{display:flex;gap:8px}
+    #erikaMsg .acts button{flex:1;padding:11px;border-radius:9px;border:0;font:600 15px var(--f-body,system-ui,sans-serif);cursor:pointer}
+    #erikaMsg .send{background:var(--accent,#ffb52e);color:var(--accent-ink,#1a1203)} #erikaMsg .send[disabled]{opacity:.55;cursor:wait}
+    #erikaMsg .close{background:rgba(255,255,255,.08);color:inherit}
+    #erikaMsg .note{min-height:1.3em;font-size:14px;margin:0} #erikaMsg .note.bad{color:var(--bad,#ff5e5e)} #erikaMsg .note.ok{color:var(--ok,#46d98a)}`;
+  function openMessage(kind) {
+    if (document.getElementById('erikaMsg')) return;
+    if (!document.getElementById('erikaMsgCss')) { const st = document.createElement('style'); st.id = 'erikaMsgCss'; st.textContent = MSG_CSS + (G.accent ? '#erikaMsg{--accent:' + G.accent + ';--accent-ink:' + G.ink + '}' : ''); document.head.appendChild(st); }
+    const w = document.createElement('div'); w.id = 'erikaMsg';
+    w.innerHTML = `<form autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="eMsgH">
+      <h2 id="eMsgH">${kind === 'code' ? 'Ask Fernando for a code' : 'Message Fernando'}</h2>
+      <p>${kind === 'code' ? 'Fernando makes the access codes for ' + NAME + '. Leave your name and a way to reach you.' : 'Send Fernando a note: a question, a problem or an idea.'}</p>
+      <label>Your name<input data-f="name" maxlength="60" required></label>
+      <label>How to reach you (optional)<input data-f="contact" maxlength="120" placeholder="Email, phone or username"></label>
+      <label><span data-f="tl">Message</span><textarea data-f="text" maxlength="1000"></textarea></label>
+      <p class="note" role="status" aria-live="polite"></p>
+      <div class="acts"><button type="button" class="close">Close</button><button type="submit" class="send">Send</button></div></form>`;
+    const f = w.querySelector('form'), q = (k) => f.querySelector('[data-f="' + k + '"]'), note = f.querySelector('.note'), send = f.querySelector('.send');
+    const say2 = (t, k) => { note.textContent = t || ''; note.className = 'note' + (k ? ' ' + k : ''); };
+    const k = kind === 'code' ? 'code' : 'msg';   // the code page asks for a code; the game pages send a message
+    q('tl').textContent = k === 'code' ? 'Anything else (optional)' : 'Message';
+    const close = () => { w.remove(); };
+    f.querySelector('.close').addEventListener('click', close);
+    w.addEventListener('click', (e) => { if (e.target === w) close(); });
+    // typing here must not reach the game underneath; Escape closes
+    ['keydown', 'keyup', 'keypress'].forEach((t) => w.addEventListener(t, (e) => { e.stopPropagation(); if (t === 'keydown' && e.key === 'Escape') close(); }));
+    try { const last = JSON.parse(localStorage.getItem('erika.msg.me') || '{}'); if (last.name) q('name').value = last.name; if (last.contact) q('contact').value = last.contact; } catch (e) { /* storage unavailable */ }
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = q('name').value.trim(), contact = q('contact').value.trim(), text = q('text').value.trim();
+      if (!name) { say2('Write your name so Fernando knows who it is.', 'bad'); q('name').focus(); return; }
+      if (k === 'msg' && !text) { say2('Write a message first.', 'bad'); q('text').focus(); return; }
+      let lastAt = 0; try { lastAt = +localStorage.getItem('erika.msg.at') || 0; } catch (err) { /* storage unavailable */ }
+      if (Date.now() - lastAt < 60000) { say2('You just sent one. Wait a minute before sending another.', 'bad'); return; }
+      send.disabled = true; say2('Sending…');
+      try {
+        const u = auth.currentUser || (await auth.signInAnonymously()).user;
+        await db.collection('messages').add({ kind: k, game: GAME, name, contact, text, by: u.uid, at: firebase.firestore.FieldValue.serverTimestamp(), seen: false });
+        try { localStorage.setItem('erika.msg.at', String(Date.now())); localStorage.setItem('erika.msg.me', JSON.stringify({ name, contact })); } catch (err) { /* storage unavailable */ }
+        say2(k === 'code' ? 'Sent. Fernando will see your code request.' : 'Sent. Fernando will see your message.', 'ok');
+        q('text').value = ''; setTimeout(close, 2600);
+      } catch (err) {
+        console.error('Erika message failed', err);
+        say2(err && err.code === 'permission-denied' ? 'Messages are not switched on yet. Try again later.' : 'Could not send. Check your connection and try again.', 'bad');
+        send.disabled = false;
+      }
+    });
+    document.body.appendChild(w);
+    (q('name').value ? (k === 'code' ? send : q('text')) : q('name')).focus();
+  }
+  if ($('gateAsk')) $('gateAsk').addEventListener('click', (e) => { e.preventDefault(); openMessage('code'); });
 
   // every flight started with a code adds one to that aircraft's count on the code (shown on the admin desk on request)
   let codeHash = null;
@@ -83,6 +148,7 @@
     // the game hands over its wallet (credits and what it owns) so the admin's grants can be applied to it
     attach(a) { adapter = a; syncControl(); },
     blocked(id) { return (ctl.blocked || []).indexOf(id) >= 0; },
+    message() { openMessage('msg'); },   // the 'Message Fernando' links in the game menus
     sync() { syncControl(); },
   };
 
@@ -108,7 +174,7 @@
       document.head.appendChild(st);
       t = document.createElement('div'); t.id = 'erikaToast'; t.setAttribute('role', 'status'); document.body.appendChild(t);
     }
-    t.innerHTML = '<b>From the admin</b><br>'; t.appendChild(document.createTextNode(text)); t.style.opacity = '1';
+    t.innerHTML = '<b>From Fernando</b><br>'; t.appendChild(document.createTextNode(text)); t.style.opacity = '1';
     clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 7000);
   }
   function syncControl() {
@@ -171,7 +237,7 @@
     if (!snap.exists) return { ok: false, why: 'That code is not valid. Check it and try again.' };
     let c = snap.data();
     if ((c.game || 'air') !== GAME) { const o = (GAMES[c.game] || GAMES.air).name; return { ok: false, why: 'That is an ' + o + ' code. It only works in ' + o + '.' }; }
-    if (c.revoked) return { ok: false, why: 'This code has been turned off by the admin.' };
+    if (c.revoked) return { ok: false, why: 'This code has been turned off by Fernando.' };
     if (c.once && c.claimedBy) { if (c.claimedBy !== uid) reportShared(hash); return { ok: false, why: 'This one-time code has already been used.' }; }
     if (c.claimedBy === uid) return { ok: true, hash };
     if (c.claimedBy) { reportShared(hash); return { ok: false, why: 'This code is already being used by someone else.' }; }
@@ -200,18 +266,18 @@
     const c = snap.exists ? snap.data() : null;
     if (c && !c.revoked && !c.once && (c.game || 'air') === GAME && c.claimedBy === uid) return true;
     store.set(null);
-    say(!c ? 'Your code no longer exists. Enter a new one.' : c.revoked ? 'Your code has been turned off by the admin.' : 'Your code is now assigned to someone else.', 'bad');
+    say(!c ? 'Your code no longer exists. Enter a new one.' : c.revoked ? 'Your code has been turned off by Fernando.' : 'Your code is now assigned to someone else.', 'bad');
     return false;
   }
 
   // turn Firebase errors into something the player (or admin) can act on, with the code for troubleshooting
   function explain(e, fallback) {
     const c = (e && e.code) || '';
-    if (c === 'auth/admin-restricted-operation' || c === 'auth/operation-not-allowed') return 'Player sign-in is turned off. The admin needs to enable Anonymous sign-in in Firebase. (' + c + ')';
+    if (c === 'auth/admin-restricted-operation' || c === 'auth/operation-not-allowed') return 'Player sign-in is turned off. Fernando needs to enable Anonymous sign-in in Firebase. (' + c + ')';
     if (c === 'auth/unauthorized-domain') return 'This website is not on the Firebase authorized-domains list. (' + c + ')';
     if (c === 'auth/network-request-failed' || c === 'unavailable') return 'Could not reach the access server. Check your internet connection and reload. (' + c + ')';
-    if (c === 'permission-denied') return 'The access server refused the request. The admin should check the Firestore rules are published. (' + c + ')';
-    if (c === 'failed-precondition' || c === 'not-found') return 'The code database is not set up. The admin needs to create the Firestore database. (' + c + ')';
+    if (c === 'permission-denied') return 'The access server refused the request. Fernando should check the Firestore rules are published. (' + c + ')';
+    if (c === 'failed-precondition' || c === 'not-found') return 'The code database is not set up. Fernando needs to create the Firestore database. (' + c + ')';
     return fallback + (c ? ' (' + c + ')' : '');
   }
 
@@ -237,25 +303,30 @@
       '#adminJump svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2}';
     document.head.appendChild(st);
     const a = document.createElement('a');
-    a.id = 'adminJump'; a.href = 'admin.html'; a.title = 'Open the admin desk';
-    a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Admin<b id="adminBadge" hidden></b>';
+    a.id = 'adminJump'; a.href = 'admin.html'; a.title = 'Open Fernando\'s desk';
+    a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Desk<b id="adminBadge" hidden></b>';
     st.textContent += '#adminBadge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff5e5e;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;letter-spacing:0}';
     document.body.appendChild(a);
   }
-  // unseen code-sharing alerts: a red count on the Admin button (readable only by the signed-in admin account)
-  let alertOff = null, alertSeen = null;
+  // unseen code-sharing alerts and messages: a red count on the desk button (readable only by the signed-in admin account)
+  let alertOff = null, msgOff = null, alertSeen = null, nAlerts = 0, nMsgs = 0;
+  function paintBadge(kind) {
+    const b = document.getElementById('adminBadge'); if (!b) return;
+    const n = nAlerts + nMsgs;
+    b.hidden = n === 0; b.textContent = n > 9 ? '9+' : String(n);
+    const btn = document.getElementById('adminJump');
+    if (btn) btn.title = n ? [nMsgs ? nMsgs + ' new message' + (nMsgs > 1 ? 's' : '') : '', nAlerts ? nAlerts + ' code-sharing alert' + (nAlerts > 1 ? 's' : '') : ''].filter(Boolean).join(', ') + ": open Fernando's desk" : "Open Fernando's desk";
+    if (alertSeen != null && n > alertSeen && window.Notification && Notification.permission === 'granted') {
+      const msg = kind === 'msg';
+      try { new Notification(msg ? 'Erika: new message' : 'Erika Air: shared code', { body: msg ? 'Someone sent you a message or asked for a code.' : 'Someone tried to use a code that belongs to another player.', tag: 'erika-' + (msg ? 'msg' : 'alert') }); } catch (e) { /* not supported here */ }
+    }
+    alertSeen = n;
+  }
   function watchAlerts(on) {
-    if (!on) { if (alertOff) { alertOff(); alertOff = null; } alertSeen = null; return; }
+    if (!on) { if (alertOff) { alertOff(); alertOff = null; } if (msgOff) { msgOff(); msgOff = null; } alertSeen = null; nAlerts = nMsgs = 0; return; }
     if (alertOff) return;
-    alertOff = db.collection('alerts').where('seen', '==', false).onSnapshot((qs) => {
-      const b = document.getElementById('adminBadge'); if (!b) return;
-      b.hidden = qs.size === 0; b.textContent = qs.size > 9 ? '9+' : String(qs.size);
-      const btn = document.getElementById('adminJump'); if (btn) btn.title = qs.size ? qs.size + ' code-sharing alert' + (qs.size > 1 ? 's' : '') + ': open the admin desk' : 'Open the admin desk';
-      if (alertSeen != null && qs.size > alertSeen && window.Notification && Notification.permission === 'granted') {
-        try { new Notification('Erika Air: shared code', { body: 'Someone tried to use a code that belongs to another player.', tag: 'erika-alert' }); } catch (e) { /* not supported here */ }
-      }
-      alertSeen = qs.size;
-    }, () => {});
+    alertOff = db.collection('alerts').where('seen', '==', false).onSnapshot((qs) => { nAlerts = qs.size; paintBadge('alert'); }, () => {});
+    msgOff = db.collection('messages').where('seen', '==', false).onSnapshot((qs) => { nMsgs = qs.size; paintBadge('msg'); }, () => {});
   }
   // keep the button in step with the sign-in: it appears whenever the admin account is signed in on this
   // browser (also if that happens in another tab while the game is open) and goes away on sign-out

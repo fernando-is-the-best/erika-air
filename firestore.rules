@@ -54,6 +54,23 @@ service cloud.firestore {
       );
     }
 
+    // Messages to Fernando: anyone signed in (players are signed in anonymously) may leave one: a code request from the
+    // enter-code page or a note from a game. Only the admin can read, mark as seen, or delete them.
+    match /messages/{msgId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['kind', 'game', 'name', 'contact', 'text', 'by', 'at', 'seen'])
+        && request.resource.data.kind in ['code', 'msg']
+        && request.resource.data.game in ['air', 'race', 'boat']
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+        && request.resource.data.contact is string && request.resource.data.contact.size() <= 120
+        && request.resource.data.text is string && request.resource.data.text.size() <= 1000
+        && (request.resource.data.kind == 'code' || request.resource.data.text.size() > 0)
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.at == request.time
+        && request.resource.data.seen == false;
+    }
+
     // Code-sharing alerts: a player may only report a real code that is already claimed by someone else.
     // Only the admin can read, mark as seen, or delete them.
     match /alerts/{alertId} {

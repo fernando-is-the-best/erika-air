@@ -130,6 +130,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 #rankBox, #gDetail, #teamBox, #gPaint, #pMulti .mpbox { background: rgba(255, 255, 255, .035); border-color: transparent }
 #pMulti select, #pMulti input { background: rgba(255, 255, 255, .05); border-color: transparent }
 #menu .btn { border-radius: 8px } #menu .btn:not(.main) { background: rgba(255, 255, 255, .06); border-color: transparent }
+.foot .links { display: flex; gap: 16px; margin-left: auto }
 </style>
 </head>
 <body>
@@ -159,7 +160,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
       <div><div class="lbl">Rivals</div><div class="seg" id="segAi"><button type="button" data-v="0.92">Easy</button><button type="button" data-v="0.97">Medium</button><button type="button" data-v="1.01">Hard</button></div></div>
       <div class="prize" id="prizeLine"></div>
       <div class="keys"><b>↑ / W</b><span>Throttle</span><b>↓ / S</b><span>Back off / reverse</span><b>← → / A D</b><span>Steer (lift off to turn tighter at speed)</span><b>C · R · Esc</b><span>Camera · back on course · pause</span></div>
-      <div class="foot"><button class="btn main" id="btnGo" type="button">Start</button><span id="bestLine" style="color:var(--dim)"></span><a href="./" title="Back to the game choice">← All games</a></div>
+      <div class="foot"><button class="btn main" id="btnGo" type="button">Start</button><span id="bestLine" style="color:var(--dim)"></span><span class="links"><a href="#" title="Send Fernando a message" onclick="if (window.ErikaAccess &amp;&amp; ErikaAccess.message) ErikaAccess.message(); return false;">Message Fernando</a><a href="./" title="Back to the game choice">← All games</a></span></div>
     </div>
     <div class="pane" id="pCareer" hidden>
       <div id="rankBox"></div>

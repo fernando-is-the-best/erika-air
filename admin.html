@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Erika Air Admin</title>
+<title>Fernando's Desk</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -65,6 +65,10 @@ button:disabled { opacity: .5; cursor: wait }
 .bar { height: 6px; border-radius: 99px; background: var(--raise); overflow: hidden; display: flex }
 .bar i { display: block; height: 100% }
 
+/* messages and code requests from players */
+.inbox h2 { color: var(--blue) }
+.al .txt { margin-top: 4px; white-space: pre-wrap; word-break: break-word; font-size: 14px }
+.pill.req { color: var(--accent) } .pill.note { color: var(--blue) }
 /* code-sharing alerts */
 .alerts { border-color: rgba(255, 94, 94, 0.45) }
 .alerts h2 { color: var(--bad) }
@@ -142,7 +146,7 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
 </head>
 <body>
 <main>
-  <header><h1>Erika <b>Air</b> Admin</h1><a href="./">Back to the game</a></header>
+  <header><h1>Fernando's <b>Desk</b></h1><a href="./">Back to the game</a></header>
 
   <form class="card" id="stepCode" autocomplete="off">
     <h2>Admin code</h2>
@@ -188,6 +192,12 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
       <div class="gauge live"><span class="v" id="gLive">0</span><span class="k">Flew today</span></div>
     </section>
     <div class="bar" aria-hidden="true"><i id="bUsed" style="background:var(--warn)"></i><i id="bFree" style="background:var(--ok)"></i><i id="bOff" style="background:var(--bad)"></i></div>
+
+    <section class="card inbox" id="inbox" hidden aria-live="polite">
+      <div class="row" style="justify-content:space-between;align-items:center"><h2 id="inboxH">Messages</h2><button id="btnClearMsgs" type="button">Clear all</button></div>
+      <p>Code requests from the enter-code page and messages sent from inside the games.</p>
+      <div class="list" id="msgList"></div>
+    </section>
 
     <section class="card alerts" id="alerts" hidden aria-live="polite">
       <div class="row" style="justify-content:space-between;align-items:center"><h2 id="alertsH">Shared code alerts</h2><div class="row"><button id="btnNotify" type="button" hidden>Turn on desktop alerts</button><button id="btnClearAlerts" type="button">Clear all</button></div></div>
@@ -290,6 +300,7 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
   const configured = window.firebase && cfg.apiKey && !/PASTE_/.test(cfg.apiKey + cfg.projectId);
   let auth = null, db = null, isAdmin = false, unsub = null, me = null;
   let alerts = [], unAlerts = null, alertsLoaded = false;
+  let msgs = [], unMsgs = null, msgsLoaded = false;
   if (configured) { firebase.initializeApp(cfg); auth = firebase.auth(); db = firebase.firestore(); }
 
   async function checkAdmin(user) {
@@ -301,7 +312,7 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
     show('stepSign', codeOk && !isAdmin);
     show('desk', codeOk && isAdmin);
     if (codeOk && !configured) say('signMsg', 'Firebase is not set up yet: fill in firebase-config.js first.', 'bad');
-    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); if (!unAlerts) watchAlerts(); markDevice(true); }
+    if (codeOk && isAdmin) { paintPilot(); if (!unsub) watch(); if (!unAlerts) watchAlerts(); if (!unMsgs) watchMsgs(); markDevice(true); }
   }
   // remember that the admin uses this browser, so the game shows its Admin button here even while
   // flying with a player code (the button is only a link; the desk itself still needs the Google sign-in)
@@ -313,6 +324,7 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
     show('btnOut2', !!wrong);
     if (!isAdmin && unsub) { unsub(); unsub = null; }
     if (!isAdmin && unAlerts) { unAlerts(); unAlerts = null; alerts = []; paintAlerts(); }
+    if (!isAdmin && unMsgs) { unMsgs(); unMsgs = null; msgs = []; paintMsgs(); }
     route();
   });
   route();
@@ -455,7 +467,7 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
       it.append(left, acts); L.appendChild(it);
     });
   }
-  setInterval(() => { if (docs.length && !editing) paintList(); if (alerts.length) paintAlerts(); }, 60000);   // keep times fresh
+  setInterval(() => { if (docs.length && !editing) paintList(); if (alerts.length) paintAlerts(); if (msgs.length) paintMsgs(); }, 60000);   // keep times fresh
 
   // ---- my own games: grants for the admin's own play on this browser. The desk queues them in this browser's storage
   // (erika.self.<game>); the game (gate.js) applies each once and writes back what you have (erika.selfstatus.<game>)
@@ -595,6 +607,69 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
     });
   }
 
+
+  // ---- messages: code requests from the enter-code page and notes sent from the games (gate.js writes them)
+  function watchMsgs() {
+    msgsLoaded = false;
+    unMsgs = db.collection('messages').orderBy('at', 'desc').limit(100).onSnapshot((qs) => {
+      const before = new Set(msgs.map((m) => m.id));
+      msgs = []; qs.forEach((d) => msgs.push({ id: d.id, ref: d.ref, m: d.data() }));
+      const fresh = msgsLoaded ? msgs.filter((x) => !before.has(x.id)) : [];
+      msgsLoaded = true;
+      if (fresh.length) {
+        const f = fresh[0].m, body = fresh.length > 1 ? fresh.length + ' new messages.' : (f.name || 'Someone') + (f.kind === 'code' ? ' asked for a ' + (GAMES[f.game] || 'game') + ' code.' : ' sent you a message.');
+        if (window.Notification && Notification.permission === 'granted') { try { new Notification('Erika: new message', { body, tag: 'erika-msg' }); } catch (e) { /* not supported here */ } }
+        chime();
+      }
+      paintMsgs(); markMsgsSeenSoon();
+    }, () => { /* rules not published yet: the panel stays hidden */ });
+  }
+  function paintMsgs() {
+    const L = $('msgList'); L.textContent = '';
+    show('inbox', msgs.length > 0);
+    const unseen = msgs.filter((x) => !x.m.seen).length;
+    $('inboxH').textContent = 'Messages' + (unseen ? ' (' + unseen + ' new)' : '');
+    msgs.forEach(({ ref, m }) => {
+      const it = document.createElement('div'); it.className = 'al'; it.style.borderLeftColor = m.kind === 'code' ? 'var(--accent)' : 'var(--blue)';
+      const left = document.createElement('div'); left.style.minWidth = '0';
+      const t = document.createElement('div'); t.className = 't';
+      t.textContent = (m.name || 'Someone') + (m.kind === 'code' ? ' asks for a ' + (GAMES[m.game] || 'game') + ' code' : ' · ' + (GAMES[m.game] || ''));
+      const sub = document.createElement('div'); sub.className = 's';
+      if (!m.seen) { const n = document.createElement('span'); n.className = 'pill new'; n.textContent = 'New'; sub.append(n, ' '); }
+      const kp = document.createElement('span'); kp.className = 'pill ' + (m.kind === 'code' ? 'req' : 'note'); kp.textContent = m.kind === 'code' ? 'Code request' : 'Message'; sub.append(kp, ' ');
+      sub.append((m.at ? ago(m.at) + ' · ' + fmt(m.at) : 'just now') + (m.contact ? ' · Reach: ' + m.contact : ''));
+      left.append(t, sub);
+      if (m.text) { const x = document.createElement('div'); x.className = 'txt'; x.textContent = m.text; left.appendChild(x); }
+      const acts = document.createElement('div'); acts.className = 'acts';
+      if (m.kind === 'code') {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'main'; b.textContent = 'Make code';
+        b.addEventListener('click', () => {   // fill in the Make codes form for this person and game
+          $('who').value = (m.name || '').slice(0, 60); if (GAMES[m.game]) $('game').value = m.game;
+          $('who').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('who').focus();
+        });
+        acts.appendChild(b);
+      }
+      if (m.contact) { const c = document.createElement('button'); c.type = 'button'; c.textContent = 'Copy contact'; c.addEventListener('click', () => copy(m.contact, c)); acts.appendChild(c); }
+      const d = document.createElement('button'); d.type = 'button'; d.textContent = 'Delete'; d.addEventListener('click', () => ref.delete().catch(() => {})); acts.appendChild(d);
+      it.append(left, acts); L.appendChild(it);
+    });
+  }
+  let msgSeenT = null;
+  function markMsgsSeenSoon() {
+    clearTimeout(msgSeenT);
+    msgSeenT = setTimeout(() => {
+      if (document.hidden) return;
+      const un = msgs.filter((x) => !x.m.seen); if (!un.length) return;
+      const b = db.batch(); un.forEach((x) => b.update(x.ref, { seen: true })); b.commit().catch(() => {});
+    }, 5000);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && msgs.length) markMsgsSeenSoon(); });
+  let clearMsgsArmed = false;
+  $('btnClearMsgs').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (!clearMsgsArmed) { clearMsgsArmed = true; b.textContent = 'Confirm clear'; setTimeout(() => { clearMsgsArmed = false; b.textContent = 'Clear all'; }, 3000); return; }
+    const batch = db.batch(); msgs.forEach((x) => batch.delete(x.ref)); batch.commit().catch(() => {});
+  });
   // ---- code-sharing alerts: written by the game when someone tries a code that another player already owns
   const baseTitle = document.title;
   function watchAlerts() {
@@ -643,13 +718,16 @@ dialog.mg::backdrop { background: rgba(3, 6, 10, .72) }
     }, 5000);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && alerts.length) markSeenSoon(); });
-  function notify(fresh) {
-    const body = fresh.length > 1 ? fresh.length + ' new attempts to use codes that belong to other players.' : 'Someone else tried ' + codeName(fresh[0].a.code) + '.';
-    if (window.Notification && Notification.permission === 'granted') { try { new Notification('Erika Air: shared code', { body, tag: 'erika-alert' }); } catch (e) { /* not supported here */ } }
+  function chime() {
     try {   // a short two-tone chime
       const ac = new (window.AudioContext || window.webkitAudioContext)(), t0 = ac.currentTime;
       [[880, 0], [660, 0.18]].forEach(([f, d]) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0 + d); g.gain.exponentialRampToValueAtTime(0.25, t0 + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.16); o.connect(g).connect(ac.destination); o.start(t0 + d); o.stop(t0 + d + 0.2); });
     } catch (e) { /* audio blocked until the page is clicked */ }
+  }
+  function notify(fresh) {
+    const body = fresh.length > 1 ? fresh.length + ' new attempts to use codes that belong to other players.' : 'Someone else tried ' + codeName(fresh[0].a.code) + '.';
+    if (window.Notification && Notification.permission === 'granted') { try { new Notification('Erika Air: shared code', { body, tag: 'erika-alert' }); } catch (e) { /* not supported here */ } }
+    chime();
   }
   $('btnNotify').addEventListener('click', () => { Notification.requestPermission().then(() => paintAlerts()); });
   let clearArmed = false;

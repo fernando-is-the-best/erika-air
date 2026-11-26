@@ -316,7 +316,7 @@ input[type=range] { accent-color: var(--accent); width: 140px; }
 
   <section id="menu">
     <div class="sheet">
-      <div class="brand"><h1>Erika <b>Air</b></h1><span id="brandSub">aircraft &middot; airfields &middot; 6-DOF physics</span><a class="racelink" href="gp.html" title="Erika Racing: circuit racing in a second game">Racing &rsaquo;</a><a class="racelink" href="boat.html" title="Erika Boats: powerboat racing">Boats &rsaquo;</a><div class="wallet" id="wallet" title="Earn credits by completing challenges"></div></div>
+      <div class="brand"><h1>Erika <b>Air</b></h1><span id="brandSub">aircraft &middot; airfields &middot; 6-DOF physics</span><a class="racelink" href="gp.html" title="Erika Racing: circuit racing in a second game">Racing &rsaquo;</a><a class="racelink" href="boat.html" title="Erika Boats: powerboat racing">Boats &rsaquo;</a><a class="racelink" href="#" title="Send Fernando a message" onclick="if (window.ErikaAccess &amp;&amp; ErikaAccess.message) ErikaAccess.message(); return false;">Message Fernando</a><div class="wallet" id="wallet" title="Earn credits by completing challenges"></div></div>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="free" aria-selected="true">Free flight</button>
         <button class="tab" role="tab" data-tab="chal" aria-selected="false">Challenges</button>
@@ -13632,7 +13632,7 @@ SIM.Game = (function () {
   function paintBuy() {
     const a = SIM.AIRCRAFT[sel.aircraft], box = $('acBuy'), owned = Shop.owned(a.id);
     box.hidden = owned; box.innerHTML = '';
-    if (!owned && Shop.blocked(a.id)) box.appendChild(el('span', '', 'Not available: the admin has taken this aircraft away'));
+    if (!owned && Shop.blocked(a.id)) box.appendChild(el('span', '', 'Not available: Fernando has taken this aircraft away'));
     else if (!owned) {
       const gate = SIM.Career.gate(a.id), afford = Shop.credits() >= Shop.price(a.id);
       const b = el('button', 'btn', 'Unlock \u00B7 ' + fmtCr(Shop.price(a.id))); b.type = 'button'; b.disabled = !afford || !gate.ok;
