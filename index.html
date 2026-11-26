@@ -13605,11 +13605,30 @@ SIM.Game = (function () {
     st.addEventListener('wheel', (e) => { if (!this.ent) return; e.preventDefault(); this.ent.camDist = U.clamp(this.ent.camDist * (1 + Math.sign(e.deltaY) * 0.08), 4, 160); }, { passive: false });
   };
 
+  // the Erika song: loops while you fly the Erika Titan (in the air or on the ground, any camera), like the Erika 2000 in Erika Boats.
+  // The song file sits next to this page; the other names are tried in turn if it is missing (GitHub Pages names are case-sensitive)
+  const Song = {
+    files: ['erika.mp3', 'Erika..mp3', 'Erika.mp3', "German Soldier's Song - _Erika_ (with English Subtitles) (128).mp3", 'ERIKA.mp3', 'erika.m4a', 'erika.ogg', 'Erika.m4a', 'Erika.ogg'],
+    el: null, k: 0, failed: false, busy: false,
+    update(on) {
+      if (!on || document.hidden) { if (this.el && !this.el.paused) this.el.pause(); return; }
+      if (this.failed) return;
+      if (!this.el) {
+        this.el = new Audio(encodeURIComponent(this.files[this.k])); this.el.loop = true; this.el.volume = 1;
+        this.el.addEventListener('error', () => { this.el = null; this.busy = false; if (++this.k >= this.files.length) this.failed = true; });
+      }
+      if (this.el && this.el.paused && !this.busy) { const el = this.el; this.busy = true; const pr = el.play(); (pr && pr.catch ? pr.catch(() => {}) : Promise.resolve()).then(() => { if (this.el === el) this.busy = false; }); }
+    },
+  };
+  SIM.Song = Song;
+  document.addEventListener('visibilitychange', () => { if (document.hidden && Song.el) Song.el.pause(); });
+
   // ---------------- main frame ----------------
   P.frame = function (tms) {
     // a slow computer (under 20 frames a second) used to run the whole flight in slow motion, so the stick and throttle felt dead.
     // Controls now follow real time (up to a quarter second a frame) and the physics keeps real time down to 10 frames a second.
     const t = tms / 1000, raw = this.last ? Math.max(0, Math.min(0.25, t - this.last)) : 0.016; let dt = Math.min(0.1, raw); this.last = t; this._dt = dt;
+    Song.update(this.mode === 'play' && !!this.ac && !!this.ac.spec && this.ac.spec.id === 'titan');   // the Erika Titan plays the Erika song
     const w3 = this.world3d, ent = this.ent;
     if (!ent) return;
     const ac = this.ac;
