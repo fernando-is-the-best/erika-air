@@ -340,15 +340,23 @@ function stepParts(dt) {
 // cla: downforce (lift coefficient x area, superkart wings), eng: sound (2 = two-stroke, 4 = four-stroke, e = electric), rev: rpm range.
 // price in credits and the licence rank needed to buy one; fun: no prizes (the Erika Gold kart)
 const KARTS = {
+  bambino: { name: 'Bambino 60', cls: 'Bambino', m: 72, P: 1.9e3, top: 14, mu: 1.0, frontBrakes: false, gears: 0, eng: 2, rev: [3000, 11000], price: 800, rank: 0, sc: .78, col: ['#ff8ad8', '#10161c'], blurb: 'The kart for 6 to 8 year olds: a 60 cc engine with a restrictor, 3 hp, 50 km/h' },
   rental: { name: 'Rental 270', cls: 'Hire kart', m: 205, P: 6.4e3, top: 18.5, mu: 1.0, frontBrakes: false, gears: 0, eng: 4, rev: [1800, 3800], price: 0, rank: 0, col: ['#ffd400', '#10161c'], blurb: 'A 9 hp four-stroke hire kart on hard tyres: heavy, slow and forgiving. Everyone starts here' },
+  endurance: { name: 'Endurance 390', cls: 'Endurance', m: 232, P: 9.6e3, top: 23.5, mu: 1.06, frontBrakes: false, gears: 0, eng: 4, rev: [1800, 4400], price: 1800, rank: 0, col: ['#ff8a1a', '#10161c'], blurb: 'A 13 hp four-stroke built for 24-hour races: heavy, tough and steady' },
+  vintage: { name: 'Vintage 1959', cls: 'Vintage', m: 160, P: 5.4e3, top: 22, mu: .95, frontBrakes: false, gears: 0, eng: 2, rev: [3000, 9000], price: 2000, rank: 0, bare: true, col: ['#c8102e', '#efe6cf'], blurb: 'Where it all began: a bare tube frame, a chainsaw engine and skinny hard tyres' },
+  lo206: { name: 'LO206 Club', cls: 'Four-stroke', m: 165, P: 6.9e3, top: 24.5, mu: 1.2, frontBrakes: false, gears: 0, eng: 4, rev: [1800, 6100], price: 2500, rank: 0, col: ['#ffd400', '#3d5afe'], blurb: 'The cheap and fair club class: a sealed 206 cc four-stroke, 9 hp' },
   cadet: { name: 'Cadet 60', cls: 'Cadet', m: 112, P: 6.4e3, top: 24, mu: 1.18, frontBrakes: false, gears: 0, eng: 2, rev: [3500, 14000], price: 1500, rank: 0, col: ['#2fd4c4', '#10161c'], blurb: 'The first racing kart: 60 cc, 9 hp and very light' },
   junior: { name: 'Junior 100', cls: 'Junior', m: 145, P: 11.5e3, top: 28.5, mu: 1.28, frontBrakes: false, gears: 0, eng: 2, rev: [4000, 15000], price: 3500, rank: 1, col: ['#7ad000', '#10161c'], blurb: 'A 15 hp 100 cc two-stroke on soft slicks: quick and nimble' },
+  okj: { name: 'OK-Junior', cls: 'OK', m: 145, P: 17e3, top: 31, mu: 1.44, frontBrakes: false, gears: 0, eng: 2, rev: [5000, 16000], price: 9000, rank: 2, col: ['#00b8a9', '#f4f4f2'], blurb: 'The junior world championship kart: 125 cc, 23 hp and no clutch' },
   senior: { name: 'Rotax Max Senior', cls: 'Senior', m: 165, P: 21e3, top: 32.5, mu: 1.38, frontBrakes: false, gears: 0, eng: 2, rev: [4000, 14000], price: 6000, rank: 1, col: ['#ff3d3d', '#f4f4f2'], blurb: 'The world\'s favourite race kart: 125 cc, 30 hp, 117 km/h' },
   x30: { name: 'X30 Senior', cls: 'Senior', m: 165, P: 22e3, top: 33.5, mu: 1.4, frontBrakes: false, gears: 0, eng: 2, rev: [4000, 16000], price: 6500, rank: 2, col: ['#3d5afe', '#ffd400'], blurb: 'The X30 125 cc: a little more power and revs than the Rotax' },
+  rotaxe20: { name: 'Rotax E20', cls: 'Electric', m: 200, P: 22e3, top: 31.5, mu: 1.4, frontBrakes: false, gears: 0, eng: 'e', rev: [0, 10000], price: 7000, rank: 1, col: ['#7ad000', '#10161c'], blurb: 'An electric race kart with a 28 kW motor and a boost button feel: silent and quick' },
   ekart: { name: 'E-Kart 30 kW', cls: 'Electric', m: 190, P: 30e3, top: 34, mu: 1.36, frontBrakes: true, gears: 0, eng: 'e', rev: [0, 9000], price: 8000, rank: 2, col: ['#f4f4f2', '#2fd4c4'], blurb: 'Battery-electric: instant torque from zero, silent, and heavy' },
+  ok: { name: 'OK Senior', cls: 'OK', m: 150, P: 25e3, top: 34.5, mu: 1.5, frontBrakes: false, gears: 0, eng: 2, rev: [6000, 16000], price: 13000, rank: 3, col: ['#f4f4f2', '#d8262e'], blurb: 'The fastest direct-drive kart in the world: 125 cc, 34 hp, revs to 16,000' },
   dd2: { name: 'Rotax DD2', cls: 'DD2', m: 175, P: 24e3, top: 35, mu: 1.42, frontBrakes: true, gears: 2, eng: 2, rev: [4000, 13500], price: 9000, rank: 2, col: ['#b36bff', '#f4f4f2'], blurb: 'A two-speed 125 cc with front brakes: paddle shifts and late braking' },
   kz2: { name: 'KZ2 Shifter', cls: 'KZ', m: 175, P: 35e3, top: 38.5, mu: 1.48, frontBrakes: true, gears: 6, eng: 2, rev: [8000, 14500], price: 14000, rank: 3, col: ['#10161c', '#ff6b3d'], blurb: 'A 125 cc six-speed gearbox kart, 48 hp: 140 km/h and brutal braking' },
   kz1: { name: 'KZ1 World Shifter', cls: 'KZ', m: 175, P: 38e3, top: 40.5, mu: 1.56, frontBrakes: true, gears: 6, eng: 2, rev: [8000, 15000], price: 22000, rank: 4, col: ['#d8262e', '#f4f4f2'], blurb: 'The world championship gearbox kart: softer tyres and a sharper engine' },
+  superkart2: { name: 'Superkart Div 2', cls: 'Superkart', m: 200, P: 40e3, top: 50, mu: 1.55, frontBrakes: true, gears: 6, cla: .5, eng: 2, rev: [7000, 12500], price: 26000, rank: 4, col: ['#ff6b3d', '#10161c'], blurb: 'A single-cylinder 250 cc superkart: 55 hp, full bodywork and 180 km/h' },
   superkart: { name: 'Superkart 250', cls: 'Superkart', m: 215, P: 66e3, top: 62, mu: 1.6, frontBrakes: true, gears: 6, cla: .9, eng: 2, rev: [8000, 13500], price: 40000, rank: 5, col: ['#1d4fd6', '#f4f4f2'], blurb: 'A 250 cc twin with full bodywork and a wing: 90 hp and 225 km/h' },
   erika: { name: 'Erika Gold', cls: 'Erika', m: 165, P: 44e3, top: 45, mu: 1.62, frontBrakes: true, gears: 6, eng: 2, rev: [8000, 15500], price: 0, rank: 0, fun: true, music: true, col: ['#d4af37', '#10161c'], blurb: 'The gold kart: 60 hp, all the grip, and it plays the Erika song. Races in it pay no prizes' },
 };
@@ -512,7 +520,8 @@ function makeKart(T, num) {
   add(new THREE.BoxGeometry(.75, .015, .42), alu, .15, .09, 0);
   rod([-.58, .18, -.62], [-.58, .18, .62], .025, tube);   // rear axle
   for (const sd of [-1, 1]) rod([.52, .17, sd * .25], [.52, .17, sd * .55], .014, tube);   // front stub axles
-  if (T.cla) {   // superkart: a full shell, a long nose, side radiators and a rear wing on two posts
+  if (T.bare) { rod([.55, .1, -.22], [.95, .16, 0], .014, tube); rod([.55, .1, .22], [.95, .16, 0], .014, tube); }   // the vintage kart: just a tube frame, no plastic
+  else if (T.cla) {   // superkart: a full shell, a long nose, side radiators and a rear wing on two posts
     const shell = add(new THREE.BoxGeometry(1.7, .28, 1.05), paint, .05, .32, 0); shell.scale.set(1, 1, 1);
     const nose = add(new THREE.BoxGeometry(.6, .16, .9), paint, 1.0, .22, 0); nose.rotation.z = -.15;
     add(new THREE.BoxGeometry(.06, .12, 1.3), trim, 1.3, .14, 0);
@@ -549,6 +558,7 @@ function makeKart(T, num) {
     const t = add(new THREE.CylinderGeometry(.14, .14, wd, 18), dark, 0, 0, 0, w); t.rotation.x = Math.PI / 2;
     const rm = add(new THREE.CylinderGeometry(.08, .08, wd + .01, 10), alu, 0, 0, 0, w); rm.rotation.x = Math.PI / 2; wheels.push({ w, front });
   }
+  if (T.sc) g.scale.setScalar(T.sc);   // a kid's kart
   g.userData = { body, wheels }; return g;
 }
 
@@ -589,9 +599,14 @@ const RANKS = [['Rookie', 0], ['Club', 100], ['Regional', 260], ['National', 520
 const EVENTS = [
   { id: 'arrive', name: 'Arrive and Drive', rounds: ['lakeside'], laps: 5, karts: ['rental'], rank: 0, purse: 300, diff: .93 },
   { id: 'hirecup', name: 'Hire Kart Cup', rounds: ['lakeside', 'park', 'night'], laps: 4, karts: ['rental'], rank: 0, purse: 260, bonus: 900, diff: .95 },
+  { id: 'bambino', name: 'Bambino Fun Cup', rounds: ['lakeside'], laps: 4, karts: ['bambino'], rank: 0, purse: 250, diff: .93 },
+  { id: 'vintage', name: 'Vintage Revival', rounds: ['park'], laps: 5, karts: ['vintage'], rank: 0, purse: 500, diff: .95 },
+  { id: 'lo206', name: 'LO206 Club Series', rounds: ['lakeside', 'park', 'oldtown'], laps: 6, karts: ['lo206'], rank: 0, purse: 420, bonus: 1500, diff: .96 },
   { id: 'cadet', name: 'Cadet Trophy', rounds: ['park'], laps: 6, karts: ['cadet'], rank: 0, purse: 550, diff: .95 },
   { id: 'cadetchamp', name: 'Cadet Championship', rounds: ['harbour', 'night', 'canyon'], laps: 5, karts: ['cadet'], rank: 1, purse: 500, bonus: 1800, diff: .96 },
   { id: 'alpinesprint', name: 'Alpine Junior Sprint', rounds: ['alpine'], laps: 10, karts: ['junior'], rank: 1, purse: 1000, diff: .97 },
+  { id: 'endurance', name: 'Endurance 30', rounds: ['canyon'], laps: 18, karts: ['endurance', 'rental'], rank: 1, purse: 1400, diff: .97 },
+  { id: 'e20', name: 'Rotax E20 Cup', rounds: ['harbour', 'alpine'], laps: 6, karts: ['rotaxe20', 'ekart'], rank: 1, purse: 1200, bonus: 2800, diff: .98 },
   { id: 'junior', name: 'Junior Open', rounds: ['harbour'], laps: 8, karts: ['junior'], rank: 1, purse: 950, diff: .97 },
   { id: 'rotaxnight', name: 'Rotax Night Race', rounds: ['night'], laps: 8, karts: ['senior'], rank: 1, purse: 1300, diff: .97 },
   { id: 'club', name: 'Club Championship', rounds: ['park', 'oldtown', 'night', 'canyon'], laps: 6, karts: ['junior', 'senior', 'x30'], rank: 1, purse: 900, bonus: 4000, diff: .98 },
@@ -600,9 +615,11 @@ const EVENTS = [
   { id: 'etrophy', name: 'E-Kart Trophy', rounds: ['harbour', 'lakeside'], laps: 6, karts: ['ekart'], rank: 2, purse: 1500, bonus: 3500, diff: .98 },
   { id: 'dd2', name: 'DD2 Masters', rounds: ['alpine', 'canyon', 'hairpins'], laps: 7, karts: ['dd2'], rank: 2, purse: 2200, bonus: 5000, diff: .99 },
   { id: 'senior', name: 'Senior Series', rounds: ['lakeside', 'canyon', 'hairpins', 'harbour', 'alpine'], laps: 8, karts: ['senior', 'x30'], rank: 2, purse: 1500, bonus: 6000, diff: .99 },
+  { id: 'okchamp', name: 'OK Championship', rounds: ['lakeside', 'alpine', 'hairpins', 'oldtown'], laps: 9, karts: ['ok', 'okj'], rank: 3, purse: 2600, bonus: 9500, diff: 1 },
   { id: 'kz2', name: 'KZ2 Euro Cup', rounds: ['lakeside', 'canyon', 'oldtown', 'alpine'], laps: 8, karts: ['kz2'], rank: 3, purse: 2600, bonus: 9000, diff: 1 },
   { id: 'kzworld', name: 'KZ World Final', rounds: ['night'], laps: 12, karts: ['kz1', 'kz2'], rank: 4, purse: 7000, diff: 1.01 },
   { id: 'superkart', name: 'Superkart Canyon GP', rounds: ['canyon'], laps: 8, karts: ['superkart'], rank: 4, purse: 9000, diff: 1.01 },
+  { id: 'div2', name: 'Superkart Div 2 Trophy', rounds: ['canyon'], laps: 7, karts: ['superkart2'], rank: 4, purse: 6000, diff: 1.01 },
   { id: 'worlds', name: 'World Finals', rounds: ['lakeside', 'harbour', 'canyon', 'hairpins', 'oldtown'], laps: 10, karts: ['kz1', 'superkart'], rank: 5, purse: 7000, bonus: 30000, diff: 1.03 },
   { id: 'erikagold', name: 'Erika Gold Cup', rounds: ['park', 'night'], laps: 5, karts: ['erika'], rank: 0, purse: 0, diff: 1.02, fun: true },
 ];
