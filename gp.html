@@ -1044,6 +1044,16 @@ const VARIANTS = {
     { id: 'road_track', name: 'Track Day Special', desc: 'A stripped two-seater: 2.0 four to 9,000 rpm, 760 kg, no roof and no mercy', price: 32000, paint: ['#2fd4c4', '#10161c'],
       mod: { massAdd: -940, aMaxMul: 1.1, engineName: '2.0 I4 (no turbo)', torque: [[0, 140], [3000, 190], [6000, 225], [8000, 230], [9000, 210], [10000, 120]], limit: 9000, finalMul: 1.1, autoUp: 8800, autoDown: 4500, autoDownCoast: 3500,
         sound: { cyl: 4, pattern: [1, .9, 1, .9], tone: 2.1, scream: .6, crackle: 1 } } },
+    { id: 'road_wagon', name: 'Super Wagon', desc: 'A family estate with a 600 hp twin-turbo V8 and all-wheel drive: room for the dog, pace for the track', price: 34000, paint: ['#3a3f46', '#c9a227'],
+      mod: { massAdd: 250, torqueMul: 1.18, tractionMul: 1.25, aMaxMul: .98, engineName: '4.0 twin-turbo V8 AWD', sound: { cyl: 8, pattern: [1, 1, 1, 1, 1, 1, 1, 1], tone: 1.5, turbo: .9, crackle: 1.1 } } },
+    { id: 'road_roadster', name: 'Roadster 2.0', desc: 'A light two-seat convertible: 184 hp, 1,060 kg and the sweetest balance on the road', price: 9000, paint: ['#c8102e', '#f4f1ea'],
+      mod: { massAdd: -640, aMaxMul: 1.02, engineName: '2.0 I4 (no turbo)', torque: [[0, 140], [2000, 180], [4000, 200], [6000, 195], [7000, 175], [7500, 150], [9000, 80]], limit: 7500, finalMul: 1.1, autoUp: 7200, autoDown: 3200, autoDownCoast: 2200,
+        sound: { cyl: 4, pattern: [1, .9, 1, .9], tone: 1.7, crackle: .7 } } },
+    { id: 'road_supercar', name: 'Mid-Engine V10', desc: 'A 640 hp V10 behind your head, 1,420 kg and a screaming 8,700 rpm redline', price: 85000, paint: ['#7ad000', '#14181c'],
+      mod: { massAdd: -280, aMaxMul: 1.07, tractionMul: 1.1, engineName: '5.2 V10', torque: [[0, 320], [2000, 450], [4500, 540], [6500, 565], [8000, 545], [8700, 510], [10000, 300]], limit: 8700, finalMul: 1.2, autoUp: 8400, autoDown: 3800, autoDownCoast: 2800,
+        sound: { cyl: 10, pattern: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], tone: 2.4, scream: .8, crackle: .9 } } },
+    { id: 'road_pickup', name: 'Sport Pickup', desc: 'A 2.5-tonne pickup truck with a 6.2 V8: tall, soft and surprisingly quick in a straight line', price: 14000, paint: ['#1d2a3a', '#e8a317'],
+      mod: { massAdd: 780, torqueMul: 1.15, tractionMul: .9, aMaxMul: .82, dragMul: 1.3, engineName: '6.2 V8 truck', sound: { cyl: 8, pattern: [1, .45, 1, 1, .45, 1, .45, .45], tone: 1.15, crackle: 1.2 } } },
   ],
   gt: [
     { id: 'gt', name: 'GT3 R', desc: 'The standard GT3 car', price: 0 },
@@ -1071,6 +1081,11 @@ const VARIANTS = {
     { id: 'gt_stock', name: 'Stock Car V8', desc: 'A 1,550 kg oval stock car: 5.8 pushrod V8, 750 hp and one big spoiler', price: 35000, paint: ['#ffd400', '#c8102e'],
       mod: { massAdd: 265, dfMul: .6, dfCapMul: .8, dragMul: 1.05, aMaxMul: .93, engineName: '5.8 V8 pushrod', torque: [[0, 450], [2500, 620], [5000, 700], [7000, 690], [9000, 600], [9800, 520]], limit: 9500, autoUp: 9200, autoDown: 5000, autoDownCoast: 3800,
         sound: { cyl: 8, pattern: [1, .45, 1, 1, .45, 1, .45, .45], tone: 1.4, crackle: 1.2 } } },
+    { id: 'gt_rx', name: 'Rallycross Supercar', desc: '600 hp four-wheel drive turbo hatch: 0 to 100 km/h in under two seconds, built for gravel and tarmac', price: 45000, paint: ['#ff3d7f', '#10161c'],
+      mod: { massAdd: 40, tractionMul: 1.45, dfMul: .8, dfCapMul: .9, dragMul: 1.12, aMaxMul: 1.02, engineName: '2.0 turbo I4 AWD', torque: [[0, 300], [2500, 700], [4500, 820], [6500, 780], [7500, 680], [8500, 400]], limit: 7500, finalMul: .8, autoUp: 7300, autoDown: 4200, autoDownCoast: 3200,
+        sound: { cyl: 4, pattern: [1, .9, 1, .9], tone: 1.5, turbo: 1.5, crackle: 2 } } },
+    { id: 'gt_attack', name: 'Time Attack Special', desc: 'A street car turned lap-record weapon: 800 hp, a giant wing and splitter, made for one perfect lap', price: 95000, paint: ['#10161c', '#ff7a1a'],
+      mod: { torqueMul: 1.22, massAdd: -60, dfMul: 2.2, dfCapMul: 1.5, dragMul: 1.25, aMaxMul: 1.08, engineName: '3.8 twin-turbo V6 (time attack)', sound: { cyl: 6, pattern: [1, 1, 1, 1, 1, 1], tone: 1.9, turbo: 1.4, crackle: 1.4 } } },
   ],
   f1: [
     { id: 'f1', name: 'F1 2026', desc: 'Hybrid V6 turbo with ERS and active aero', price: 0 },
@@ -1107,6 +1122,18 @@ const VARIANTS = {
       mod: { massAdd: -258, noErs: true, activeAero: false, dfMul: .7, dfCapMul: .8, dragMul: 1.15, tractionMul: .85, engineName: '1.5 turbo I4 (1986)', limit: 12500, idle: 3500, autoUp: 12200, autoDown: 8000, autoDownCoast: 6000,
         torque: [[0, 150], [6000, 350], [8000, 700], [10000, 800], [11500, 760], [12500, 650], [14000, 300]],
         sound: { cyl: 4, pattern: [1, .9, 1, .9], tone: 2.2, turbo: 1.6, crackle: 1 } } },
+    { id: 'f1_v12', name: 'F1 V12 1995', desc: 'A mid-nineties 3.0 V12 shrieking to 17,500 rpm: no hybrid, no power steering, all noise', price: 110000, paint: ['#c8102e', '#ffd400'],
+      mod: { massAdd: -203, noErs: true, activeAero: false, engineName: '3.0 V12 (1995)', limit: 17500, idle: 4000, finalMul: 1.42, autoUp: 17000, autoDown: 11000, autoDownCoast: 8500,
+        torque: [[0, 170], [6000, 235], [10000, 290], [13500, 325], [15500, 335], [17000, 322], [17500, 305], [19500, 200]],
+        sound: { cyl: 12, pattern: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], tone: 3.3, scream: 1.5, turbo: 0, crackle: .3 } } },
+    { id: 'f1_sf', name: 'Super Formula', desc: 'The fastest cars outside F1: a 550 hp 2.0 turbo four, 670 kg and huge downforce', price: 65000, paint: ['#10161c', '#2fd4c4'],
+      mod: { massAdd: -128, noErs: true, activeAero: false, dfMul: .85, dfCapMul: .92, dragMul: .95, engineName: '2.0 turbo I4', limit: 10000, idle: 3000, finalMul: .82, autoUp: 9700, autoDown: 6200, autoDownCoast: 4600,
+        torque: [[0, 200], [3000, 380], [5500, 470], [7500, 455], [9000, 410], [10000, 360], [11000, 200]],
+        sound: { cyl: 4, pattern: [1, .9, 1, .9], tone: 2.2, turbo: 1.1, crackle: .7 } } },
+    { id: 'f1_ford', name: 'Formula Ford 1600', desc: 'Where racing drivers start: 115 hp, skinny tyres, no wings at all. Slow, light and a brilliant teacher', price: 5000, paint: ['#1d4fd6', '#f4f4f2'],
+      mod: { massAdd: -278, noErs: true, activeAero: false, dfMul: .05, dfCapMul: .2, dragMul: .8, tractionMul: 1.0, aMaxMul: .88, engineName: '1.6 I4 (no turbo)', limit: 6800, idle: 1500, finalMul: .9, autoUp: 6600, autoDown: 3600, autoDownCoast: 2600,
+        torque: [[0, 90], [2500, 125], [4500, 140], [6000, 135], [6800, 120], [8000, 60]],
+        sound: { cyl: 4, pattern: [1, .9, 1, .9], tone: 1.5, crackle: .5 } } },
   ],
 };
 // Rickshaw Rush only: an Indian auto-rickshaw with a rocket where its 236 cc engine used to be. About 1,000 mph flat out,
@@ -1228,13 +1255,18 @@ const FUEL = {
     car.fuel = null; car.fuelLap = null; car.fuelLog = null;
     if (!this.on()) return;
     const w = game.world, rd = w.racingData(car.spec.pid ? car.spec : CAR_SPECS[car.spec.id]); let T = 0; for (let i = 0; i < w.N; i++) T += w.seg / Math.max(5, rd.v[i]);
-    const perLap = T / .93 * .62 * this.rate[car.spec.id];
+    // a smaller engine burns less fuel but takes longer round the lap than the class's racing line assumes (a Formula Ford
+    // is a lot slower than an F1 car): fuel flow follows the engine's power, and the lap time is stretched to match
+    const id = car.spec.id, bp = (this._bp = this._bp || {})[id] || (this._bp[id] = tunedSpec(id, TUNE_DEF, id).peakPower), pr = car.spec.peakPower && bp ? car.spec.peakPower / bp : 1;
+    car.fuelRate = this.rate[id] * Math.min(1.6, Math.max(.3, pr));
+    if (pr < 1) T *= Math.min(2.2, Math.pow(1 / pr, 1 / 3));
+    const perLap = T / .93 * .62 * car.fuelRate;
     car.fuelLap = perLap; car.fuel = perLap * (game.race.laps + .5) + 1; car.fuelMax = car.spec.id === 'f1' ? car.fuel : Math.max(car.fuel, 100);
     car.baseMass = car.spec.mass;
   },
   update(car, dt, thr) {
     if (car.fuel == null) return;
-    if (game.race.state === 'racing' || game.race.state === 'formation') car.fuel = Math.max(0, car.fuel - this.rate[car.spec.id] * Math.max(.04, thr) * dt);
+    if (game.race.state === 'racing' || game.race.state === 'formation') car.fuel = Math.max(0, car.fuel - (car.fuelRate || this.rate[car.spec.id]) * Math.max(.04, thr) * dt);
     car.spec.mass = car.baseMass + car.fuel;
     const laps = car.fuel / car.fuelLap;
     if (laps < 1 && !car.fuelWarn && !game.race.playerFinished) { car.fuelWarn = true; banner('⛽ Fuel low — lift off before braking zones to save fuel', true); }
