@@ -182,6 +182,8 @@ body.neo #chooser .card:hover, body.neo #chooser .card:focus-visible {
   transform: translateY(-6px) !important; border-color: color-mix(in srgb, var(--c) 65%, transparent) !important;
   box-shadow: 0 40px 90px rgba(0, 0, 0, .6), 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent), 0 0 60px color-mix(in srgb, var(--c) 22%, transparent) !important;
 }
+body.neo #chooser .cards .card { flex: 1 1 190px; max-width: 300px; padding-inline: 20px; }
+body.neo #chooser .card b { font-size: 30px !important; }
 @media (max-width: 640px) { body.neo #chooser .card { min-height: 0; } body.neo #chooser .card b { font-size: 28px !important; } }
 
 /* ---------- Racing and Moto (gp.html, moto.html) ---------- */

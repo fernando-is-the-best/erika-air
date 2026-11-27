@@ -9,7 +9,8 @@
   const GAMES = { air: { name: 'Erika Air', word: 'Air', verb: 'fly' }, race: { name: 'Erika Racing', word: 'Racing', verb: 'race', accent: '#3cc4ff', ink: '#04121d' },
     boat: { name: 'Erika Boats', word: 'Boats', verb: 'race boats', accent: '#2fd4c4', ink: '#022320' },
     kart: { name: 'Erika Karts', word: 'Karts', verb: 'race karts', accent: '#ff6b3d', ink: '#1f0a03' },
-    moto: { name: 'Erika Moto', word: 'Moto', verb: 'race bikes', accent: '#ff3355', ink: '#22030a' } };
+    moto: { name: 'Erika Moto', word: 'Moto', verb: 'race bikes', accent: '#ff3355', ink: '#22030a' },
+    train: { name: 'Erika Trains', word: 'Trains', verb: 'drive trains', accent: '#a78bfa', ink: '#140a2e' } };
   const GAME = GAMES[window.ERIKA_GAME] ? window.ERIKA_GAME : 'air', G = GAMES[GAME], NAME = G.name;
 
   const KEY = GAME === 'air' ? 'erika.access.v1' : 'erika.access.' + GAME + '.v1';
