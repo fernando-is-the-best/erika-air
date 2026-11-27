@@ -6,14 +6,14 @@
 <title>Erika Boats</title>
 <meta name="description" content="Powerboat racing round buoy courses: sixty-seven boats, fifteen courses, and a career with prize money, a racing licence, boats to buy and upgrades.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wdth,wght@100..125,600..800&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: full-screen 3D water with a race HUD (positions left, timing right, speed bottom centre, course map bottom right) and a menu card on top. */
 :root {
   color-scheme: dark;
   --bg: #04121a; --panel: rgba(4, 18, 28, 0.78); --panel-solid: #0a1c28; --line: rgba(150, 210, 230, 0.2);
   --text: #e6f6fb; --dim: #8fb3c2; --accent: #2fd4c4; --accent-ink: #022320; --warn: #ffb52e; --bad: #ff6b5a; --ok: #5be38c;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --f-display: "Saira Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 * { box-sizing: border-box }
 [hidden] { display: none !important }
@@ -146,8 +146,9 @@ html, body { font-family: var(--f-body) }
 /* in-race panels: the same hairline look */
 .box { border: 1px solid var(--pro-line); border-left: 3px solid var(--accent); border-radius: 10px; background: rgba(5, 14, 20, .78) }
 </style>
+<link rel="stylesheet" href="neo.css">
 </head>
-<body>
+<body class="neo neo-boat">
 <canvas id="view"></canvas>
 <canvas id="drops" hidden></canvas>
 <div class="hud" id="hud" hidden>
@@ -923,7 +924,7 @@ B.World.prototype.makeBoat = function (type, cols, num, mine) {
   const SC = T.scale || 1, L = T.len / SC, Bm = T.beam / SC;   // a scaled boat is drawn small and then enlarged as a whole
   // racing number on a white roundel, one on each side
   const numTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'); x.fillStyle = '#f4f4f2'; x.beginPath(); x.arc(64, 64, 60, 0, 7); x.fill();
-    x.fillStyle = '#111'; x.font = '700 76px "Barlow Condensed", Arial Narrow, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num || 1), 64, 70); return new THREE.CanvasTexture(cv); })();
+    x.fillStyle = '#111'; x.font = '700 76px "Saira Condensed", Arial Narrow, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num || 1), 64, 70); return new THREE.CanvasTexture(cv); })();
   const numbers = (x, y, z, s) => { for (const sd of [-1, 1]) { const p = add(new THREE.PlaneGeometry(s, s), new THREE.MeshStandardMaterial({ map: numTex, transparent: true, roughness: .6 }), x, y, sd * z); p.rotation.y = sd > 0 ? 0 : Math.PI; } };
   // outboard engine hung on the transom: a glossy oval cowl with a domed top and a coloured stripe, a narrower lower pan, a
   // streamlined midsection and leg, the anti-cavitation plate, the torpedo-shaped gearcase with its skeg, and a three-blade propeller

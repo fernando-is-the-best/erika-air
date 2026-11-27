@@ -6,7 +6,7 @@
 <title>Fernando's Desk</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wdth,wght@100..125,600..800&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: a flight-ops desk — pilot card (who is signed in) and live readouts across the top, code maker, then the roster of issued codes. */
 :root {
@@ -14,7 +14,7 @@
   --bg: #070b10; --panel: #0d1620; --raise: #13202d; --line: rgba(160, 190, 215, 0.16);
   --text: #e8f0f6; --dim: #8ea3b4; --accent: #ffb52e; --accent-ink: #1a1203;
   --ok: #46d98a; --bad: #ff5e5e; --warn: #ffb52e; --blue: #62b6ff;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-display: "Saira Condensed", "Arial Narrow", sans-serif;
   --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 }
@@ -156,8 +156,9 @@ button:hover { border-color: rgba(255, 255, 255, .22) }
 button.main { font-weight: 700 }
 .gauge { background: linear-gradient(180deg, #141922, #0d1117); border-radius: 14px }
 </style>
+<link rel="stylesheet" href="neo.css">
 </head>
-<body>
+<body class="neo neo-admin">
 <main>
   <header><h1>Fernando's <b>Desk</b></h1><a href="./">Back to the game</a></header>
 

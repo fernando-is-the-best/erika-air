@@ -39,12 +39,12 @@
     #gate .card{width:min(440px,100%);background:linear-gradient(180deg,#141922,#0b0e13);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:32px 28px 24px;gap:12px;
       box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05);position:relative;overflow:hidden}
     #gate .card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--accent,#ffb52e)}
-    #gate h1{font:700 40px/1 var(--f-display,'Barlow Condensed','Arial Narrow',sans-serif);letter-spacing:.1em}
+    #gate h1{font:700 40px/1 var(--f-display,'Saira Condensed','Arial Narrow',sans-serif);letter-spacing:.1em}
     #gate p{font-size:14px;color:#9aa6b3}
     #gate label{font:600 11px "Inter",system-ui,sans-serif;letter-spacing:.14em;color:#8d99a7;margin-top:6px}
     #gate input{border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);padding:13px 14px;font-size:14px}
     #gate input:focus{outline:none;border-color:var(--accent,#ffb52e);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
-    #gate button{border-radius:10px;padding:13px 16px;font:700 16px var(--f-display,'Barlow Condensed',sans-serif);letter-spacing:.18em;text-transform:uppercase;box-shadow:0 10px 26px rgba(0,0,0,.3)}
+    #gate button{border-radius:10px;padding:13px 16px;font:700 16px var(--f-display,'Saira Condensed',sans-serif);letter-spacing:.18em;text-transform:uppercase;box-shadow:0 10px 26px rgba(0,0,0,.3)}
     #gate button:hover{filter:brightness(1.07)}
     #gate .foot{border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:4px}
     #gate .foot a{text-decoration:none;color:#c9d3dd} #gate .foot a:hover{color:#fff}
@@ -110,11 +110,11 @@
     #erikaMsg form{background:linear-gradient(180deg,#141922,#0b0e13);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:30px 26px 24px;position:relative;overflow:hidden;
       box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05);font-family:inherit}
     #erikaMsg form::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--accent,#ffb52e)}
-    #erikaMsg h2{font:700 30px/1.05 var(--f-display,'Barlow Condensed',sans-serif);letter-spacing:.06em;text-transform:uppercase}
+    #erikaMsg h2{font:700 30px/1.05 var(--f-display,'Saira Condensed',sans-serif);letter-spacing:.06em;text-transform:uppercase}
     #erikaMsg label{font:600 11px "Inter",system-ui,sans-serif;letter-spacing:.14em;color:#8d99a7}
     #erikaMsg input,#erikaMsg textarea{border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);font-family:inherit;font-size:14px}
     #erikaMsg input:focus,#erikaMsg textarea:focus{outline:none;border-color:var(--accent,#ffb52e)}
-    #erikaMsg .acts button{border-radius:10px;font:700 15px var(--f-display,'Barlow Condensed',sans-serif);letter-spacing:.16em;text-transform:uppercase}
+    #erikaMsg .acts button{border-radius:10px;font:700 15px var(--f-display,'Saira Condensed',sans-serif);letter-spacing:.16em;text-transform:uppercase}
     #erikaMsg .close{background:transparent;border:1px solid rgba(255,255,255,.16)!important}
     #erikaMsg label{margin-top:4px}`;
   function openMessage(kind) {

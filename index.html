@@ -1,9 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body class="neo neo-air">
 <meta charset="utf-8">
 <title>Erika Air</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wdth,wght@100..125,600..800&family=Barlow:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: full-bleed 3D stage; a dark instrument-panel sheet on the left (bottom sheet on phones) for menus; HUD on a canvas layer. */
 :root {
@@ -20,7 +20,7 @@
   --ok: #46d98a;
   --bad: #ff5e5e;
   --blue: #62b6ff;
-  --f-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --f-display: "Saira Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
   --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 }
@@ -313,6 +313,7 @@ body { font-family: var(--f-body); letter-spacing: -0.005em; }
 .btn.ghost { background: transparent; border: 1px solid var(--pro-line2); box-shadow: none; }
 .cta { background: linear-gradient(0deg, rgba(8,11,15,0.98) 60%, rgba(8,11,15,0)); }
 </style>
+<link rel="stylesheet" href="neo.css">
 
 <div id="app">
   <div id="stage"></div>
@@ -4369,7 +4370,7 @@ SIM.World3D = (function () {
       if (hard) {
         const bars = rw.w >= 40 ? 8 : rw.w >= 25 ? 6 : 4, sl = Math.min(30 * pxm, H * 0.16), usable = W - 12 * pxm, bw = Math.max(5, usable / (bars * 2 + 2) * 1.0);
         for (let i = 0; i < bars; i++) { const side = i < bars / 2 ? -1 : 1, k = side < 0 ? (bars / 2 - 1 - i) : (i - bars / 2); const cx = W / 2 + side * (bw * 1.5 + k * bw * 2.0 + bw * 0.5); g.fillRect(cx - bw / 2, H - 6 * pxm - sl, bw, sl); }
-        g.font = '700 ' + Math.round(Math.min(W * 0.34, 18 * pxm)) + 'px "Barlow Condensed","Arial Narrow",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = '700 ' + Math.round(Math.min(W * 0.34, 18 * pxm)) + 'px "Saira Condensed","Arial Narrow",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
         const lab = String(label); g.fillStyle = white;
         g.fillText(lab, W / 2, H - 6 * pxm - sl - 22 * pxm);
         // burnt rubber from touchdowns, just past the aiming point

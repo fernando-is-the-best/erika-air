@@ -1,0 +1,225 @@
+/* =====================================================================================================
+   Erika Neo: one new look for every screen.
+   Saira Condensed for titles (wide Saira for the big words), Inter for text. Frosted-glass panels that
+   let the 3D world show through, pill buttons and pill tabs, colour glow on whatever is selected.
+   Each game keeps its own colour (--accent): Air amber, Racing blue, Moto red, Boats teal, Karts orange.
+   Loaded after each page's own styles, scoped by a class on <body> (neo-air, neo-race, neo-boat,
+   neo-kart, neo-admin).
+   ===================================================================================================== */
+:root {
+  --neo-bg: #05070b;
+  --neo-glass: rgba(13, 17, 24, .74);
+  --neo-glass-hi: rgba(20, 26, 36, .82);
+  --neo-raise: rgba(255, 255, 255, .045);
+  --neo-raise-hi: rgba(255, 255, 255, .08);
+  --neo-line: rgba(255, 255, 255, .09);
+  --neo-line-2: rgba(255, 255, 255, .2);
+  --neo-text: #f2f5f8;
+  --neo-dim: #929eae;
+  --neo-ink: #05070b;
+  --neo-disp: "Saira Condensed", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --neo-wide: "Saira", "Saira Condensed", sans-serif;
+  --neo-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --neo-r: 20px;
+  --neo-blur: blur(22px) saturate(150%);
+  --neo-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 255, 255, .06) inset;
+}
+body.neo { font-family: var(--neo-body); -webkit-font-smoothing: antialiased; }
+body.neo ::selection { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+body.neo * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .18) transparent; }
+
+/* ---------- shared pieces ---------- */
+/* a glass panel */
+body.neo .neo-glass,
+body.neo-air .sheet,
+body.neo-race #menu:not([data-screen=world]):not([data-screen=cafe]) .menu-box,
+body.neo-boat #menu .card,
+body.neo-kart #menu .card,
+body.neo-kart .ov .card,
+body.neo-boat .ov .card {
+  background: linear-gradient(180deg, rgba(24, 30, 42, .78), rgba(10, 13, 19, .8)) !important;
+  -webkit-backdrop-filter: var(--neo-blur); backdrop-filter: var(--neo-blur);
+  border: 1px solid var(--neo-line) !important; box-shadow: var(--neo-shadow) !important;
+}
+/* the coloured line across the top of a panel becomes a soft glow */
+body.neo-kart .card::before, body.neo-boat #menu .card::before { height: 2px !important; background: linear-gradient(90deg, transparent, var(--accent), transparent) !important; opacity: .9; }
+
+/* titles: wide and heavy */
+body.neo-air .brand h1, body.neo-boat #menu h1, body.neo-kart #menu h1, body.neo-race .menu-box > h1, body.neo-admin h1 {
+  font-family: var(--neo-wide) !important; font-weight: 800 !important; font-stretch: 125%; font-variation-settings: "wdth" 125;
+  letter-spacing: .02em !important; text-transform: uppercase; line-height: 1 !important;
+  background: linear-gradient(180deg, #ffffff 30%, #b9c3cf); -webkit-background-clip: text; background-clip: text; color: transparent !important;
+}
+body.neo-air .brand h1 b, body.neo-boat #menu h1 b, body.neo-kart #menu h1 b, body.neo-race .menu-box > h1 span {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent !important;
+}
+body.neo-kart #menu h1, body.neo-boat #menu h1 { font-size: clamp(28px, 4vw, 40px) !important; }
+
+/* pill tabs: a track with the selected tab lit white */
+body.neo-air .tabs, body.neo-boat .tabs, body.neo-kart .tabs {
+  display: flex; gap: 4px !important; padding: 4px; border-radius: 999px !important; background: rgba(255, 255, 255, .045);
+  border: 1px solid var(--neo-line) !important; width: max-content; max-width: 100%; overflow-x: auto; scrollbar-width: none;
+}
+body.neo-air .tab, body.neo-boat .tabs button, body.neo-kart .tabs button {
+  border: 0 !important; border-radius: 999px !important; padding: 8px 16px !important; color: #b4bfcc !important;
+  font: 700 12px var(--neo-body) !important; letter-spacing: .08em !important; text-transform: uppercase; white-space: nowrap; transition: background .2s, color .2s;
+}
+body.neo-air .tab:hover, body.neo-boat .tabs button:hover, body.neo-kart .tabs button:hover { color: #fff !important; background: rgba(255, 255, 255, .06); }
+body.neo-air .tab[aria-selected="true"], body.neo-boat .tabs button[aria-selected="true"], body.neo-kart .tabs button[aria-selected="true"] {
+  background: #f2f5f8 !important; color: #06080c !important; box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
+
+/* segmented choices and chips: pills, the chosen one in the game's colour */
+body.neo .seg { border-radius: 22px !important; padding: 4px !important; background: rgba(255, 255, 255, .04) !important; border: 1px solid var(--neo-line) !important; }
+body.neo .seg button { border-radius: 999px !important; }
+body.neo .seg button[aria-pressed="true"], body.neo .chip[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff)) !important; color: var(--accent-ink, #06080c) !important;
+  border-color: transparent !important; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+body.neo .chip { border-radius: 999px !important; padding-inline: 14px !important; }
+
+/* main buttons: a glowing pill */
+body.neo-air .btn:not(.ghost), body.neo-boat #menu .btn.main, body.neo-kart .btn:not(.ghost), body.neo-race .setup .summary .startbtn, body.neo-race .btn:not(.ghostbtn), body.neo-admin button.main {
+  border-radius: 999px !important; border: 0 !important;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 62%, #fff) 100%) !important; color: var(--accent-ink, #06080c) !important;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, .45) !important;
+  font-family: var(--neo-wide) !important; font-weight: 800 !important; font-stretch: 112%; font-variation-settings: "wdth" 112; letter-spacing: .14em !important; text-transform: uppercase;
+  transition: transform .15s, box-shadow .2s, filter .2s;
+}
+body.neo-air .btn:not(.ghost):hover, body.neo-boat #menu .btn.main:hover, body.neo-kart .btn:not(.ghost):hover:not([disabled]), body.neo-race .setup .summary .startbtn:hover, body.neo-race .btn:not(.ghostbtn):hover, body.neo-admin button.main:hover {
+  transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 16px 40px color-mix(in srgb, var(--accent) 48%, transparent), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
+}
+body.neo-air .btn.ghost, body.neo-boat #menu .btn:not(.main), body.neo-kart .btn.ghost, body.neo-race .btn.ghostbtn {
+  border-radius: 999px !important; background: rgba(255, 255, 255, .05) !important; border: 1px solid var(--neo-line-2) !important; color: var(--neo-text) !important; box-shadow: none !important;
+}
+body.neo-kart .btn[disabled] { filter: grayscale(.6); opacity: .55; box-shadow: none !important; }
+
+/* picker cards: glass tiles; the selected one glows in the game's colour */
+body.neo-air .ac, body.neo-air .chal, body.neo-air .crcard, body.neo-kart .pick, body.neo-kart .ev, body.neo-kart .box,
+body.neo-boat .ggrid button, body.neo-boat .ev, body.neo-boat .tm, body.neo-race .world, body.neo-admin .card {
+  border-radius: 16px !important; background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .025)) !important;
+  border: 1px solid var(--neo-line) !important; transition: transform .18s, border-color .18s, box-shadow .18s, background .18s !important;
+}
+body.neo-air .ac:hover, body.neo-air .chal:hover, body.neo-kart .pick:hover:not([disabled]), body.neo-boat .ggrid button:hover, body.neo-boat .ev:hover, body.neo-boat .tm:hover, body.neo-race .world:hover {
+  border-color: var(--neo-line-2) !important; transform: translateY(-2px); background: linear-gradient(180deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .035)) !important;
+}
+body.neo-air .ac[aria-pressed="true"], body.neo-air .chal[aria-pressed="true"], body.neo-kart .pick[aria-pressed="true"], body.neo-boat .ggrid button[aria-pressed="true"], body.neo-boat .tm.on, body.neo-race .world.sel {
+  border-color: transparent !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 4%, transparent)) !important;
+  box-shadow: 0 0 0 1.5px var(--accent), 0 14px 34px color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+body.neo-air .ac::before, body.neo-kart .pick::before { display: none !important; }
+body.neo-kart .pick b, body.neo-kart .ev b, body.neo-air .ac .n { font-family: var(--neo-disp) !important; font-weight: 700 !important; letter-spacing: .02em !important; }
+
+/* labels: small, tracked, quiet */
+body.neo .lbl { font: 700 10.5px var(--neo-body) !important; letter-spacing: .18em !important; text-transform: uppercase; color: var(--neo-dim) !important; }
+
+/* money and licence badges: pills */
+body.neo .wallet { border-radius: 999px !important; padding: 7px 14px !important; background: linear-gradient(135deg, rgba(255, 211, 107, .16), rgba(255, 181, 46, .06)) !important; border: 1px solid rgba(255, 211, 107, .32) !important; color: #ffd98a !important; font-weight: 700 !important; }
+body.neo .lic { border-radius: 999px !important; padding: 7px 14px !important; background: rgba(255, 255, 255, .04) !important; }
+
+/* forms */
+body.neo input:not([type=checkbox]):not([type=radio]):not([type=range]), body.neo select, body.neo textarea {
+  border-radius: 12px !important; background: rgba(255, 255, 255, .05) !important; border: 1px solid var(--neo-line) !important; color: var(--neo-text) !important;
+}
+body.neo input:focus, body.neo select:focus, body.neo textarea:focus { outline: none !important; border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent) !important; }
+
+/* overlays (pause, results): darker and blurred behind */
+body.neo .ov { background: rgba(3, 5, 8, .55) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+
+/* ---------- Air (index.html): the menu sheet and the game choice ---------- */
+body.neo-air .sheet { border-radius: 0 var(--neo-r) var(--neo-r) 0; border-left: 0 !important; }
+body.neo-air .brand h1 { font-size: 34px !important; }
+body.neo-air .racelink { border-radius: 999px !important; }
+body.neo-air .sel { border-radius: 14px !important; }
+body.neo-air .cta { z-index: 5; background: rgba(12, 15, 22, .98) !important; box-shadow: 0 -26px 22px -4px rgba(12, 15, 22, .92), 0 40px 0 rgba(12, 15, 22, .98); }   /* covers what scrolls under it, above and below */
+
+/* the game choice: an aurora of the five game colours behind glass cards */
+body.neo #chooser { background: #04060a !important; overflow: auto; }
+body.neo #chooser::before {
+  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(70px); opacity: .55;
+  background:
+    radial-gradient(28% 32% at 12% 70%, rgba(255, 181, 46, .55), transparent 70%),
+    radial-gradient(26% 30% at 32% 22%, rgba(60, 196, 255, .5), transparent 70%),
+    radial-gradient(26% 30% at 54% 80%, rgba(47, 212, 196, .45), transparent 70%),
+    radial-gradient(24% 28% at 74% 24%, rgba(255, 51, 85, .45), transparent 70%),
+    radial-gradient(26% 30% at 90% 72%, rgba(255, 107, 61, .5), transparent 70%);
+  animation: neoDrift 28s ease-in-out infinite alternate;
+}
+body.neo #chooser::after {   /* a faint grid, like a timing screen */
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .35;
+  background-image: linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
+  background-size: 64px 64px; -webkit-mask-image: radial-gradient(70% 60% at 50% 40%, #000, transparent); mask-image: radial-gradient(70% 60% at 50% 40%, #000, transparent);
+}
+@keyframes neoDrift { 0% { transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1); } 100% { transform: translate3d(3%, 2%, 0) rotate(6deg) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { body.neo #chooser::before { animation: none; } }
+body.neo #chooser .wrap { position: relative; z-index: 0; }
+body.neo #chooser .mark {
+  font: 800 clamp(54px, 9vw, 112px)/.9 var(--neo-wide) !important; font-stretch: 125%; font-variation-settings: "wdth" 125; letter-spacing: .04em !important; padding-left: 0 !important;
+  background: linear-gradient(180deg, #ffffff 25%, rgba(255, 255, 255, .35)); -webkit-background-clip: text; background-clip: text; color: transparent !important;
+}
+body.neo #chooser h1 { font: 700 14px var(--neo-body) !important; letter-spacing: .42em !important; text-transform: uppercase; color: #c9d2dc !important; padding-left: .42em; }
+body.neo #chooser .sub { color: var(--neo-dim) !important; font-size: 13.5px !important; }
+body.neo #chooser .card {
+  border-radius: 24px !important; border: 1px solid rgba(255, 255, 255, .1) !important; min-height: 400px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--c) 30%, transparent) 0%, transparent 46%),
+    linear-gradient(180deg, rgba(22, 28, 40, .7), rgba(8, 11, 16, .86)) !important;
+  -webkit-backdrop-filter: var(--neo-blur); backdrop-filter: var(--neo-blur);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .12) !important;
+}
+body.neo #chooser .card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, .08) 50%, transparent 60%); background-size: 250% 100%; background-position: 120% 0; transition: background-position .8s ease; }
+body.neo #chooser .card:hover::after, body.neo #chooser .card:focus-visible::after { background-position: -20% 0; }
+body.neo #chooser .card .art { opacity: .16 !important; right: -30px; top: -10px; width: 270px !important; height: 270px !important; filter: drop-shadow(0 0 30px var(--c)); }
+body.neo #chooser .card .ico { border-radius: 16px !important; background: color-mix(in srgb, var(--c) 18%, rgba(0, 0, 0, .3)) !important; box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent), 0 10px 30px color-mix(in srgb, var(--c) 30%, transparent); }
+body.neo #chooser .card b { font: 800 34px/1 var(--neo-wide) !important; font-stretch: 112%; font-variation-settings: "wdth" 112; letter-spacing: .01em !important; text-transform: uppercase; }
+body.neo #chooser .card .kick { letter-spacing: .24em !important; }
+body.neo #chooser .card em {
+  border-radius: 999px !important; padding: 12px 22px !important; font: 800 13px var(--neo-wide) !important; font-stretch: 112%; font-variation-settings: "wdth" 112; letter-spacing: .16em !important;
+  background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, #fff)) !important; box-shadow: 0 12px 30px color-mix(in srgb, var(--c) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, .45) !important;
+}
+body.neo #chooser .card:hover, body.neo #chooser .card:focus-visible {
+  transform: translateY(-6px) !important; border-color: color-mix(in srgb, var(--c) 65%, transparent) !important;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, .6), 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent), 0 0 60px color-mix(in srgb, var(--c) 22%, transparent) !important;
+}
+@media (max-width: 640px) { body.neo #chooser .card { min-height: 0; } body.neo #chooser .card b { font-size: 28px !important; } }
+
+/* ---------- Racing and Moto (gp.html, moto.html) ---------- */
+body.neo-race .menu-box { border-radius: var(--neo-r) !important; }
+body.neo-race #menu:not([data-screen=home]):not([data-screen=title]):not([data-screen=world]):not([data-screen=cafe]) .menu-box { padding: 26px 30px 34px !important; margin-top: 20px !important; margin-bottom: 20px !important; }
+body.neo-race .item { border-radius: 14px !important; }
+body.neo-race .item.sel, body.neo-race .item.hm.sel {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), rgba(255, 255, 255, .02)) !important;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent) !important;
+}
+body.neo-race #topbar .tb { border-radius: 999px !important; }
+body.neo-race .logo .lg, body.neo-race .logo .lc { font-family: var(--neo-wide) !important; font-weight: 800 !important; font-stretch: 125%; font-variation-settings: "wdth" 125; }
+
+/* ---------- Boats ---------- */
+body.neo-boat #menu .card { border-radius: var(--neo-r) !important; }
+body.neo-boat #gDetail, body.neo-boat #rankBox, body.neo-boat #teamBox { border-radius: 16px !important; }
+
+/* ---------- Karts: the HUD panels become glass too ---------- */
+body.neo-kart .hp { background: rgba(10, 13, 19, .62) !important; -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); border: 1px solid var(--neo-line) !important; border-radius: 16px !important; }
+body.neo-kart #hMap { border-top: 0 !important; box-shadow: 0 0 0 1px var(--neo-line), inset 0 2px 0 var(--accent); }
+body.neo-kart #hBtns button { border-radius: 999px !important; background: rgba(10, 13, 19, .6) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+body.neo-kart #touch .t { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+
+/* ---------- Fernando's desk ---------- */
+body.neo-admin { background: radial-gradient(60% 50% at 20% -10%, rgba(255, 181, 46, .12), transparent 60%), radial-gradient(60% 50% at 90% 0%, rgba(60, 196, 255, .1), transparent 60%), var(--neo-bg) !important; }
+body.neo-admin .card { -webkit-backdrop-filter: var(--neo-blur); backdrop-filter: var(--neo-blur); border-radius: var(--neo-r) !important; }
+body.neo-admin button { border-radius: 999px !important; }
+
+/* ---------- the access-code screen (gate.js) ---------- */
+body.neo #gate { background: #04060a !important; }
+body.neo #gate::before { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(80px); opacity: .5;
+  background: radial-gradient(30% 34% at 30% 30%, color-mix(in srgb, var(--accent, #ffb52e) 70%, transparent), transparent 70%), radial-gradient(30% 34% at 72% 70%, color-mix(in srgb, var(--accent, #ffb52e) 40%, #3c6cff 30%), transparent 70%);
+  animation: neoDrift 26s ease-in-out infinite alternate; }
+body.neo #gate .card { border-radius: 24px !important; background: linear-gradient(180deg, rgba(24, 30, 42, .72), rgba(10, 13, 19, .82)) !important; -webkit-backdrop-filter: var(--neo-blur); backdrop-filter: var(--neo-blur);
+  border: 1px solid rgba(255, 255, 255, .1) !important; box-shadow: 0 40px 100px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .1) !important; }
+body.neo #gate .card::before { height: 2px !important; background: linear-gradient(90deg, transparent, var(--accent, #ffb52e), transparent) !important; }
+body.neo #gate h1 { font: 800 34px/1 var(--neo-wide) !important; font-stretch: 125%; font-variation-settings: "wdth" 125; letter-spacing: .02em !important; text-transform: uppercase; }
+body.neo #gate h1 b { color: var(--accent, #ffb52e); }
+body.neo #gate input { border-radius: 14px !important; }
+body.neo #gate button { border-radius: 999px !important; border: 0; background: linear-gradient(135deg, var(--accent, #ffb52e), color-mix(in srgb, var(--accent, #ffb52e) 60%, #fff)) !important; color: var(--accent-ink, #06080c) !important;
+  font: 800 14px var(--neo-wide) !important; font-stretch: 112%; font-variation-settings: "wdth" 112; letter-spacing: .16em !important; box-shadow: 0 12px 32px color-mix(in srgb, var(--accent, #ffb52e) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, .45) !important; }
