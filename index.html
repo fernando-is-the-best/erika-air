@@ -2431,6 +2431,18 @@ SIM.AIRLINER_TYPES = [
   add('a343', { id: 'il96', name: 'Ilyushin Il-96-300', maker: 'Ilyushin', cls: 'Four-engine widebody', len: 55.3, dia: 6.08, span: 57.7, S: 391.6, oew: 117000, mtow: 250000, fuel: 122000, thr: 157e3, fanR: 1.05, tips: 'fence', vref: 73, blurb: 'The Russian four-engined widebody: a short, fat fuselage on a big winglet-tipped wing, steady and stately.', stats: ['4 x PS-90A', 'Vref ~142 kt', 'Cruise M0.80', 'Ceiling FL390'] });
 })();
 
+// ---------- and more airliners (same cloning) ----------
+(function () {
+  const L = SIM.AIRLINER_TYPES, by = (id) => L.filter((t) => t.id === id)[0];
+  function add(src, o) { const T = JSON.parse(JSON.stringify(by(src))); delete T.legExtra; L.push(Object.assign(T, o)); }
+  add('b772', { id: 'b77l', name: 'Boeing 777-200LR', cls: 'Ultra-long-range widebody', oew: 145150, mtow: 347450, fuel: 162000, thr: 489e3, tips: 'raked', vref: 75, blurb: 'The Worldliner: the short 777 body with the most powerful jet engines of its day and raked tips. It can fly halfway round the world non-stop.', stats: ['2 x GE90-110B1', 'Vref ~146 kt', 'Cruise M0.84', 'Range 8,555 nm'] });
+  add('f100', { id: 'f70', name: 'Fokker 70', len: 30.9, oew: 22700, mtow: 41700, fuel: 9600, vref: 61, blurb: 'The shortened Fokker 100: the same quiet Tay engines on a smaller, lighter body. Short runways are easy.', stats: ['2 x RR Tay 620', 'Vref ~118 kt', 'Cruise M0.73', 'Ceiling FL350'] });
+  add('md82', { id: 'md87', name: 'McDonnell Douglas MD-87', len: 39.8, oew: 33200, mtow: 63500, fuel: 17800, thr: 89e3, vref: 68, blurb: 'The short MD-80 with a taller fin: lots of power for its size, so it climbs steeply out of short and hot airports.', stats: ['2 x JT8D-217C', 'Vref ~132 kt', 'Cruise M0.76', 'Ceiling FL370'] });
+  add('dc9', { id: 'tu134', name: 'Tupolev Tu-134A', maker: 'Tupolev', cls: 'Classic rear-engine jet', len: 37.1, span: 29.0, S: 127.3, sweep: 35, oew: 29000, mtow: 47600, fuel: 14400, thr: 66e3, vref: 72, blurb: 'A Soviet rear-engined twinjet with a glass nose for the navigator and a sharply swept wing: fast on final, and it lands firmly.', stats: ['2 x D-30', 'Vref ~140 kt', 'Cruise M0.75', 'Ceiling FL390'] });
+  add('a343', { id: 'a342', name: 'Airbus A340-200', len: 59.4, oew: 125000, mtow: 260000, vref: 71, blurb: 'The short, long-range A340: four CFM56s on the big wing and a shorter cabin, so it is livelier than the -300.', stats: ['4 x CFM56-5C', 'Vref ~138 kt', 'Cruise M0.82', 'Range 8,000 nm'] });
+  add('crj9', { id: 'arj21', name: 'COMAC ARJ21-700', maker: 'COMAC', len: 33.5, span: 27.3, S: 79.9, oew: 25000, mtow: 43500, fuel: 10400, thr: 76e3, vref: 66, blurb: 'China\'s regional jet: two rear-mounted CF34s and a supercritical wing, built for high, hot airfields in the west of China.', stats: ['2 x CF34-10A', 'Vref ~128 kt', 'Cruise M0.78', 'Ceiling FL390'] });
+})();
+
 // ---------- McDonnell Douglas & classics ----------
 (function () {
   const L = SIM.AIRLINER_TYPES, by = (id) => L.filter((t) => t.id === id)[0];
@@ -7502,6 +7514,13 @@ function build(C, spec) {
       emptyMass: 3700, payload: 1900, fuelCap: 1900, S: 32, b: 16.97, c: 1.9, P: 1.16e6, T0: 24000, D: 2.7, eng: '2 x Garrett TPE331 776 shp',
       sp: { vs0: 33, vs1: 38, vr: 41, vy: 55, vne: 128, vfe: 70, vno: 110, vcruise: 115 }, eye: [0, 1.0, -3.0], chase: 25, stats: ['2 x 776 shp turboprops', 'Short take-off', 'Cruise 220 kt', 'Seats 19'], CD0: 0.034, price: 7500, rank: 1 },
       { tail: 'conv', stabY: 1.2, blades: 4, body: 0xf1efe7, stripe: 0x14407a, accent: 0xffb52e });
+    twAdd('da42', { id: 'da62', name: 'Diamond DA62', cls: 'Diesel composite twin', blurb: 'The DA42\'s big brother: seven seats, two 180 hp diesels and a long carbon wing. Quiet, efficient and very easy on one engine.',
+      emptyMass: 1500, payload: 400, fuelCap: 300, S: 17.1, b: 14.0, P: 268e3, T0: 6300, eng: '2 x Austro AE330 180 hp', stats: ['2 x 180 hp diesel', 'Seats 7', 'Cruise 192 kt'], price: 4200, rank: 1,
+      sp: { vs0: 27, vs1: 31, vr: 34, vy: 44, vne: 98, vfe: 55, vno: 80, vcruise: 78 } },
+      { trk: 2.2, body: 0xf4f4f2, stripe: 0x0f2a5a, accent: 0xc12a30 });
+    twAdd('bn58', { id: 'be55', name: 'Beechcraft Baron 55', cls: 'Classic light twin', blurb: 'The short Baron of the 1960s: two 260 hp Continentals, a quick roll and the best handling of any light twin.',
+      emptyMass: 1450, P: 388e3, T0: 8400, eng: '2 x Continental IO-470 260 hp', stats: ['2 x 260 hp', 'Retractable gear', 'Cruise 190 kt'], price: 3000, rank: 0 },
+      { body: 0xf2efe6, stripe: 0x0f5a3a, accent: 0xc9a227 });
   }
 
   // ---- specs: start from the Skymaster and rescale ----
@@ -7793,6 +7812,20 @@ function build(C, spec) {
     sp: { vne: 85, vcruise: 75 }, eye: [0, 0.62, -0.55], chase: 13, stats: ['235 hp turbocharged', 'Fixed gear', 'Cruise 155 kt', 'Ceiling 20,000 ft'], CD0: 0.031, price: 2100, rank: 0 },
     { L0: -2.7, L1: 5.3, body: 0xf3f1ea, stripe: 0x6b2a8a, accent: 0xc9a227 });
 
+  // ---- more singles and twins
+  sgAdd('sr22', { id: 'sr22t', name: 'Cirrus SR22T', cls: 'Turbocharged composite single', blurb: 'The turbocharged SR22: 315 hp that keeps pulling at 25,000 ft, oxygen on board and a fast, slippery cruise.',
+    emptyMass: 1040, P: 235e3, T0: 5300, eng: 'Continental TSIO-550-K 315 hp', sp: { vne: 103, vcruise: 98 }, stats: ['315 hp turbocharged', 'Cruise 213 kt', 'Ceiling 25,000 ft'], price: 3600, rank: 1 },
+    { body: 0x14181c, stripe: 0xd4af37, accent: 0xeceae4 });
+  sgAdd('da40', { id: 'da50', name: 'Diamond DA50 RG', cls: 'Diesel composite single', blurb: 'Diamond\'s big five-seater: a 300 hp jet-fuel diesel, retractable gear and a huge bubble canopy.',
+    emptyMass: 1300, payload: 350, fuelCap: 230, S: 16.0, b: 13.4, P: 224e3, T0: 5200, D: 2.0, eng: 'Continental CD-300 300 hp diesel', retract: true, sp: { vne: 95, vcruise: 84 }, stats: ['300 hp diesel', 'Retractable gear', 'Cruise 181 kt'], price: 3800, rank: 1 },
+    { body: 0xf4f4f2, stripe: 0x0f2a5a, accent: 0x6fb0e8 });
+  sgAdd('pa28', { id: 'pa28r', name: 'Piper Arrow IV', cls: 'Retractable trainer', blurb: 'The Archer with a constant-speed prop and retractable gear: the classic step up to complex aircraft.',
+    P: 149e3, T0: 3600, eng: 'Lycoming IO-360 200 hp', pitch: 'cs', retract: true, sp: { vne: 98, vcruise: 70 }, stats: ['200 hp, constant-speed prop', 'Retractable gear', 'Cruise 137 kt'], price: 1700, rank: 0 },
+    { body: 0xf3f1ea, stripe: 0x8a1f2b, accent: 0x14181c });
+  sgAdd('c152', { id: 'c150', name: 'Cessna 150', cls: 'Two-seat trainer', blurb: 'The 1960s original of the 152: 100 hp, a big flap and a gentle, forgiving wing. Cheap to fly and fun.',
+    emptyMass: 490, P: 75e3, T0: 1950, eng: 'Continental O-200 100 hp', sp: { vne: 72, vcruise: 51 }, stats: ['100 hp piston', 'Fixed gear', 'Cruise 100 kt'], price: 450, rank: 0 },
+    { body: 0xf3f2ee, stripe: 0x1d6b3a, accent: 0xc9a227 });
+
   // ---- float-plane variants: the same airframes on EDO-style floats (real water ops, no wheels)
   [['dhc2', 'dhc2f', 'de Havilland Canada DHC-2 Beaver (floats)', 'The classic bush floatplane: take off from a lake, land on a lake, and go anywhere the map is wet.', 120, 4500],
    ['dhc3', 'dhc3f', 'de Havilland Canada DHC-3 Otter (floats)', 'A big single-engine floatplane with a huge wing: slow, strong and happiest on a lake.', 180, 6500],
@@ -8015,16 +8048,17 @@ function build(C, spec) {
     c177: 2300, sr20: 2400, da20: 900, pc21: 9000, edge540: 3200, a321xlr: 8000, b38m10: 8000, b753: 8500, b733: 3800, crj1000: 4800, il96: 10500,
     r44: 1500, h125: 3500, uh60: 9000, ch47: 14000, r22: 900, b206: 2800, h135: 6000, uh1h: 7000, aw139: 11000, mi8: 12000,
     md500: 2500, b407: 4000, h145: 8000, s76: 10000, ah64: 16000,
+    b77l: 17000, f70: 3500, md87: 4400, tu134: 4600, a342: 12500, arj21: 4500, sr22t: 3600, da50: 3800, pa28r: 1700, c150: 450, da62: 4200, be55: 3000,
   };
   FREE.forEach((id) => { PRICE[id] = 0; });
   const GROUPS = [
-    { id: 'light', name: 'Light & sport', ids: ['c172', 'c208', 'c337', 'extra', 'glider', 'para', 'pa34', 'bn58', 'c310', 'da42', 'bn2', 'kg350', 'pa28', 'c182', 'da40', 'm20', 'a36', 'sr22', 'pc12', 'tbm9', 'c206', 'pa32', 'dr400', 'c152', 'rv7', 'decathlon', 'c210', 'pa44', 'p2006', 'pa46', 'c177', 'sr20', 'da20', 'pc21', 'edge540', 'j3', 'c195', 'pa24', 'c182t', 'yak52', 'pc7', 'p68', 'pa31', 'kg90', 'do228'] },
+    { id: 'light', name: 'Light & sport', ids: ['c172', 'c208', 'c337', 'extra', 'glider', 'para', 'pa34', 'bn58', 'c310', 'da42', 'bn2', 'kg350', 'pa28', 'c182', 'da40', 'm20', 'a36', 'sr22', 'pc12', 'tbm9', 'c206', 'pa32', 'dr400', 'c152', 'rv7', 'decathlon', 'c210', 'pa44', 'p2006', 'pa46', 'c177', 'sr20', 'da20', 'pc21', 'edge540', 'j3', 'c195', 'pa24', 'c182t', 'yak52', 'pc7', 'p68', 'pa31', 'kg90', 'do228', 'sr22t', 'da50', 'pa28r', 'c150', 'da62', 'be55'] },
     { id: 'stol', name: 'Bush & STOL', ids: ['cub', 'ccub', 'husky', 'm7', 'c185', 'helio', 'wilga', 'pc6', 'kodiak', 'draco'] },
-    { id: 'boeing', name: 'Boeing', ids: ['b707', 'b717', 'b727', 'b732', 'b733', 'b736', 'b737', 'b738', 'b37m7', 'b738m', 'b39m', 'b38m10', 'b739', 'b742', 'b747', 'b744', 'b74sp', 'b748', 'b752', 'b753', 'b762', 'b763', 'b764', 'b772', 'b777', 'b778', 'b779', 'b788', 'b789', 'b78x'] },
-    { id: 'airbus', name: 'Airbus', ids: ['a220', 'a223', 'a300', 'a310', 'a318', 'a319', 'a19n', 'a320', 'a20n', 'a321', 'a321xlr', 'a332', 'a333', 'a338', 'a339', 'a343', 'a345', 'a346', 'a359', 'a35k', 'a388'] },
-    { id: 'mdd', name: 'McDonnell Douglas & classics', ids: ['dc9', 'md82', 'md83', 'dc8', 'cv990', 'md90', 'dc10', 'l1011', 'il62', 'md11'] },
-    { id: 'regional', name: 'Regional & classic', ids: ['crj2', 'crj7', 'f100', 'crj9', 'crj1000', 'tu154', 'yak42', 'vc10'] },
-    { id: 'world', name: 'China & Russia', ids: ['c919', 'mc21', 'ssj100', 'tu204', 'il86', 'il96'] },
+    { id: 'boeing', name: 'Boeing', ids: ['b707', 'b717', 'b727', 'b732', 'b733', 'b736', 'b737', 'b738', 'b37m7', 'b738m', 'b39m', 'b38m10', 'b739', 'b742', 'b747', 'b744', 'b74sp', 'b748', 'b752', 'b753', 'b762', 'b763', 'b764', 'b772', 'b777', 'b778', 'b779', 'b788', 'b789', 'b78x', 'b77l'] },
+    { id: 'airbus', name: 'Airbus', ids: ['a220', 'a223', 'a300', 'a310', 'a318', 'a319', 'a19n', 'a320', 'a20n', 'a321', 'a321xlr', 'a332', 'a333', 'a338', 'a339', 'a342', 'a343', 'a345', 'a346', 'a359', 'a35k', 'a388'] },
+    { id: 'mdd', name: 'McDonnell Douglas & classics', ids: ['dc9', 'md82', 'md83', 'md87', 'dc8', 'cv990', 'md90', 'dc10', 'l1011', 'il62', 'md11'] },
+    { id: 'regional', name: 'Regional & classic', ids: ['crj2', 'crj7', 'f70', 'f100', 'crj9', 'crj1000', 'tu134', 'tu154', 'yak42', 'vc10'] },
+    { id: 'world', name: 'China & Russia', ids: ['c919', 'arj21', 'mc21', 'ssj100', 'tu204', 'il86', 'il96'] },
     { id: 'water', name: 'Floatplanes', ids: ['pa28f', 'c182f', 'c206f', 'dhc2f', 'dhc3f', 'pc6f'] },
     { id: 'embraer', name: 'Embraer', ids: ['erj145', 'e170', 'e175', 'e190', 'e290', 'e195'] },
     { id: 'dehavilland', name: 'de Havilland', ids: ['dhc2', 'dhc3', 'dhc6', 'comet4', 'trident'] },
@@ -14285,9 +14319,9 @@ SIM.Game = (function () {
       const el = document.createElement('div'); el.id = 'chooser';
       el.innerHTML = '<div class="wrap" role="dialog" aria-labelledby="chooseH"><header class="hero"><span class="mark">Erika</span><h1 id="chooseH">Choose your game</h1><p class="sub">Each game has its own access code.</p></header><div class="cards">'
         + '<button class="card fly" type="button" data-g="fly"><span class="art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></span><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></span>'
-        + '<span class="kick">Flight simulator</span><b>Erika <i>Air</i></b><span class="desc">Airliners, bush planes, fighters and helicopters, with real physics.</span><span class="meta">180+ aircraft &middot; 51 airfields</span><em>Fly &rsaquo;</em></button>'
+        + '<span class="kick">Flight simulator</span><b>Erika <i>Air</i></b><span class="desc">Airliners, bush planes, fighters and helicopters, with real physics.</span><span class="meta">190+ aircraft &middot; 51 airfields</span><em>Fly &rsaquo;</em></button>'
         + '<a class="card race" href="gp.html"><span class="art" aria-hidden="true"><svg viewBox="0 2.5 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M.8 16.6v-1.9c0-.6.4-1.1 1-1.3L6 12.3l3.6-2.1c.7-.4 1.5-.6 2.3-.6h3.3c1 0 1.9.4 2.6 1.1l1.7 1.8 3 .7c.6.1 1 .6 1 1.2v2.2h-1.7a2.9 2.9 0 0 0-5.6 0H9.1a2.9 2.9 0 0 0-5.6 0zM10.3 12l1.7-1c.3-.2.7-.3 1.1-.3h2.1c.6 0 1.1.2 1.5.6l.8.7z"/><path fill="currentColor" d="M19.6 10.6h3.6v.9h-1.4l-.5 1.4h-.7l.3-1.4h-1.3z"/><path fill="currentColor" d="M.8 15.2h3.4v.7H.8z" opacity=".55"/><circle cx="6.3" cy="17.2" r="2.2" fill="currentColor"/><circle cx="17.7" cy="17.2" r="2.2" fill="currentColor"/><circle cx="6.3" cy="17.2" r=".85" fill="#0b0e13"/><circle cx="17.7" cy="17.2" r=".85" fill="#0b0e13"/></svg></span><span class="ico"><svg viewBox="0 2.5 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M.8 16.6v-1.9c0-.6.4-1.1 1-1.3L6 12.3l3.6-2.1c.7-.4 1.5-.6 2.3-.6h3.3c1 0 1.9.4 2.6 1.1l1.7 1.8 3 .7c.6.1 1 .6 1 1.2v2.2h-1.7a2.9 2.9 0 0 0-5.6 0H9.1a2.9 2.9 0 0 0-5.6 0zM10.3 12l1.7-1c.3-.2.7-.3 1.1-.3h2.1c.6 0 1.1.2 1.5.6l.8.7z"/><path fill="currentColor" d="M19.6 10.6h3.6v.9h-1.4l-.5 1.4h-.7l.3-1.4h-1.3z"/><path fill="currentColor" d="M.8 15.2h3.4v.7H.8z" opacity=".55"/><circle cx="6.3" cy="17.2" r="2.2" fill="currentColor"/><circle cx="17.7" cy="17.2" r="2.2" fill="currentColor"/><circle cx="6.3" cy="17.2" r=".85" fill="#0b0e13"/><circle cx="17.7" cy="17.2" r=".85" fill="#0b0e13"/></svg></span>'
-        + '<span class="kick">Circuit racing</span><b>Erika <i>Racing</i></b><span class="desc">Road cars, GT3 and F1 on world circuits. Career, teams and online races.</span><span class="meta">42 cars &middot; 41 circuits</span><em>Race &rsaquo;</em></a>'
+        + '<span class="kick">Circuit racing</span><b>Erika <i>Racing</i></b><span class="desc">Road cars, GT3 and F1 on world circuits. Career, teams and online races.</span><span class="meta">49 cars &middot; 41 circuits</span><em>Race &rsaquo;</em></a>'
         + '<a class="card boat" href="boat.html"><span class="art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h15.5l2.5-3H8.5L6 9H4z"/><path d="M9 11V8.5h5L15.5 11"/><path d="M2 18c1.7 0 1.7-1 3.3-1s1.7 1 3.4 1 1.6-1 3.3-1 1.7 1 3.3 1 1.7-1 3.4-1 1.6 1 3.3 1"/></svg></span><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h15.5l2.5-3H8.5L6 9H4z"/><path d="M9 11V8.5h5L15.5 11"/><path d="M2 18c1.7 0 1.7-1 3.3-1s1.7 1 3.4 1 1.6-1 3.3-1 1.7 1 3.3 1 1.7-1 3.4-1 1.6 1 3.3 1"/></svg></span>'
         + '<span class="kick">Powerboat racing</span><b>Erika <i>Boats</i></b><span class="desc">From jet skis to 270-knot record hydroplanes, round buoy courses.</span><span class="meta">65 boats &middot; 14 courses</span><em>Race boats &rsaquo;</em></a>'
         + '<a class="card moto" href="moto.html"><span class="art" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.5 9.2h4.2l2.3 2.6h2.3c.7 0 1.2.5 1.2 1.1l-.6 1.4-3.3-.9-2.6 2.8H9l-1.6-2.4H4.6l1.3-2.2h2.4z"/><path fill="currentColor" d="M12.4 6.4c1-.4 2.1 0 2.4.9l.3 1.3-3.2.2z"/><circle cx="5.6" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18.6" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.5 9.2h4.2l2.3 2.6h2.3c.7 0 1.2.5 1.2 1.1l-.6 1.4-3.3-.9-2.6 2.8H9l-1.6-2.4H4.6l1.3-2.2h2.4z"/><path fill="currentColor" d="M12.4 6.4c1-.4 2.1 0 2.4.9l.3 1.3-3.2.2z"/><circle cx="5.6" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18.6" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>'
