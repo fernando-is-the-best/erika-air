@@ -231,11 +231,19 @@ const TRAINS = {
   electric: { name: 'InterCity 225', cls: 'Electric express', kind: 'electric', P: 4.7e6, F0: 260e3, m: 470e3, vmax: 225, brake: .9, emerg: 1.2, delay: 1.2, cars: ['elLoco', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'dvt'], col: ['#c8102e', '#f4f4f2'], price: 12000, rank: 3, blurb: 'A 6,300 hp electric locomotive with eight coaches and a driving van: 225 km/h on the main line' },
   bullet: { name: 'Bullet 300', cls: 'High speed', kind: 'electric', P: 9e6, F0: 300e3, m: 420e3, vmax: 300, brake: 1.0, emerg: 1.3, delay: .8, cars: ['bulletA', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletR'], col: ['#f4f4f2', '#1d4fd6'], price: 22000, rank: 4, blurb: 'An eight-car high-speed train: 12,000 hp and 300 km/h. Plan your braking two kilometres ahead' },
   maglev: { name: 'Maglev 600', cls: 'Maglev', kind: 'maglev', P: 24e6, F0: 400e3, m: 300e3, vmax: 600, brake: 1.2, emerg: 1.5, delay: .3, cars: ['magA', 'magB', 'magB', 'magB', 'magR'], col: ['#e9eef3', '#7b3fe4'], price: 45000, rank: 5, blurb: 'Magnetic levitation: no wheels, no friction, 600 km/h. Give it the High Speed line' },
+  tank: { name: 'Tank Engine 0-6-0', cls: 'Steam branch', kind: 'steam', P: .45e6, F0: 90e3, m: 140e3, vmax: 72, brake: .6, emerg: .85, delay: 1.8, cars: ['tank', 'coach', 'coach', 'coach'], col: ['#1d4fd6', '#f2c418'], price: 2000, rank: 0, blurb: 'A little 0-6-0 tank engine with three coaches: no tender, water in the side tanks, 70 km/h and a cheerful whistle' },
+  railbus: { name: 'Railbus', cls: 'Diesel railcar', kind: 'diesel', P: .3e6, F0: 60e3, m: 40e3, vmax: 120, brake: 1.0, emerg: 1.3, delay: .6, cars: ['dmu'], col: ['#2bb673', '#f4f4f2'], price: 1200, rank: 0, blurb: 'One car, two cabs and a 400 hp diesel under the floor: the branch-line workhorse' },
+  doubledeck: { name: 'Double-Deck Commuter', cls: 'Double-deck EMU', kind: 'electric', P: 2.2e6, F0: 220e3, m: 250e3, vmax: 160, brake: 1.0, emerg: 1.3, delay: .7, cars: ['ddA', 'ddB', 'ddB', 'ddR'], col: ['#f4f4f2', '#c8102e'], price: 5000, rank: 1, blurb: 'Four double-deck coaches with seats for 600: heavy, tall and quick off the mark' },
+  hydrogen: { name: 'Hydrogen Regional', cls: 'Hydrogen', kind: 'electric', noPanto: true, P: 1.0e6, F0: 135e3, m: 110e3, vmax: 140, brake: 1.0, emerg: 1.3, delay: .6, cars: ['emuA', 'emuR'], col: ['#4fb3e8', '#f4f4f2'], price: 5500, rank: 2, blurb: 'A two-car train that makes its own electricity from hydrogen: no wires, no smoke, only water out of the exhaust' },
+  mountainfreight: { name: 'Mountain Freight', cls: 'Freight', kind: 'diesel', P: 5.8e6, F0: 760e3, m: 1900e3, vmax: 100, brake: .38, emerg: .6, delay: 5, cars: ['frLoco', 'frLoco', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon'], col: ['#c8102e', '#10161c'], price: 11000, rank: 3, freight: true, blurb: 'Two 3,900 hp diesels on the front of 1,900 tonnes: built to drag a freight train over a mountain pass' },
+  sleeper: { name: 'Night Sleeper', cls: 'Electric sleeper', kind: 'electric', P: 5.6e6, F0: 300e3, m: 700e3, vmax: 200, brake: .8, emerg: 1.1, delay: 1.6, cars: ['elLoco', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach'], col: ['#0f2a5a', '#c9a35a'], price: 14000, rank: 3, blurb: 'An electric locomotive and ten sleeping cars: 700 tonnes, 200 km/h, and everyone is asleep, so brake gently' },
+  tilting: { name: 'Tilting Express', cls: 'Tilting EMU', kind: 'electric', tilt: true, P: 5.1e6, F0: 220e3, m: 460e3, vmax: 250, brake: .95, emerg: 1.25, delay: .8, cars: ['emuA', 'emuB', 'emuB', 'emuB', 'emuB', 'emuB', 'emuB', 'emuB', 'emuR'], col: ['#3a3f46', '#c8102e'], price: 16000, rank: 3, blurb: 'A nine-car train that leans into the bends: it may take curves 20% faster than the signs, up to the line speed' },
+  bullet360: { name: 'Bullet 360', cls: 'High speed', kind: 'electric', P: 13e6, F0: 330e3, m: 400e3, vmax: 360, brake: 1.05, emerg: 1.35, delay: .8, cars: ['bulletA', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletR'], col: ['#e9eef3', '#7b3fe4'], price: 32000, rank: 5, blurb: 'The newest high-speed train: 17,000 hp and 360 km/h, faster than the line allows. Wait for the 300 boards' },
   erika: { name: 'Erika Express', cls: 'Erika', kind: 'maglev', P: 30e6, F0: 500e3, m: 300e3, vmax: 500, brake: 1.4, emerg: 2, delay: .3, cars: ['magA', 'magB', 'magB', 'magR'], col: ['#d4af37', '#10161c'], price: 0, rank: 0, music: true, fun: true, blurb: 'The gold express: 500 km/h, it plays the Erika song, and it is free. Its runs pay no prizes' },
 };
 const TRAIN_ORDER = Object.keys(TRAINS);
 // car lengths (m) and whether the car is powered (for the sound) or has a cab
-const CAR = { shunter: 10, tramA: 11, tramB: 9, tramC: 11, emuA: 20, emuB: 20, emuR: 20, metroA: 18, metroB: 18, metroR: 18, steam: 22, tender: 12, coach: 23, frLoco: 22, wagon: 16, hstP: 18, hstR: 18, elLoco: 19, dvt: 18, bulletA: 26, bulletB: 25, bulletR: 26, magA: 28, magB: 25, magR: 28 };
+const CAR = { tank: 11, dmu: 22, ddA: 26, ddB: 26, ddR: 26, shunter: 10, tramA: 11, tramB: 9, tramC: 11, emuA: 20, emuB: 20, emuR: 20, metroA: 18, metroB: 18, metroR: 18, steam: 22, tender: 12, coach: 23, frLoco: 22, wagon: 16, hstP: 18, hstR: 18, elLoco: 19, dvt: 18, bulletA: 26, bulletB: 25, bulletR: 26, magA: 28, magB: 25, magR: 28 };
 function spec(id) {
   const T = Object.assign({ id }, TRAINS[id] || TRAINS.shunter);
   T.L = T.cars.reduce((a, c) => a + CAR[c] + .8, 0); const v = T.vmax / KMH;
@@ -321,7 +329,7 @@ function trackPos(Ln, s, off) {
 }
 const limAt = (Ln, s) => Ln.lim[clamp(Math.round(s / DS), 0, Ln.N - 1)];
 // the lowest limit under the whole train
-function limUnder(Ln, s, L) { let m = 1e9; for (let q = s; q >= s - L; q -= DS * 2) m = Math.min(m, limAt(Ln, q)); return m; }
+function limUnder(Ln, s, L, T) { let m = 1e9; for (let q = s; q >= s - L; q -= DS * 2) m = Math.min(m, limAt(Ln, q)); return T && T.tilt && m < Ln.D.line ? Math.min(Ln.D.line, Math.floor(m * 1.2 / 10) * 10) : m; }   // a tilting train may take bends 20% faster
 
 // ------------------------------------------------------------------ the booked timetable: a careful driver's run (95% of the limit, 70% braking),
 // worked out once per line and train
@@ -560,6 +568,7 @@ function liveryTex(T, kind) {
   return canvasTex(512, 128, (x, w, h) => {
     x.fillStyle = c0; x.fillRect(0, 0, w, h);
     if (kind === 'wagon') { x.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < w; i += 24) x.fillRect(i, 0, 3, h); return; }
+    if (kind === 'dd') { for (const y of [14, 66]) { x.fillStyle = '#1b222b'; x.fillRect(0, y, w, 34); for (let i = 8; i < w; i += 30) { x.fillStyle = '#3a4a5c'; x.fillRect(i, y + 3, 24, 28); } } x.fillStyle = c1; x.fillRect(0, 104, w, 10); for (const dd of [.3, .7]) { x.fillStyle = c1; x.fillRect(dd * w - 14, 60, 28, 68); } return; }
     if (kind === 'steamcoach') { x.fillStyle = '#5b1f1a'; x.fillRect(0, 0, w, h); x.fillStyle = '#e8dcc0'; x.fillRect(0, 22, w, 44); for (let i = 10; i < w; i += 40) { x.fillStyle = '#2a2f36'; x.fillRect(i, 28, 30, 32); } x.fillStyle = '#c9a35a'; x.fillRect(0, 70, w, 4); return; }
     x.fillStyle = c1; x.fillRect(0, 84, w, 12);   // the stripe
     x.fillStyle = '#1b222b'; x.fillRect(0, 26, w, 40);   // window band
@@ -583,12 +592,14 @@ function makeCar(T, type, lead) {
   const cabEnd = (zf, w, y0, h) => { const ws = add(new THREE.BoxGeometry(w * .86, h * .3, .08), glass, 0, y0 + h * .68, zf + .02); box(w * .3, .16, .06, new THREE.MeshBasicMaterial({ color: 0xfff6d8, toneMapped: false }), 0, y0 + .5, zf + .04);
     for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfffbe8, toneMapped: false }), sd * w * .33, y0 + .55, zf + .02); return ws; };
   const half = L / 2;
-  if (/^(coach|emuA|emuB|emuR|metroA|metroB|metroR|dvt|tramA|tramB|tramC)$/.test(type)) {
-    const tram = /^tram/.test(type), metro = /^metro/.test(type), kind = type === 'coach' ? (T.kind === 'steam' ? 'steamcoach' : 'coach') : tram ? 'tram' : metro ? 'metro' : 'emu';
-    const y0 = tram ? .35 : 1.15, h = tram ? 2.75 : 2.85, w = tram ? 2.55 : 2.85;
+  if (/^(coach|emuA|emuB|emuR|metroA|metroB|metroR|dvt|tramA|tramB|tramC|dmu|ddA|ddB|ddR)$/.test(type)) {
+    const tram = /^tram/.test(type), metro = /^metro/.test(type), dd = /^dd/.test(type), kind = type === 'coach' ? (T.kind === 'steam' ? 'steamcoach' : 'coach') : tram ? 'tram' : metro ? 'metro' : dd ? 'dd' : 'emu';
+    const y0 = tram ? .35 : dd ? .6 : 1.15, h = tram ? 2.75 : dd ? 3.95 : 2.85, w = tram ? 2.55 : 2.85;   // a double-deck coach sits low between its bogies
     sideBody(kind, y0, h, w, L - .2); roof(w, y0 + h, L - .2, 0, T.kind === 'steam' ? dark : trim);
     if (!tram) { bogie(-half + 3.2); bogie(half - 3.2); } else { for (const z of [-half + 2.2, half - 2.2]) { box(2.2, .4, 2, dark, 0, .4, z); for (const sd of [-1, 1]) { const ww = add(new THREE.CylinderGeometry(.34, .34, .12, 14), metal, sd * .7, .34, z); ww.rotation.z = Math.PI / 2; wheels.push(ww); } } }
-    if (T.kind === 'electric' && (type === 'emuB' || type === 'tramB' || type === 'metroB')) pantograph(0);
+    if (T.kind === 'electric' && !T.noPanto && (type === 'emuB' || type === 'tramB' || type === 'metroB' || type === 'ddB')) pantograph(dd ? -2 : 0);
+    if (type === 'dmu') { for (const f of [1, -1]) cabEnd(f * (half - .1), w, y0, h).rotation.y = f > 0 ? 0 : Math.PI; box(.5, .5, 1.2, dark, 0, y0 + h + .45, -half * .4); g.userData.chimney = new THREE.Vector3(0, y0 + h + .8, -half * .4); }
+    if (T.noPanto && type === 'emuA') { box(2.2, .5, 5, new THREE.MeshStandardMaterial({ color: 0xdfe6ec, roughness: .4 }), 0, y0 + h + .35, -2); }   // hydrogen tanks on the roof
     if (/A$|R$/.test(type) || type === 'dvt' || type === 'tramC') { const front = type.endsWith('R') || type === 'tramC' ? -1 : 1; if ((front > 0) === lead || type === 'dvt') { const ws = cabEnd(front * (half - .1), w, y0, h); ws.rotation.y = front > 0 ? 0 : Math.PI; } }
   } else if (type === 'shunter') {
     box(2.6, .4, L, dark, 0, 1.2, 0); box(2.0, 1.9, L * .62, paint, 0, 2.35, -L * .14); const cab = sideBody('loco', 1.4, 2.6, 2.7, 3.3, half - 1.8); cabEnd(half - .14, 2.7, 1.4, 2.6);
@@ -605,6 +616,14 @@ function makeCar(T, type, lead) {
     const rods = [-1, 1].map((sd) => box(.08, .14, 4.4, metal, sd * .9, .95, .2));
     for (const sd of [-1, 1]) cyl(.32, 1.6, dark, sd * 1.0, 1.25, half - 2.2);
     g.userData.rods = rods; g.userData.chimney = new THREE.Vector3(0, 4.7, half - 2.6);
+  } else if (type === 'tank') {
+    // a tank engine: water tanks either side of the boiler, a coal bunker behind the cab, six coupled wheels, no tender
+    box(2.5, .35, L - .6, dark, 0, 1.25, 0); cyl(.82, 6.2, paint, 0, 2.45, 1.2); cyl(.86, 1.4, dark, 0, 2.45, half - 1.4);
+    for (const sd of [-1, 1]) box(.7, 1.5, 5.2, paint, sd * 1.05, 2.25, 1.1);
+    add(new THREE.CylinderGeometry(.26, .32, .9, 12), dark, 0, 3.6, half - 1.4); add(new THREE.SphereGeometry(.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), trim, 0, 3.27, 1.2);
+    box(2.6, 2.5, 2.6, paint, 0, 2.6, -half + 2.6); box(2.8, .18, 3.0, dark, 0, 3.95, -half + 2.6); box(2.2, 1.4, 1.2, paint, 0, 2.1, -half + .8); box(1.6, .7, .08, glass, 0, 3.2, -half + 3.92);
+    for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) { const wv = add(new THREE.CylinderGeometry(.68, .68, .15, 20), metal, sd * .76, .68, -1.5 + k * 1.75); wv.rotation.z = Math.PI / 2; wheels.push(wv); }
+    g.userData.rods = [-1, 1].map((sd) => box(.08, .12, 3.7, metal, sd * .88, .68, .25)); g.userData.chimney = new THREE.Vector3(0, 4.05, half - 1.4);
   } else if (type === 'tender') {
     box(2.7, 2.3, L - .6, paint, 0, 2.55, 0); box(2.4, .35, L - .4, dark, 0, 3.8, 0); box(2.2, .5, L - 2, new THREE.MeshLambertMaterial({ color: 0x111111 }), 0, 4.1, -.3); bogie(-half + 2.6, .5, 2); bogie(half - 2.6, .5, 2);
   } else if (type === 'frLoco' || type === 'elLoco' || type === 'hstP' || type === 'hstR') {
@@ -720,6 +739,14 @@ const SERVICES = [
   { id: 'dieseldash', name: 'Diesel Dash', line: 'highspeed', from: 0, to: 1, trains: ['diesel'], rank: 3, pay: 2200, tod: 'dusk' },
   { id: 'hs1', name: 'High Speed One', line: 'highspeed', from: 0, to: 2, trains: ['bullet'], rank: 4, pay: 3200, tod: 'day' },
   { id: 'maglevopen', name: 'Maglev Opening Day', line: 'maglevway', from: 0, to: 2, trains: ['maglev'], rank: 5, pay: 4600, tod: 'day' },
+  { id: 'branchsteam', name: 'Branch Line Steam', line: 'valley', from: 0, to: 2, trains: ['tank'], rank: 0, pay: 380, tod: 'day' },
+  { id: 'railbusrun', name: 'The Railbus', line: 'valley', from: 0, to: 4, trains: ['railbus'], rank: 0, pay: 420, tod: 'dusk' },
+  { id: 'ddrush', name: 'Double-Deck Rush Hour', line: 'valley', from: 0, to: 4, trains: ['doubledeck'], rank: 1, pay: 650, tod: 'day' },
+  { id: 'hydrogenpass', name: 'Hydrogen Over the Pass', line: 'alps', from: 0, to: 2, trains: ['hydrogen'], rank: 2, pay: 1100, tod: 'day' },
+  { id: 'mountainfreight', name: 'Freight Over the Mountain', line: 'alps', from: 0, to: 4, trains: ['mountainfreight'], rank: 3, pay: 2100, tod: 'dusk' },
+  { id: 'tiltcoast', name: 'Tilting Along the Coast', line: 'coast', from: 0, to: 4, trains: ['tilting'], rank: 3, pay: 2300, tod: 'day' },
+  { id: 'nightsleeper', name: 'The Night Sleeper', line: 'highspeed', from: 0, to: 2, trains: ['sleeper'], rank: 3, pay: 2600, tod: 'night' },
+  { id: 'bullet360', name: 'Bullet 360 Record Run', line: 'highspeed', from: 0, to: 2, trains: ['bullet360'], rank: 5, pay: 4000, tod: 'dusk' },
   { id: 'erikaexpress', name: 'Erika Express', line: 'maglevway', from: 0, to: 2, trains: ['erika'], rank: 0, pay: 0, tod: 'dusk', fun: true },
 ];
 const Cr = {
@@ -852,6 +879,7 @@ const Game = {
     this.tr = { s: st0.s, v: 0, notch: -7, trac: 0, brk: T.brake, doors: false, acc: 0 };
     // some block signals are held at red for traffic ahead (not on the high-speed lines, where trains run on cab signalling)
     this.sig = Ln.sigs.map((g) => ({ held: Ln.D.line <= 200 && !g.start && g.s > st0.s + 1400 && g.s < Ln.stations[b].s - 600 && r() < .22, cleared: false, clearAt: null }));
+    this.smoke.list = [];   // no smoke left over from the last run
     this.cars = makeTrain(T); this.cars.forEach((m) => R3.world.add(m)); this.ai = []; this.nextAI = st0.s + 1200 + r() * 2500; this.rng = r;
     this.fillWorld(st0.s); placeTrain(this.cars, Ln, st0.s, TRACK_OFF, 1);
     this.mode = 'run'; this.paused = false; this.tok++; this.camMode = 0; this.cp = null;
@@ -908,7 +936,7 @@ const Game = {
   rules(dt) {
     const R = this.run, P = this.tr, T = R.T, Ln = this.Ln, kmh = P.v * KMH;
     // speed limits
-    const lim = limUnder(Ln, P.s, T.L), over = kmh - Math.min(lim, T.vmax + 2);
+    const lim = limUnder(Ln, P.s, T.L, T), over = kmh - Math.min(lim, T.vmax + 2);
     if (over > 3) { R.speedT += dt; R.points -= (over > 20 ? 18 : 5) * dt; this.note('over', 'Overspeed', 'The limit is ' + lim + ' km/h', 1.4); }
     // comfort: hard braking that is not an emergency
     R.harshCool -= dt; if (P.notch !== -8 && -P.acc > 1.45 && P.v > 1 && R.harshCool <= 0) { R.harsh++; R.points -= 20; R.harshCool = 4; this.note('harsh', 'Harsh braking', 'Your passengers fell over', 1.6); }
@@ -1000,7 +1028,7 @@ const Game = {
     const f = trackPos(Ln, P.s, TRACK_OFF), ahead = trackPos(Ln, P.s + 60, TRACK_OFF), steam = T.kind === 'steam';
     const cabHide = this.camMode === 0 && !steam; lead.visible = !cabHide;
     if (this.camMode === 0) {
-      if (steam) { const c0 = new THREE.Vector3(.75, 3.55, -CAR.steam / 2 + 2.6).applyMatrix4(lead.matrixWorld); cam.position.copy(c0); const tgt = trackPos(Ln, P.s + 70, TRACK_OFF); cam.lookAt(tgt.x - Math.sin(tgt.h) * .8, tgt.y + 2.2, tgt.z + Math.cos(tgt.h) * .8); }
+      if (steam) { const tk = lead.userData.type === 'tank', c0 = new THREE.Vector3(tk ? .6 : .75, tk ? 3.25 : 3.55, -lead.userData.len / 2 + (tk ? 2.0 : 2.6)).applyMatrix4(lead.matrixWorld); cam.position.copy(c0); const tgt = trackPos(Ln, P.s + 70, TRACK_OFF); cam.lookAt(tgt.x - Math.sin(tgt.h) * .8, tgt.y + 2.2, tgt.z + Math.cos(tgt.h) * .8); }
       else { const L = lead.userData.len, eye = new THREE.Vector3(-.45, T.cars[0].startsWith('tram') ? 2.35 : 3.05, L / 2 - (T.cars[0].startsWith('mag') || T.cars[0].startsWith('bullet') ? 6.5 : 1.9)).applyMatrix4(lead.matrixWorld); cam.position.copy(eye); cam.lookAt(ahead.x, ahead.y + 1.4, ahead.z); }
       cam.fov = 62; cam.near = .1;
     } else if (this.camMode === 1) {
@@ -1041,7 +1069,7 @@ const Game = {
   hud(dt, live) {
     const R = this.run, P = this.tr, T = R.T, Ln = this.Ln, kmh = P.v * KMH;
     this._ht = (this._ht || 0) - dt; const slow = this._ht <= 0; if (slow) this._ht = .1;
-    const lim = Math.min(limUnder(Ln, P.s, T.L), 999);
+    const lim = Math.min(limUnder(Ln, P.s, T.L, T), 999);
     if (slow) {
       // next stop
       if (!R.free && R.ns <= R.b) { const st = Ln.stations[R.ns], d = st.s - P.s, eta = R.booked[R.ns - R.a], late = R.t - eta;
