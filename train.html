@@ -221,29 +221,50 @@ const KMH = 3.6, G0 = 9.81;
 // braking (m/s2), emerg: emergency braking, delay: how long the air brakes take to apply along the train (s), kind: sound and cab,
 // cars: the vehicles from the front, price in credits, rank: the career rank needed to buy it
 const TRAINS = {
-  shunter: { name: 'Yard Shunter', cls: 'Diesel shunter', kind: 'diesel', P: .3e6, F0: 140e3, m: 50e3, vmax: 54, brake: .8, emerg: 1.1, delay: .8, cars: ['shunter'], col: ['#ffcc00', '#1d2228'], price: 0, rank: 0, blurb: 'A 400 hp yard shunter: slow, strong and simple. Everyone starts here' },
-  tram: { name: 'City Tram', cls: 'Tram', kind: 'electric', P: .54e6, F0: 80e3, m: 42e3, vmax: 70, brake: 1.3, emerg: 2.6, delay: .3, cars: ['tramA', 'tramB', 'tramC'], col: ['#e8312f', '#f4f4f2'], price: 1500, rank: 0, short: true, blurb: 'A three-section low-floor tram: quick away from every stop, and magnetic track brakes for emergencies' },
-  commuter: { name: 'Electric Commuter', cls: 'EMU', kind: 'electric', P: 1.6e6, F0: 160e3, m: 165e3, vmax: 120, brake: 1.0, emerg: 1.3, delay: .6, cars: ['emuA', 'emuB', 'emuB', 'emuR'], col: ['#1d4fd6', '#f4f4f2'], price: 3000, rank: 1, blurb: 'A four-car electric multiple unit: motors under every coach, built for stopping trains' },
-  metro: { name: 'Metro Six', cls: 'Metro', kind: 'electric', P: 2.4e6, F0: 210e3, m: 210e3, vmax: 90, brake: 1.2, emerg: 1.5, delay: .4, cars: ['metroA', 'metroB', 'metroB', 'metroB', 'metroB', 'metroR'], col: ['#f4f4f2', '#00a19a'], price: 4000, rank: 1, short: true, blurb: 'A six-car metro train: stations a kilometre apart, and the doors open every minute' },
-  steam: { name: 'Pacific 4-6-2', cls: 'Steam express', kind: 'steam', P: 1.6e6, F0: 160e3, m: 445e3, vmax: 160, brake: .6, emerg: .9, delay: 2.5, cars: ['steam', 'tender', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach'], col: ['#0f5a3a', '#c9a35a'], price: 6000, rank: 2, blurb: 'A 1930s express steam locomotive with six coaches: 2,000 hp of fire and steam, 100 mph and a whistle' },
-  freight: { name: 'Heavy Freight', cls: 'Freight', kind: 'diesel', P: 2.9e6, F0: 400e3, m: 2400e3, vmax: 100, brake: .35, emerg: .55, delay: 6, cars: ['frLoco', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon'], col: ['#e8762b', '#1d2228'], price: 7000, rank: 2, freight: true, blurb: '2,400 tonnes behind one 3,900 hp diesel: takes a kilometre to stop, and a lot of patience to start' },
-  diesel: { name: 'InterCity 125', cls: 'Diesel express', kind: 'diesel', P: 2.8e6, F0: 200e3, m: 430e3, vmax: 200, brake: .9, emerg: 1.2, delay: 1.2, cars: ['hstP', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'hstR'], col: ['#ffd400', '#1d4fd6'], price: 9000, rank: 2, blurb: 'A power car at each end, 2 x 2,250 hp: the fastest diesel train in the world, 200 km/h' },
-  electric: { name: 'InterCity 225', cls: 'Electric express', kind: 'electric', P: 4.7e6, F0: 260e3, m: 470e3, vmax: 225, brake: .9, emerg: 1.2, delay: 1.2, cars: ['elLoco', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'dvt'], col: ['#c8102e', '#f4f4f2'], price: 12000, rank: 3, blurb: 'A 6,300 hp electric locomotive with eight coaches and a driving van: 225 km/h on the main line' },
-  bullet: { name: 'Bullet 300', cls: 'High speed', kind: 'electric', P: 9e6, F0: 300e3, m: 420e3, vmax: 300, brake: 1.0, emerg: 1.3, delay: .8, cars: ['bulletA', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletR'], col: ['#f4f4f2', '#1d4fd6'], price: 22000, rank: 4, blurb: 'An eight-car high-speed train: 12,000 hp and 300 km/h. Plan your braking two kilometres ahead' },
-  maglev: { name: 'Maglev 600', cls: 'Maglev', kind: 'maglev', P: 24e6, F0: 400e3, m: 300e3, vmax: 600, brake: 1.2, emerg: 1.5, delay: .3, cars: ['magA', 'magB', 'magB', 'magB', 'magR'], col: ['#e9eef3', '#7b3fe4'], price: 45000, rank: 5, blurb: 'Magnetic levitation: no wheels, no friction, 600 km/h. Give it the High Speed line' },
-  tank: { name: 'Tank Engine 0-6-0', cls: 'Steam branch', kind: 'steam', P: .45e6, F0: 90e3, m: 140e3, vmax: 72, brake: .6, emerg: .85, delay: 1.8, cars: ['tank', 'coach', 'coach', 'coach'], col: ['#1d4fd6', '#f2c418'], price: 2000, rank: 0, blurb: 'A little 0-6-0 tank engine with three coaches: no tender, water in the side tanks, 70 km/h and a cheerful whistle' },
-  railbus: { name: 'Railbus', cls: 'Diesel railcar', kind: 'diesel', P: .3e6, F0: 60e3, m: 40e3, vmax: 120, brake: 1.0, emerg: 1.3, delay: .6, cars: ['dmu'], col: ['#2bb673', '#f4f4f2'], price: 1200, rank: 0, blurb: 'One car, two cabs and a 400 hp diesel under the floor: the branch-line workhorse' },
-  doubledeck: { name: 'Double-Deck Commuter', cls: 'Double-deck EMU', kind: 'electric', P: 2.2e6, F0: 220e3, m: 250e3, vmax: 160, brake: 1.0, emerg: 1.3, delay: .7, cars: ['ddA', 'ddB', 'ddB', 'ddR'], col: ['#f4f4f2', '#c8102e'], price: 5000, rank: 1, blurb: 'Four double-deck coaches with seats for 600: heavy, tall and quick off the mark' },
-  hydrogen: { name: 'Hydrogen Regional', cls: 'Hydrogen', kind: 'electric', noPanto: true, P: 1.0e6, F0: 135e3, m: 110e3, vmax: 140, brake: 1.0, emerg: 1.3, delay: .6, cars: ['emuA', 'emuR'], col: ['#4fb3e8', '#f4f4f2'], price: 5500, rank: 2, blurb: 'A two-car train that makes its own electricity from hydrogen: no wires, no smoke, only water out of the exhaust' },
-  mountainfreight: { name: 'Mountain Freight', cls: 'Freight', kind: 'diesel', P: 5.8e6, F0: 760e3, m: 1900e3, vmax: 100, brake: .38, emerg: .6, delay: 5, cars: ['frLoco', 'frLoco', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon'], col: ['#c8102e', '#10161c'], price: 11000, rank: 3, freight: true, blurb: 'Two 3,900 hp diesels on the front of 1,900 tonnes: built to drag a freight train over a mountain pass' },
-  sleeper: { name: 'Night Sleeper', cls: 'Electric sleeper', kind: 'electric', P: 5.6e6, F0: 300e3, m: 700e3, vmax: 200, brake: .8, emerg: 1.1, delay: 1.6, cars: ['elLoco', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach'], col: ['#0f2a5a', '#c9a35a'], price: 14000, rank: 3, blurb: 'An electric locomotive and ten sleeping cars: 700 tonnes, 200 km/h, and everyone is asleep, so brake gently' },
-  tilting: { name: 'Tilting Express', cls: 'Tilting EMU', kind: 'electric', tilt: true, P: 5.1e6, F0: 220e3, m: 460e3, vmax: 250, brake: .95, emerg: 1.25, delay: .8, cars: ['emuA', 'emuB', 'emuB', 'emuB', 'emuB', 'emuB', 'emuB', 'emuB', 'emuR'], col: ['#3a3f46', '#c8102e'], price: 16000, rank: 3, blurb: 'A nine-car train that leans into the bends: it may take curves 20% faster than the signs, up to the line speed' },
-  bullet360: { name: 'Bullet 360', cls: 'High speed', kind: 'electric', P: 13e6, F0: 330e3, m: 400e3, vmax: 360, brake: 1.05, emerg: 1.35, delay: .8, cars: ['bulletA', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletB', 'bulletR'], col: ['#e9eef3', '#7b3fe4'], price: 32000, rank: 5, blurb: 'The newest high-speed train: 17,000 hp and 360 km/h, faster than the line allows. Wait for the 300 boards' },
-  erika: { name: 'Erika Express', cls: 'Erika', kind: 'maglev', P: 30e6, F0: 500e3, m: 300e3, vmax: 500, brake: 1.4, emerg: 2, delay: .3, cars: ['magA', 'magB', 'magB', 'magR'], col: ['#d4af37', '#10161c'], price: 0, rank: 0, music: true, fun: true, blurb: 'The gold express: 500 km/h, it plays the Erika song, and it is free. Its runs pay no prizes' },
+  // liv: the livery. base, lower (skirt), band (the window band), win (glass), stripe / stripe2, door, front (cab ends: UK trains have yellow fronts),
+  // coach: the livery of the coaches a locomotive pulls. Numbers are the real trains' (power at the rail, weight with its train, top speed)
+  shunter: { name: 'British Rail Class 08', cls: 'Diesel shunter', kind: 'diesel', cabRear: true, P: .26e6, F0: 156e3, m: 50e3, vmax: 24, brake: .8, emerg: 1.1, delay: .8, cars: ['shunter'], col: ['#2c5f3a', '#f2c418'],
+    liv: { base: '#2c5f3a', stripe: '#f2c418' }, price: 0, rank: 0, blurb: 'The UK yard shunter: 350 hp, 50 tonnes, six coupled wheels and a top speed of 15 mph. Nearly a thousand were built and many still work' },
+  railbus: { name: 'British Rail Class 153', cls: 'Diesel railcar', kind: 'diesel', P: .21e6, F0: 50e3, m: 41e3, vmax: 120, brake: 1.0, emerg: 1.3, delay: .6, cars: ['dmu'], col: ['#1d3f8f', '#c9ccd1'],
+    liv: { base: '#c9ccd1', band: '#1d3f8f', lower: '#1d3f8f', stripe: '#4fa3e0', front: '#f2c418', door: '#1d3f8f' }, price: 1200, rank: 0, blurb: 'A single car with a cab at each end and a 285 hp Cummins diesel under the floor: the UK branch-line workhorse, 75 mph' },
+  tank: { name: 'GWR 5700 Pannier Tank', cls: 'Steam branch', kind: 'steam', P: .45e6, F0: 100e3, m: 140e3, vmax: 64, brake: .6, emerg: .85, delay: 1.8, cars: ['tank', 'coach', 'coach', 'coach'], col: ['#1d4f2a', '#c9a35a'],
+    liv: { base: '#1d4f2a', stripe: '#c9a35a', coach: { upper: '#e9dcb8', base: '#5b2e1a', band: '#e9dcb8', win: '#2a2f36', stripe: '#c9a35a' } }, price: 2000, rank: 0, blurb: 'The Great Western\'s 0-6-0 tank engine, its water carried in pannier tanks on top of the boiler, with three chocolate-and-cream coaches' },
+  tram: { name: 'Siemens Combino', cls: 'Tram', kind: 'electric', P: .4e6, F0: 80e3, m: 40e3, vmax: 70, brake: 1.3, emerg: 2.6, delay: .3, cars: ['tramA', 'tramB', 'tramC'], col: ['#c8102e', '#f4f4f2'],
+    liv: { base: '#f4f4f2', lower: '#c8102e', band: '#1b222b', door: '#c8102e', stripe: '#c8102e' }, price: 1500, rank: 0, short: true, blurb: 'A 100% low-floor modular tram: three sections, magnetic track brakes for emergencies and quick away from every stop' },
+  commuter: { name: 'British Rail Class 450 Desiro', cls: 'EMU', kind: 'electric', noPanto: true, P: 2.0e6, F0: 160e3, m: 170e3, vmax: 161, brake: 1.0, emerg: 1.3, delay: .6, cars: ['emuA', 'emuB', 'emuB', 'emuR'], col: ['#1a3b8f', '#d71920'],
+    liv: { base: '#1a3b8f', band: '#0e1a33', stripe: '#d71920', stripe2: '#f7941d', door: '#1a3b8f', front: '#f2c418' }, price: 3000, rank: 1, blurb: 'A four-car Siemens Desiro third-rail unit: 2,700 hp spread under every coach and 100 mph' },
+  metro: { name: 'London Underground S7 Stock', cls: 'Metro', kind: 'electric', P: 2.4e6, F0: 210e3, m: 210e3, vmax: 100, brake: 1.2, emerg: 1.5, delay: .4, cars: ['metroA', 'metroB', 'metroB', 'metroB', 'metroB', 'metroB', 'metroR'], col: ['#f4f4f2', '#003688'],
+    liv: { base: '#f4f4f2', lower: '#003688', band: '#1b222b', door: '#dc241f', front: '#dc241f' }, price: 4000, rank: 1, short: true, blurb: 'The seven-car sub-surface train with walk-through gangways, blue skirts and red doors, built by Bombardier in Derby' },
+  doubledeck: { name: 'NS VIRM double-deck', cls: 'Double-deck EMU', kind: 'electric', P: 1.6e6, F0: 200e3, m: 220e3, vmax: 160, brake: 1.0, emerg: 1.3, delay: .7, cars: ['ddA', 'ddB', 'ddB', 'ddR'], col: ['#ffc917', '#003082'],
+    liv: { base: '#ffc917', lower: '#003082', band: '#1b222b', door: '#ffc917', stripe: '#003082', front: '#ffc917' }, price: 5000, rank: 1, blurb: 'The Dutch Railways double-decker in its yellow and blue: four coaches, two floors, 160 km/h' },
+  hydrogen: { name: 'Alstom Coradia iLint', cls: 'Hydrogen', kind: 'electric', noPanto: true, h2: true, P: .63e6, F0: 90e3, m: 110e3, vmax: 140, brake: 1.0, emerg: 1.3, delay: .6, cars: ['emuA', 'emuR'], col: ['#f4f4f2', '#0d4ea6'],
+    liv: { base: '#f4f4f2', lower: '#0d4ea6', band: '#1b222b', stripe: '#7ac143', door: '#0d4ea6', front: '#f4f4f2' }, price: 5500, rank: 2, blurb: 'The world\'s first hydrogen passenger train: fuel cells on the roof make the electricity, and only water comes out' },
+  steam: { name: 'LNER A3 Flying Scotsman', cls: 'Steam express', kind: 'steam', P: 1.6e6, F0: 146e3, m: 400e3, vmax: 160, brake: .6, emerg: .9, delay: 2.5, cars: ['steam', 'tender', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach'], col: ['#3a8f3c', '#111111'],
+    liv: { base: '#3a8f3c', stripe: '#f4f4f2', coach: { upper: '#9a5b2c', base: '#8a4f24', band: '#9a5b2c', win: '#2a2f36', stripe: '#e8c27a' } }, price: 6000, rank: 2, blurb: 'The most famous steam locomotive in the world: a 4-6-2 Pacific in apple green, the first to reach an official 100 mph, with six teak coaches' },
+  freight: { name: 'British Rail Class 66', cls: 'Freight', kind: 'diesel', P: 2.46e6, F0: 409e3, m: 2100e3, vmax: 120, brake: .35, emerg: .55, delay: 6, cars: ['frLoco', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon'], col: ['#7b1f2b', '#f1b82d'],
+    liv: { base: '#7b1f2b', stripe: '#f1b82d', front: '#f2c418' }, price: 7000, rank: 2, freight: true, blurb: 'A 3,300 hp General Motors diesel in EWS maroon and gold with 2,000 tonnes of containers behind: a kilometre to stop' },
+  diesel: { name: 'InterCity 125 (Class 43 HST)', cls: 'Diesel express', kind: 'diesel', P: 2.8e6, F0: 200e3, m: 430e3, vmax: 200, brake: .9, emerg: 1.2, delay: 1.2, cars: ['hstP', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'hstR'], col: ['#cfccc4', '#c8102e'],
+    liv: { base: '#e3ded2', band: '#3a3c40', stripe: '#c8102e', stripe2: '#f4f4f2', front: '#f2c418', coach: { base: '#e3ded2', band: '#3a3c40', stripe: '#c8102e', stripe2: '#f4f4f2' } }, price: 9000, rank: 2, blurb: 'A Class 43 power car at each end, 2 x 2,250 hp: the fastest diesel train in the world, in InterCity grey with its yellow wedge nose' },
+  electric: { name: 'InterCity 225 (Class 91)', cls: 'Electric express', kind: 'electric', P: 4.7e6, F0: 260e3, m: 500e3, vmax: 225, brake: .9, emerg: 1.2, delay: 1.2, cars: ['elLoco', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'dvt'], col: ['#f2f2f2', '#ce0e2d'],
+    liv: { base: '#f2f2f2', lower: '#ce0e2d', stripe: '#ce0e2d', front: '#ce0e2d', band: '#1b222b', coach: { base: '#f2f2f2', band: '#1b222b', lower: '#ce0e2d', stripe: '#ce0e2d' } }, price: 12000, rank: 3, blurb: 'A 6,300 hp Class 91 with eight Mark 4 coaches and a driving van, in LNER white and red: 140 mph on the East Coast' },
+  tilting: { name: 'Pendolino (Class 390)', cls: 'Tilting EMU', kind: 'electric', tilt: true, P: 5.1e6, F0: 220e3, m: 460e3, vmax: 225, brake: .95, emerg: 1.25, delay: .8, cars: ['pendoA', 'pendoB', 'pendoB', 'pendoB', 'pendoB', 'pendoB', 'pendoB', 'pendoB', 'pendoR'], col: ['#0e4652', '#c6cdd1'],
+    liv: { base: '#0e4652', lower: '#c6cdd1', band: '#0a2329', stripe: '#c6cdd1', door: '#0e4652' }, price: 16000, rank: 3, blurb: 'The nine-car Alstom tilting train of the West Coast in Avanti teal: it leans 8 degrees into bends, so it may take them 20% faster than the signs' },
+  sleeper: { name: 'Caledonian Sleeper (Class 92)', cls: 'Electric sleeper', kind: 'electric', P: 5.0e6, F0: 400e3, m: 580e3, vmax: 140, brake: .8, emerg: 1.1, delay: 1.6, cars: ['c92', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach', 'coach'], col: ['#0e3b43', '#c9a35a'],
+    liv: { base: '#0e3b43', stripe: '#c9a35a', front: '#f2c418', coach: { base: '#123843', band: '#0a2329', stripe: '#c9a35a', win: '#2a3a44' } }, price: 14000, rank: 3, blurb: 'A 6,700 hp Class 92 and ten Mark 5 sleeping cars in midnight teal: London to Scotland overnight, so brake gently' },
+  mountainfreight: { name: 'SBB Re 6/6 (Re 620)', cls: 'Freight', kind: 'electric', P: 7.85e6, F0: 398e3, m: 1700e3, vmax: 100, brake: .38, emerg: .6, delay: 5, cars: ['elLoco6', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon', 'wagon'], col: ['#d40b1e', '#f4f4f2'],
+    liv: { base: '#d40b1e', stripe: '#f4f4f2', front: '#d40b1e' }, price: 11000, rank: 3, freight: true, blurb: 'The Swiss mountain locomotive: six motored axles, 10,500 hp and three bogies, built to haul freight over the Gotthard' },
+  bullet: { name: 'Shinkansen N700 (8 cars)', cls: 'High speed', kind: 'electric', P: 9.76e6, F0: 300e3, m: 360e3, vmax: 300, brake: 1.0, emerg: 1.3, delay: .8, cars: ['n700A', 'n700B', 'n700B', 'n700B', 'n700B', 'n700B', 'n700B', 'n700R'], col: ['#f6f7f8', '#1d4fd6'],
+    liv: { base: '#f6f7f8', band: '#1b222b', stripe: '#1d4fd6', stripe2: '#1d4fd6', door: '#f6f7f8' }, price: 22000, rank: 4, blurb: 'The Japanese bullet train with the long "aero double-wing" nose: white with blue lines, 13,000 hp and 300 km/h' },
+  bullet360: { name: 'CR400AF Fuxing', cls: 'High speed', kind: 'electric', P: 10.14e6, F0: 330e3, m: 456e3, vmax: 350, brake: 1.05, emerg: 1.35, delay: .8, cars: ['crA', 'crB', 'crB', 'crB', 'crB', 'crB', 'crB', 'crR'], col: ['#f4f4f2', '#d81e2b'],
+    liv: { base: '#f4f4f2', band: '#2b3138', stripe: '#d81e2b', stripe2: '#d81e2b', door: '#f4f4f2' }, price: 32000, rank: 5, blurb: 'China\'s Fuxing high-speed train: 13,600 hp, 350 km/h every day, red stripes down a white body. Faster than this line allows' },
+  maglev: { name: 'JR Central L0 Series (SCMaglev)', cls: 'Maglev', kind: 'maglev', P: 24e6, F0: 400e3, m: 300e3, vmax: 600, brake: 1.2, emerg: 1.5, delay: .3, cars: ['l0A', 'l0B', 'l0B', 'l0B', 'l0R'], col: ['#f4f4f2', '#0a4ea3'],
+    liv: { base: '#f4f4f2', lower: '#0a4ea3', band: '#1b222b', stripe: '#0a4ea3' }, price: 45000, rank: 5, blurb: 'The superconducting maglev that set the world record of 603 km/h: a 15 m nose, no wheels at speed and no friction' },
+  erika: { name: 'Erika Express', cls: 'Erika', kind: 'maglev', P: 30e6, F0: 500e3, m: 300e3, vmax: 500, brake: 1.4, emerg: 2, delay: .3, cars: ['magA', 'magB', 'magB', 'magR'], col: ['#d4af37', '#10161c'],
+    liv: { base: '#d4af37', band: '#10161c', stripe: '#10161c' }, price: 0, rank: 0, music: true, fun: true, blurb: 'The gold express: 500 km/h, it plays the Erika song, and it is free. Its runs pay no prizes' },
 };
 const TRAIN_ORDER = Object.keys(TRAINS);
 // car lengths (m) and whether the car is powered (for the sound) or has a cab
-const CAR = { tank: 11, dmu: 22, ddA: 26, ddB: 26, ddR: 26, shunter: 10, tramA: 11, tramB: 9, tramC: 11, emuA: 20, emuB: 20, emuR: 20, metroA: 18, metroB: 18, metroR: 18, steam: 22, tender: 12, coach: 23, frLoco: 22, wagon: 16, hstP: 18, hstR: 18, elLoco: 19, dvt: 18, bulletA: 26, bulletB: 25, bulletR: 26, magA: 28, magB: 25, magR: 28 };
+const CAR = { tank: 9.5, dmu: 23, ddA: 27, ddB: 27, ddR: 27, c92: 21.3, elLoco6: 19.3, n700A: 27, n700B: 25, n700R: 27, crA: 27, crB: 25, crR: 27, pendoA: 24, pendoB: 24, pendoR: 24, l0A: 28, l0B: 24.3, l0R: 28, shunter: 9, tramA: 11, tramB: 9, tramC: 11, emuA: 20, emuB: 20, emuR: 20, metroA: 18, metroB: 18, metroR: 18, steam: 22, tender: 12, coach: 23, frLoco: 22, wagon: 16, hstP: 18, hstR: 18, elLoco: 19, dvt: 18, bulletA: 26, bulletB: 25, bulletR: 26, magA: 28, magB: 25, magR: 28 };
 function spec(id) {
   const T = Object.assign({ id }, TRAINS[id] || TRAINS.shunter);
   T.L = T.cars.reduce((a, c) => a + CAR[c] + .8, 0); const v = T.vmax / KMH;
@@ -563,90 +584,154 @@ const World = {
 };
 
 // ------------------------------------------------------------------ train models: each car built along +z (its front), 0 at rail level
-function liveryTex(T, kind) {
-  const c0 = T.col[0], c1 = T.col[1];
+// the side of a car, painted from its livery: the base colour, a skirt, the window band with windows, stripes and doors
+function liveryTex(T, kind, Lc) {
+  const L0 = T.liv || { base: T.col[0], stripe: T.col[1] }, V = (kind === 'coach' || kind === 'steamcoach') && L0.coach ? L0.coach : L0;
   return canvasTex(512, 128, (x, w, h) => {
-    x.fillStyle = c0; x.fillRect(0, 0, w, h);
-    if (kind === 'wagon') { x.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < w; i += 24) x.fillRect(i, 0, 3, h); return; }
-    if (kind === 'dd') { for (const y of [14, 66]) { x.fillStyle = '#1b222b'; x.fillRect(0, y, w, 34); for (let i = 8; i < w; i += 30) { x.fillStyle = '#3a4a5c'; x.fillRect(i, y + 3, 24, 28); } } x.fillStyle = c1; x.fillRect(0, 104, w, 10); for (const dd of [.3, .7]) { x.fillStyle = c1; x.fillRect(dd * w - 14, 60, 28, 68); } return; }
-    if (kind === 'steamcoach') { x.fillStyle = '#5b1f1a'; x.fillRect(0, 0, w, h); x.fillStyle = '#e8dcc0'; x.fillRect(0, 22, w, 44); for (let i = 10; i < w; i += 40) { x.fillStyle = '#2a2f36'; x.fillRect(i, 28, 30, 32); } x.fillStyle = '#c9a35a'; x.fillRect(0, 70, w, 4); return; }
-    x.fillStyle = c1; x.fillRect(0, 84, w, 12);   // the stripe
-    x.fillStyle = '#1b222b'; x.fillRect(0, 26, w, 40);   // window band
-    for (let i = 8; i < w; i += 34) { x.fillStyle = '#3a4a5c'; x.fillRect(i, 30, 26, 32); x.fillStyle = 'rgba(255,255,255,.14)'; x.fillRect(i, 30, 26, 6); }
-    if (kind === 'emu' || kind === 'metro' || kind === 'tram') for (const d of [.25, .75]) { x.fillStyle = c1; x.fillRect(d * w - 14, 18, 28, 100); x.fillStyle = '#26303a'; x.fillRect(d * w - 11, 24, 22, 48); }
+    x.fillStyle = V.base; x.fillRect(0, 0, w, h);
+    if (kind === 'wagon') { x.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < w; i += 24) x.fillRect(i, 0, 3, h); x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(0, 8, w, 3); return; }
+    if (kind === 'loco') {   // locomotives: no window band, louvres along the body, cab windows at both ends
+      if (V.stripe) { x.fillStyle = V.stripe; x.fillRect(0, 76, w, 10); }
+      for (let i = 0; i < 6; i++) { x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(120 + i * 48, 22, 34, 38); x.fillStyle = 'rgba(255,255,255,.06)'; for (let k = 0; k < 6; k++) x.fillRect(120 + i * 48, 25 + k * 6, 34, 2); }
+      for (const cx of [14, w - 62]) { x.fillStyle = '#16202a'; x.fillRect(cx, 18, 48, 40); x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(cx, 18, 48, 6); }
+      return; }
+    if (V.upper) { x.fillStyle = V.upper; x.fillRect(0, 0, w, h * .5); }   // two-tone coaches: chocolate and cream, or teak
+    if (V.lower) { x.fillStyle = V.lower; x.fillRect(0, h * .74, w, h * .26); }
+    const rows = kind === 'dd' ? [[12, 34], [64, 34]] : [[26, 38]], step = kind === 'steamcoach' || kind === 'coach' && T.kind === 'steam' ? 38 : kind === 'metro' ? 26 : 32;
+    for (const [y, hh] of rows) { if (V.band && V.band !== V.base) { x.fillStyle = V.band; x.fillRect(0, y - 3, w, hh + 6); }
+      for (let i = 6; i < w; i += step) { x.fillStyle = V.win || '#33424f'; x.fillRect(i, y, step - 7, hh); x.fillStyle = 'rgba(255,255,255,.16)'; x.fillRect(i, y, step - 7, 5); } }
+    if (V.stripe) { x.fillStyle = V.stripe; x.fillRect(0, kind === 'dd' ? 104 : 72, w, kind === 'steamcoach' ? 3 : 8); }
+    if (V.stripe2) { x.fillStyle = V.stripe2; x.fillRect(0, kind === 'dd' ? 114 : 84, w, 4); }
+    if (V.door && (kind === 'emu' || kind === 'metro' || kind === 'tram' || kind === 'dd')) for (const dp of kind === 'metro' ? [.14, .38, .62, .86] : [.22, .78]) {
+      x.fillStyle = V.door; x.fillRect(dp * w - 16, 14, 32, 112); x.fillStyle = V.win || '#26303a'; x.fillRect(dp * w - 12, 22, 10, 46); x.fillRect(dp * w + 2, 22, 10, 46); x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(dp * w - 1, 14, 2, 112); }
   });
 }
+// nose shapes of the high-speed trains: [length (m), height as a share of the body, body height, width]
 function makeCar(T, type, lead) {
-  const g = new THREE.Group(), L = CAR[type], c0 = new THREE.Color(T.col[0]), c1 = new THREE.Color(T.col[1]);
-  const paint = new THREE.MeshStandardMaterial({ color: c0, roughness: .45, metalness: .2 }), trim = new THREE.MeshStandardMaterial({ color: c1, roughness: .5 }),
+  const g = new THREE.Group(), L = CAR[type], LV = T.liv || { base: T.col[0], stripe: T.col[1] }, c0 = new THREE.Color(LV.base), c1 = new THREE.Color(LV.stripe || T.col[1]);
+  const paint = new THREE.MeshStandardMaterial({ color: c0, roughness: .42, metalness: .2 }), trim = new THREE.MeshStandardMaterial({ color: c1, roughness: .5 }),
     dark = new THREE.MeshStandardMaterial({ color: 0x1a1d21, roughness: .8 }), metal = new THREE.MeshStandardMaterial({ color: 0x6d757d, roughness: .4, metalness: .8 }),
-    glass = new THREE.MeshStandardMaterial({ color: 0x0d1520, roughness: .08, metalness: .6 });
+    glass = new THREE.MeshStandardMaterial({ color: 0x0d1520, roughness: .08, metalness: .6 }), seeThru = new THREE.MeshStandardMaterial({ color: 0x9fb4c8, roughness: .05, metalness: .3, transparent: true, opacity: .16, depthWrite: false }),   // cab windows you look out of
+    lamp = new THREE.MeshBasicMaterial({ color: 0xfffbe8, toneMapped: false }), tail = new THREE.MeshBasicMaterial({ color: 0xff2a2a, toneMapped: false }),
+    frontM = new THREE.MeshStandardMaterial({ color: new THREE.Color(LV.front || LV.base), roughness: .45 }), grey = new THREE.MeshStandardMaterial({ color: 0x8b9096, roughness: .6 });
   const add = (geo, m, x, y, z, p) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; (p || g).add(o); return o; };
   const box = (w, h, d, m, x, y, z) => add(new THREE.BoxGeometry(w, h, d), m, x, y, z);
   const cyl = (r, len, m, x, y, z, seg) => { const o = add(new THREE.CylinderGeometry(r, r, len, seg || 18), m, x, y, z); o.rotation.x = Math.PI / 2; return o; };
-  const wheels = [], bogie = (z, r, n) => { box(2.3, .5, n === 3 ? 4.2 : 2.9, dark, 0, .75, z); for (let k = 0; k < (n || 2); k++) for (const sd of [-1, 1]) { const w = add(new THREE.CylinderGeometry(r || .46, r || .46, .14, 16), metal, sd * .72, r || .46, z + (k - ((n || 2) - 1) / 2) * 2.2); w.rotation.z = Math.PI / 2; wheels.push(w); } };
-  const sideBody = (kind, y0, h, w, len, zc) => { const tex = liveryTex(T, kind); tex.repeat.set(Math.max(1, len / 12), 1); tex.wrapS = THREE.RepeatWrapping;
-    const side = new THREE.MeshStandardMaterial({ map: tex, roughness: .45, metalness: .15 }); return add(new THREE.BoxGeometry(w, h, len), [side, side, paint, dark, paint, paint], 0, y0 + h / 2, zc || 0); };
-  const roof = (w, y, len, zc, m) => { const geo = new THREE.CylinderGeometry(w / 2, w / 2, len, 16, 1, false, 0, Math.PI); geo.rotateX(Math.PI / 2); geo.rotateZ(Math.PI / 2); geo.scale(1, .32, 1); return add(geo, m || paint, 0, y, zc || 0); };   // a half cylinder along the car, flattened
-  const pantograph = (z) => { box(.9, .12, .9, metal, 0, 4.25, z); const a = add(new THREE.BoxGeometry(.08, 1.5, .08), metal, 0, 4.95, z - .3); a.rotation.x = .7; const b = add(new THREE.BoxGeometry(.08, 1.5, .08), metal, 0, 4.95, z + .3); b.rotation.x = -.7; box(1.8, .06, .2, metal, 0, 5.6, z); };
-  const cabEnd = (zf, w, y0, h) => { const ws = add(new THREE.BoxGeometry(w * .86, h * .3, .08), glass, 0, y0 + h * .68, zf + .02); box(w * .3, .16, .06, new THREE.MeshBasicMaterial({ color: 0xfff6d8, toneMapped: false }), 0, y0 + .5, zf + .04);
-    for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfffbe8, toneMapped: false }), sd * w * .33, y0 + .55, zf + .02); return ws; };
-  const half = L / 2;
+  const wheels = [], wheel = (x, y, z, r, m) => { const w = add(new THREE.CylinderGeometry(r, r, .14, 18), m || metal, x, y, z); w.rotation.z = Math.PI / 2; wheels.push(w); return w; };
+  const bogie = (z, r, n) => { const nn = n || 2; box(2.3, .5, nn === 3 ? 4.2 : 2.9, dark, 0, .75, z); for (let k = 0; k < nn; k++) for (const sd of [-1, 1]) wheel(sd * .72, r || .46, z + (k - (nn - 1) / 2) * 2.1, r || .46); };
+  const sideBody = (kind, y0, h, w, len, zc) => { const tex = liveryTex(T, kind); tex.repeat.set(kind === 'loco' ? 1 : Math.max(1, len / 12), 1); tex.wrapS = THREE.RepeatWrapping;
+    const side = new THREE.MeshStandardMaterial({ map: tex, roughness: .42, metalness: .15 }); return add(new THREE.BoxGeometry(w, h, len), [side, side, paint, dark, paint, paint], 0, y0 + h / 2, zc || 0); };
+  const roof = (w, y, len, zc, m) => { const geo = new THREE.CylinderGeometry(w / 2, w / 2, len, 16, 1, false, 0, Math.PI); geo.rotateX(Math.PI / 2); geo.rotateZ(Math.PI / 2); geo.scale(1, .3, 1); return add(geo, m || grey, 0, y, zc || 0); };
+  const pantograph = (z) => { box(.9, .12, .9, metal, 0, 4.25, z); const a = add(new THREE.BoxGeometry(.06, 1.5, .06), metal, 0, 4.95, z - .3); a.rotation.x = .7; const b = add(new THREE.BoxGeometry(.06, 1.5, .06), metal, 0, 4.95, z + .3); b.rotation.x = -.7; box(1.8, .06, .2, metal, 0, 5.6, z); };
+  const buffers = (zf, y) => { for (const sd of [-1, 1]) { const b = cyl(.2, .55, metal, sd * .88, y, zf); const hd = cyl(.3, .06, dark, sd * .88, y, zf + Math.sign(zf) * .3); } box(.25, .25, .5, dark, 0, y, zf); };
+  // a flat cab end: the end painted in its front colour (yellow on UK trains), the windscreen, headlights (or red tail lights at the back)
+  const cabEnd = (zf, w, y0, h, back) => { const sg = Math.sign(zf) || 1, f = new THREE.Group(); f.position.set(0, 0, zf); g.add(f);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(w * .98, h * (LV.front && LV.front !== LV.base ? .62 : .98), .06), frontM); panel.position.set(0, y0 + h * (LV.front && LV.front !== LV.base ? .31 : .49), sg * .03); f.add(panel);
+    const ws = new THREE.Mesh(new THREE.BoxGeometry(w * .82, h * .3, .07), glass); ws.position.set(0, y0 + h * .7, sg * .05); f.add(ws);
+    for (const sd of [-1, 1]) { const l = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), back ? tail : lamp); l.position.set(sd * w * .34, y0 + .5, sg * .07); f.add(l); }
+    return f; };
+  // a streamlined end: a long half-ellipsoid nose (and a cab dome for the low "duck bill" noses), windscreen and lights
+  // a streamlined end, lofted as one smooth shape: rounded-square sections that taper in width and slope down from the roof to a low tip,
+  // painted with the livery (stripe, skirt, a yellow front where the real train has one), a dark windscreen near the top and the headlights
+  const nose = (sg, y0, h, w, zb, nl, tipH, pow, frontCol) => {
+    const R = 22, M = 28, pos = [], col = [], idx = [], cc = new THREE.Color(), lin = (hex) => cc.set(hex).convertSRGBToLinear().clone();
+    const cBase = lin(frontCol || LV.base), cStripe = LV.stripe ? lin(LV.stripe) : null, cLower = LV.lower ? lin(LV.lower) : null;
+    const sec = (t) => { const top = y0 + h + .4 * (1 - t) - (h - h * tipH) * Math.pow(t, pow),   // starts over the roof's curve, so nose and roof meet without a step
+      bot = y0 + .12 + h * .08 * t * t, a = w / 2 * (1 - .82 * Math.pow(t, 1.8)); return [top, bot, a]; };
+    for (let r = 0; r <= R; r++) { const t = r / R, [top, bot, a] = sec(t), cy = (top + bot) / 2, b = (top - bot) / 2, z = zb + sg * nl * t;
+      for (let m = 0; m < M; m++) { const th = m / M * Math.PI * 2, ct = Math.cos(th), st = Math.sin(th), x = a * Math.sign(ct) * Math.pow(Math.abs(ct), .5), y = cy + b * Math.sign(st) * Math.pow(Math.abs(st), .5);
+        pos.push(x, y, z); let c = cBase; if (!frontCol) { if (cLower && y < y0 + h * .26) c = cLower; if (cStripe && Math.abs(y - (y0 + h * .3)) < h * .045) c = cStripe; } col.push(c.r, c.g, c.b); } }
+    for (let r = 0; r < R; r++) for (let m = 0; m < M; m++) { const a0 = r * M + m, a1 = r * M + (m + 1) % M, b0 = a0 + M, b1 = a1 + M; if (sg > 0) idx.push(a0, b0, a1, a1, b0, b1); else idx.push(a0, a1, b0, a1, b1, b0); }
+    const tip = pos.length / 3; { const [top, bot] = sec(1); pos.push(0, (top + bot) / 2, zb + sg * nl); col.push(cBase.r, cBase.g, cBase.b); for (let m = 0; m < M; m++) { const a0 = R * M + m, a1 = R * M + (m + 1) % M; if (sg > 0) idx.push(a0, tip, a1); else idx.push(a0, a1, tip); } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const n = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .38, metalness: .2 })); n.castShadow = true; g.add(n);
+    // the windscreen: a dark curved panel lying on the top of the nose, a third of the way along
+    const t0 = .12, t1 = .42, [tA] = sec(t0), [tB, , aB] = sec(t1), zA = zb + sg * nl * t0, zB = zb + sg * nl * t1, slope = Math.atan2(tA - tB, nl * (t1 - t0));
+    const ws = add(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), glass, 0, (tA + tB) / 2 - .02, (zA + zB) / 2); ws.rotation.x = -sg * slope; ws.scale.set(Math.min(w * .4, aB * .95), .14, nl * (t1 - t0) * .55);
+    const [tT, bT, aT] = sec(.8); for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.13, 10, 8), lamp, sd * aT * .7, bT + (tT - bT) * .35, zb + sg * nl * .8);
+    return n; };
+  // the nose of each streamlined train: [length (m), tip height as a share of the body, how quickly the roof drops]
+  const NOSES = { n700: [10.5, .26, 1.25], cr: [9.5, .28, 1.2], pendo: [5, .42, 1.5], l0: [15, .2, 1.1], mag: [11, .3, 1.2], bullet: [8.5, .3, 1.3], hst: [4.6, .33, 1.0], c91: [3.6, .4, 1.1] };
+  const half = L / 2; g.userData.eye = new THREE.Vector3(-.45, 3.05, half - 1.9);
   if (/^(coach|emuA|emuB|emuR|metroA|metroB|metroR|dvt|tramA|tramB|tramC|dmu|ddA|ddB|ddR)$/.test(type)) {
-    const tram = /^tram/.test(type), metro = /^metro/.test(type), dd = /^dd/.test(type), kind = type === 'coach' ? (T.kind === 'steam' ? 'steamcoach' : 'coach') : tram ? 'tram' : metro ? 'metro' : dd ? 'dd' : 'emu';
-    const y0 = tram ? .35 : dd ? .6 : 1.15, h = tram ? 2.75 : dd ? 3.95 : 2.85, w = tram ? 2.55 : 2.85;   // a double-deck coach sits low between its bogies
-    sideBody(kind, y0, h, w, L - .2); roof(w, y0 + h, L - .2, 0, T.kind === 'steam' ? dark : trim);
-    if (!tram) { bogie(-half + 3.2); bogie(half - 3.2); } else { for (const z of [-half + 2.2, half - 2.2]) { box(2.2, .4, 2, dark, 0, .4, z); for (const sd of [-1, 1]) { const ww = add(new THREE.CylinderGeometry(.34, .34, .12, 14), metal, sd * .7, .34, z); ww.rotation.z = Math.PI / 2; wheels.push(ww); } } }
-    if (T.kind === 'electric' && !T.noPanto && (type === 'emuB' || type === 'tramB' || type === 'metroB' || type === 'ddB')) pantograph(dd ? -2 : 0);
-    if (type === 'dmu') { for (const f of [1, -1]) cabEnd(f * (half - .1), w, y0, h).rotation.y = f > 0 ? 0 : Math.PI; box(.5, .5, 1.2, dark, 0, y0 + h + .45, -half * .4); g.userData.chimney = new THREE.Vector3(0, y0 + h + .8, -half * .4); }
-    if (T.noPanto && type === 'emuA') { box(2.2, .5, 5, new THREE.MeshStandardMaterial({ color: 0xdfe6ec, roughness: .4 }), 0, y0 + h + .35, -2); }   // hydrogen tanks on the roof
-    if (/A$|R$/.test(type) || type === 'dvt' || type === 'tramC') { const front = type.endsWith('R') || type === 'tramC' ? -1 : 1; if ((front > 0) === lead || type === 'dvt') { const ws = cabEnd(front * (half - .1), w, y0, h); ws.rotation.y = front > 0 ? 0 : Math.PI; } }
+    const tram = /^tram/.test(type), metro = /^metro/.test(type), dd = /^dd/.test(type), steamC = type === 'coach' && T.kind === 'steam';
+    const kind = type === 'coach' ? (steamC ? 'steamcoach' : 'coach') : tram ? 'tram' : metro ? 'metro' : dd ? 'dd' : 'emu';
+    const y0 = tram ? .35 : dd ? .6 : metro ? 1.0 : 1.15, h = tram ? 2.75 : dd ? 3.95 : metro ? 2.7 : 2.85, w = tram ? 2.55 : metro ? 2.8 : 2.85;
+    sideBody(kind, y0, h, w, L - .2); roof(w, y0 + h, L - .2, 0, steamC ? dark : grey);
+    if (!tram) { bogie(-half + 3.2); bogie(half - 3.2); } else { for (const z of [-half + 2.2, half - 2.2]) { box(2.2, .4, 2, dark, 0, .4, z); for (const sd of [-1, 1]) wheel(sd * .7, .34, z, .34); } }
+    if (steamC || (type === 'coach' && !/^(hst|el)/.test(T.cars[0]))) for (const e of [-1, 1]) buffers(e * (half - .05), 1.05);
+    if (T.kind === 'electric' && !T.noPanto && (type === 'emuB' || type === 'tramB' || type === 'metroB' && !T.cars[0].startsWith('metro') || type === 'ddB')) pantograph(dd ? -2 : 0);
+    if (type === 'dmu') { for (const f of [1, -1]) cabEnd(f * (half - .08), w, y0, h, f < 0); box(.5, .5, 1.2, dark, 0, y0 + h + .45, -half * .4); g.userData.chimney = new THREE.Vector3(0, y0 + h + .8, -half * .4); }
+    if (T.h2 && (type === 'emuA' || type === 'emuR')) { for (const z of [-3, 0, 3]) cyl(.42, 2.6, new THREE.MeshStandardMaterial({ color: 0xdfe6ec, roughness: .35, metalness: .3 }), 0, y0 + h + .5, z); }   // hydrogen tanks on the roof
+    if (/A$|R$/.test(type) || type === 'dvt' || type === 'tramC') { const front = type.endsWith('R') || type === 'tramC' || type === 'dvt' ? -1 : 1; cabEnd(front * (half - .08), w, y0, h, front < 0); }   // the rear cab shows red tail lights
+    if (tram) g.userData.eye.set(-.4, 2.35, half - 1.6); if (metro) g.userData.eye.set(-.4, 2.85, half - 1.4); if (dd) g.userData.eye.set(-.4, 3.5, half - 1.8);
   } else if (type === 'shunter') {
-    box(2.6, .4, L, dark, 0, 1.2, 0); box(2.0, 1.9, L * .62, paint, 0, 2.35, -L * .14); const cab = sideBody('loco', 1.4, 2.6, 2.7, 3.3, half - 1.8); cabEnd(half - .14, 2.7, 1.4, 2.6);
-    box(.3, .9, .3, dark, 0, 3.75, -1); bogie(-half + 2.4, .52); bogie(half - 2.4, .52); for (const sd of [-1, 1]) box(.15, .5, L, new THREE.MeshStandardMaterial({ color: 0x111111 }), sd * 1.3, 1.25, 0);
+    // a Class 08: a long low bonnet in front, the cab at the back, six coupled wheels, wasp stripes on both ends
+    box(2.6, .45, L, dark, 0, 1.15, 0); box(2.0, 1.9, 5.4, paint, 0, 2.3, half - 3.0); box(2.0, .2, 5.4, dark, 0, 3.3, half - 3.0);
+    const cb = sideBody('loco', 1.35, 2.85, 2.7, 3.2, -half + 1.9); box(2.8, .18, 3.4, dark, 0, 4.3, -half + 1.9); box(1.8, .9, .07, seeThru, 0, 3.4, -half + 3.52); box(1.8, .9, .07, glass, 0, 3.4, -half + .28);
+    const wasp = new THREE.MeshBasicMaterial({ map: canvasTex(64, 64, (x2, w2, h2) => { x2.fillStyle = '#f2c418'; x2.fillRect(0, 0, w2, h2); x2.fillStyle = '#111'; for (let i = -64; i < 64; i += 16) { x2.beginPath(); x2.moveTo(i, h2); x2.lineTo(i + 8, h2); x2.lineTo(i + 8 + h2, 0); x2.lineTo(i + h2, 0); x2.fill(); } }) });
+    box(2.0, 1.2, .05, wasp, 0, 1.9, half - .28); box(2.6, .7, .05, wasp, 0, 1.6, -half + .32); add(new THREE.CylinderGeometry(.1, .12, .7, 8), dark, .4, 3.7, half - 1.6);
+    box(1.6, 1.0, .05, dark, 0, 2.6, half - .3);   // the radiator grille
+    for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) wheel(sd * .76, .69, -1.9 + k * 1.9, .69);
+    g.userData.rods = [-1, 1].map((sd) => box(.08, .12, 4.0, metal, sd * .9, .69, 0)); for (const e of [-1, 1]) buffers(e * (half + .05), 1.05);
+    g.userData.chimney = new THREE.Vector3(.4, 4.05, half - 1.6); g.userData.eye.set(.5, 3.5, -half + 2.4);
   } else if (type === 'steam') {
-    // a Pacific: pony truck, three big driving wheels each side with rods, the boiler and smokebox, chimney and dome, the cab at the back
-    box(2.4, .35, L - 1, dark, 0, 1.35, 0);
-    const blr = cyl(1.0, L * .62, paint, 0, 2.75, half * .2); const smoke = cyl(1.05, 2.2, dark, 0, 2.75, half - 2.5); const door = cyl(.95, .1, dark, 0, 2.75, half - 1.35); door.scale.set(1, 1, 1);
-    add(new THREE.CylinderGeometry(.32, .38, 1.0, 14), dark, 0, 4.1, half - 2.6); add(new THREE.SphereGeometry(.5, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), trim, 0, 3.65, 1.5);
-    box(2.8, 2.9, 3.4, paint, 0, 2.95, -half + 2.2); box(3.0, .2, 3.8, dark, 0, 4.5, -half + 2.2); box(2.2, .9, .1, glass, 0, 3.5, -half + 3.92);
-    for (const sd of [-1, 1]) { box(.12, .12, L * .7, trim, sd * 1.06, 2.75, half * .1); }
-    const drv = []; for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) { const w = add(new THREE.CylinderGeometry(.95, .95, .16, 22), metal, sd * .78, .95, -1.9 + k * 2.1); w.rotation.z = Math.PI / 2; wheels.push(w); drv.push(w); }
-    for (const z of [half - 1.4, half - 3]) for (const sd of [-1, 1]) { const w = add(new THREE.CylinderGeometry(.45, .45, .14, 14), metal, sd * .72, .45, z); w.rotation.z = Math.PI / 2; wheels.push(w); }
-    const rods = [-1, 1].map((sd) => box(.08, .14, 4.4, metal, sd * .9, .95, .2));
-    for (const sd of [-1, 1]) cyl(.32, 1.6, dark, sd * 1.0, 1.25, half - 2.2);
-    g.userData.rods = rods; g.userData.chimney = new THREE.Vector3(0, 4.7, half - 2.6);
+    // an LNER A3 Pacific: pony truck, three big driving wheels each side with rods, apple-green boiler, black smokebox, smoke deflectors, cab at the back
+    box(2.4, .35, L - 1, dark, 0, 1.35, 0); cyl(1.0, L * .6, paint, 0, 2.75, half * .2); cyl(1.05, 2.2, dark, 0, 2.75, half - 2.5); cyl(.95, .1, dark, 0, 2.75, half - 1.35);
+    for (let k = -2; k <= 2; k++) cyl(1.02, .06, new THREE.MeshStandardMaterial({ color: 0x111111 }), 0, 2.75, half * .2 + k * 2.4);   // the boiler bands
+    add(new THREE.CylinderGeometry(.3, .36, .9, 14), dark, 0, 4.05, half - 2.6); add(new THREE.SphereGeometry(.48, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), paint, 0, 3.65, 1.4);
+    for (const sd of [-1, 1]) box(.06, 1.6, 2.4, dark, sd * 1.2, 3.0, half - 2.4);   // smoke deflectors
+    box(2.8, 2.9, 3.4, paint, 0, 2.95, -half + 2.2); box(3.0, .2, 3.8, dark, 0, 4.5, -half + 2.2); box(2.2, .9, .1, seeThru, 0, 3.5, -half + 3.92);
+    for (const sd of [-1, 1]) box(.1, .1, L * .7, new THREE.MeshStandardMaterial({ color: 0x111111 }), sd * 1.06, 2.75, half * .1);
+    for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) wheel(sd * .78, .95, -1.9 + k * 2.1, .95, paint);
+    for (const z of [half - 1.4, half - 3]) for (const sd of [-1, 1]) wheel(sd * .72, .45, z, .45);
+    const rods = [-1, 1].map((sd) => box(.08, .14, 4.4, metal, sd * .9, .95, .2)); for (const sd of [-1, 1]) cyl(.32, 1.6, dark, sd * 1.0, 1.25, half - 2.2);
+    buffers(half + .05, 1.25); g.userData.rods = rods; g.userData.chimney = new THREE.Vector3(0, 4.6, half - 2.6); g.userData.eye.set(.75, 3.55, -half + 2.6);
   } else if (type === 'tank') {
-    // a tank engine: water tanks either side of the boiler, a coal bunker behind the cab, six coupled wheels, no tender
-    box(2.5, .35, L - .6, dark, 0, 1.25, 0); cyl(.82, 6.2, paint, 0, 2.45, 1.2); cyl(.86, 1.4, dark, 0, 2.45, half - 1.4);
-    for (const sd of [-1, 1]) box(.7, 1.5, 5.2, paint, sd * 1.05, 2.25, 1.1);
-    add(new THREE.CylinderGeometry(.26, .32, .9, 12), dark, 0, 3.6, half - 1.4); add(new THREE.SphereGeometry(.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), trim, 0, 3.27, 1.2);
-    box(2.6, 2.5, 2.6, paint, 0, 2.6, -half + 2.6); box(2.8, .18, 3.0, dark, 0, 3.95, -half + 2.6); box(2.2, 1.4, 1.2, paint, 0, 2.1, -half + .8); box(1.6, .7, .08, glass, 0, 3.2, -half + 3.92);
-    for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) { const wv = add(new THREE.CylinderGeometry(.68, .68, .15, 20), metal, sd * .76, .68, -1.5 + k * 1.75); wv.rotation.z = Math.PI / 2; wheels.push(wv); }
-    g.userData.rods = [-1, 1].map((sd) => box(.08, .12, 3.7, metal, sd * .88, .68, .25)); g.userData.chimney = new THREE.Vector3(0, 4.05, half - 1.4);
+    // a GWR pannier tank: the water in square tanks hung on top of the boiler, a copper-capped chimney, a brass safety-valve bonnet, six coupled wheels
+    box(2.5, .35, L - .4, dark, 0, 1.25, 0); cyl(.8, 5.6, paint, 0, 2.35, 1.0); cyl(.84, 1.0, dark, 0, 2.35, half - .9);
+    for (const sd of [-1, 1]) box(.75, 1.15, 4.6, paint, sd * .72, 3.0, .9);
+    add(new THREE.CylinderGeometry(.24, .28, .9, 12), dark, 0, 3.6, half - .95); add(new THREE.CylinderGeometry(.3, .26, .18, 12), new THREE.MeshStandardMaterial({ color: 0xc47a3a, metalness: .7, roughness: .3 }), 0, 4.1, half - .95);
+    add(new THREE.CylinderGeometry(.22, .28, .5, 12), new THREE.MeshStandardMaterial({ color: 0xc9a35a, metalness: .8, roughness: .25 }), 0, 3.75, -.5);
+    box(2.6, 2.6, 2.4, paint, 0, 2.55, -half + 2.3); box(2.8, .18, 2.8, dark, 0, 3.95, -half + 2.3); box(2.2, 1.3, 1.1, paint, 0, 2.0, -half + .65); box(1.6, .7, .08, seeThru, 0, 3.2, -half + 3.52);
+    for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) wheel(sd * .76, .7, -1.6 + k * 1.75, .7, dark);
+    g.userData.rods = [-1, 1].map((sd) => box(.08, .12, 3.7, metal, sd * .88, .7, .15)); for (const e of [-1, 1]) buffers(e * (half + .05), 1.1);
+    g.userData.chimney = new THREE.Vector3(0, 4.15, half - .95); g.userData.eye.set(.6, 3.25, -half + 2.0);
   } else if (type === 'tender') {
-    box(2.7, 2.3, L - .6, paint, 0, 2.55, 0); box(2.4, .35, L - .4, dark, 0, 3.8, 0); box(2.2, .5, L - 2, new THREE.MeshLambertMaterial({ color: 0x111111 }), 0, 4.1, -.3); bogie(-half + 2.6, .5, 2); bogie(half - 2.6, .5, 2);
-  } else if (type === 'frLoco' || type === 'elLoco' || type === 'hstP' || type === 'hstR') {
-    const hst = type.startsWith('hst'), front = type === 'hstR' ? -1 : 1, y0 = 1.25, h = 2.75;
-    sideBody('loco', y0, h, 2.8, hst ? L - 3 : L - .4, hst ? -front * 1.4 : 0); roof(2.8, y0 + h, hst ? L - 3 : L - .4, hst ? -front * 1.4 : 0);
-    if (hst) { const nose = add(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), paint, 0, y0 + h / 2, front * (half - 3)); nose.rotation.x = front * Math.PI / 2; nose.scale.set(1.4, 2.6, h / 2);
-      const ws = add(new THREE.BoxGeometry(2.1, .7, .1), glass, 0, y0 + 2.05, front * (half - 2.2)); ws.rotation.x = -front * .7; add(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfffbe8, toneMapped: false }), 0, y0 + .9, front * (half - .5)); }
-    else { if (lead || type === 'elLoco') cabEnd(half - .2, 2.8, y0, h); cabEnd(-(half - .2), 2.8, y0, h).rotation.y = Math.PI; }
-    if (type === 'elLoco') pantograph(-half + 4); if (type === 'frLoco') { box(.5, .4, .8, dark, 0, y0 + h + .4, 0); }
-    bogie(-half + (hst ? 4.2 : 4), .55, type === 'frLoco' ? 3 : 2); bogie(half - (hst ? 4.2 : 4), .55, type === 'frLoco' ? 3 : 2);
+    box(2.7, 2.3, L - .6, paint, 0, 2.55, 0); box(2.4, .35, L - .4, dark, 0, 3.8, 0); box(2.2, .5, L - 2, new THREE.MeshLambertMaterial({ color: 0x111111 }), 0, 4.1, -.3);
+    for (const sd of [-1, 1]) box(.06, .06, L - .7, new THREE.MeshStandardMaterial({ color: 0x111111 }), sd * 1.36, 3.3, 0);
+    bogie(-half + 2.6, .5, 2); bogie(half - 2.6, .5, 2);
+  } else if (/^(frLoco|elLoco|elLoco6|c92|hstP|hstR)$/.test(type)) {
+    const hst = type.startsWith('hst'), front = type === 'hstR' ? -1 : 1, y0 = 1.25, h = type === 'frLoco' ? 2.75 : 2.7;
+    if (hst) {   // a Class 43 power car: a wedge nose in yellow, the cab high in it, a short guard's van behind
+      sideBody('loco', y0, h, 2.75, L - 4.5, -front * 2.25); roof(2.75, y0 + h, L - 4.5, -front * 2.25);
+      nose(front, y0, h, 2.75, front * (half - 4.5), ...NOSES.hst, LV.front);   // the yellow wedge
+      for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.14, 10, 8), lamp, sd * .7, y0 + .55, front * (half - .4));
+      bogie(-half + 4.4, .55); bogie(half - 4.4, .55); g.userData.eye.set(-.45, 3.3, front * (half - 3.4));
+    } else if (type === 'elLoco') {   // a Class 91: a streamlined cab at the front, a blunt end at the back
+      sideBody('loco', y0, h, 2.75, L - 3.5, -1.75); roof(2.75, y0 + h, L - 3.5, -1.75);
+      nose(1, y0, h, 2.75, half - 3.5, ...NOSES.c91, LV.front);
+      for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.14, 10, 8), lamp, sd * .7, y0 + .6, half - .3);
+      cabEnd(-(half - .08), 2.75, y0, h, true); pantograph(-half + 5); bogie(-half + 3.6, .55); bogie(half - 4.4, .55); g.userData.eye.set(-.45, 3.3, half - 2.9);
+    } else {   // box-cab locomotives: Class 66 (three-axle bogies), Class 92, the six-axle Re 6/6 (three bogies)
+      sideBody('loco', y0, h, 2.8, L - .4); roof(2.8, y0 + h, L - .4);
+      cabEnd(half - .2, 2.8, y0, h, false); cabEnd(-(half - .2), 2.8, y0, h, true);
+      if (type === 'frLoco') { box(.8, .3, 1.6, dark, 0, y0 + h + .3, 1); for (const z of [-3, -5]) cyl(.55, .1, dark, 0, y0 + h + .25, z); bogie(-half + 4, .55, 3); bogie(half - 4, .55, 3); }
+      if (type === 'c92') { pantograph(-half + 5); pantograph(half - 5); bogie(-half + 4, .55, 3); bogie(half - 4, .55, 3); }
+      if (type === 'elLoco6') { pantograph(-half + 4.5); pantograph(half - 4.5); bogie(-half + 3.4, .6); bogie(0, .6); bogie(half - 3.4, .6); }
+      for (const e of [-1, 1]) buffers(e * (half + .05), 1.15); g.userData.eye.set(-.5, 3.25, half - 1.6);
+    }
+    if (type === 'frLoco') g.userData.chimney = new THREE.Vector3(0, y0 + h + .6, 1);
   } else if (type === 'wagon') {
-    box(2.6, .3, L - .4, dark, 0, 1.15, 0); const ccol = [0xc8102e, 0x1d4fd6, 0x2bb673, 0xe8762b, 0x8b8f94, 0xf2c418]; const rr = Math.floor(Math.abs(Math.sin(g.id * 12.9898) * 43758) % 6);
-    const cont = new THREE.MeshLambertMaterial({ map: liveryTex({ col: ['#' + new THREE.Color(ccol[rr]).getHexString(), '#000'] }, 'wagon') }); add(new THREE.BoxGeometry(2.45, 2.6, L - 1.6), cont, 0, 2.6, 0);
-    bogie(-half + 2.2, .46); bogie(half - 2.2, .46);
-  } else {   // high-speed and maglev: long smooth noses
-    const mag = type.startsWith('mag'), noseL = mag ? 11 : 8.5, y0 = mag ? .7 : 1.1, h = mag ? 2.9 : 2.75, w = mag ? 3.2 : 3.0, A = /A$/.test(type), Rr = /R$/.test(type), front = A ? 1 : Rr ? -1 : 0;
-    const bodyL = front ? L - noseL : L - .2, zc = front ? -front * noseL / 2 : 0;
-    sideBody('emu', y0, h, w, bodyL, zc); roof(w, y0 + h, bodyL, zc);
-    if (front) { const nose = add(new THREE.SphereGeometry(1, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2), paint, 0, y0 + h / 2, front * (half - noseL)); nose.rotation.x = front * Math.PI / 2; nose.scale.set(w / 2, noseL, h / 2);
-      const ws = add(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), glass, 0, y0 + h * .62, front * (half - noseL + .2)); ws.rotation.x = front * Math.PI / 2; ws.scale.set(w * .38, noseL * .62, h * .36);
-      const stripe = add(new THREE.SphereGeometry(1, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), trim, 0, y0 + h * .32, front * (half - noseL + .05)); stripe.rotation.x = front * Math.PI / 2; stripe.scale.set(w / 2 + .02, noseL * .97, h * .2);
-      for (const sd of [-1, 1]) add(new THREE.SphereGeometry(.14, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfffbe8, toneMapped: false }), sd * .9, y0 + .5, front * (half - 1.6)); }
-    if (mag) { box(w + .1, .7, L - 1, dark, 0, .35, 0); } else { bogie(-half + (front < 0 ? 9.5 : 3.2)); bogie(half - (front > 0 ? 9.5 : 3.2)); if (type === 'bulletB') pantograph(0); }
+    box(2.6, .3, L - .4, dark, 0, 1.15, 0); const ccol = [0xc8102e, 0x1d4fd6, 0x2bb673, 0xe8762b, 0x8b8f94, 0xf2c418, 0x3a3f46]; const rr = Math.floor(Math.abs(Math.sin(g.id * 12.9898) * 43758) % 7);
+    const cont = new THREE.MeshLambertMaterial({ map: liveryTex({ liv: { base: '#' + new THREE.Color(ccol[rr]).getHexString() } }, 'wagon') }); add(new THREE.BoxGeometry(2.45, 2.6, L - 1.6), cont, 0, 2.6, 0);
+    bogie(-half + 2.2, .46); bogie(half - 2.2, .46); for (const e of [-1, 1]) buffers(e * (half - .05), 1.05);
+  } else {   // high-speed trains and maglevs: N700, CR400AF, Pendolino, L0, the Erika Express
+    const key = type.replace(/[ABR]$/, ''), mag = T.kind === 'maglev', NS = NOSES[key] || NOSES.bullet, nl = NS[0], y0 = mag ? .7 : 1.1, h = mag ? 2.9 : key === 'pendo' ? 2.7 : 2.75, w = mag ? 3.1 : key === 'pendo' ? 2.73 : 3.0;
+    const A = /A$/.test(type), Rr = /R$/.test(type), front = A ? 1 : Rr ? -1 : 0, bodyL = front ? L - nl : L - .2, zc = front ? -front * nl / 2 : 0;
+    sideBody('emu', y0, h, w, bodyL, zc); roof(w, y0 + h, bodyL, zc, paint);
+    if (front) { nose(front, y0, h, w, front * (half - nl), ...NS); g.userData.eye.set(-.45, y0 + h * .78, front * (half - nl - .3)); }
+    if (mag) box(w + .1, .7, L - 1, dark, 0, .35, 0); else { bogie(-half + (front < 0 ? nl + 1 : 3.2)); bogie(half - (front > 0 ? nl + 1 : 3.2)); if (type === key + 'B' && (key === 'n700' || key === 'cr' || key === 'pendo') && Math.abs(Math.sin(g.id)) > .5) pantograph(0); }
   }
   g.userData.len = L; g.userData.wheels = wheels; g.userData.type = type; return g;
 }
@@ -726,7 +811,7 @@ const Input = {
 // ------------------------------------------------------------------ career: credits, the driver's grade, trains, services
 const RANKS = [['Trainee', 0], ['Driver', 300], ['Senior Driver', 900], ['InterCity Driver', 2000], ['High-Speed Driver', 4000], ['Master Driver', 7000]];
 const SERVICES = [
-  { id: 'firstday', name: 'First Day', line: 'valley', from: 0, to: 1, trains: ['shunter', 'commuter'], rank: 0, pay: 220, tod: 'day' },
+  { id: 'firstday', name: 'First Day', line: 'valley', from: 0, to: 1, trains: ['shunter', 'railbus', 'commuter'], rank: 0, pay: 220, tod: 'day' },
   { id: 'tramrun', name: 'City Tram Run', line: 'city', from: 0, to: 4, trains: ['tram'], rank: 0, pay: 320, tod: 'day' },
   { id: 'valleystopper', name: 'Valley Stopper', line: 'valley', from: 0, to: 4, trains: ['commuter', 'shunter'], rank: 0, pay: 480, tod: 'day' },
   { id: 'rushmetro', name: 'Rush Hour Metro', line: 'city', from: 0, to: 8, trains: ['metro'], rank: 1, pay: 700, tod: 'day' },
@@ -745,7 +830,7 @@ const SERVICES = [
   { id: 'hydrogenpass', name: 'Hydrogen Over the Pass', line: 'alps', from: 0, to: 2, trains: ['hydrogen'], rank: 2, pay: 1100, tod: 'day' },
   { id: 'mountainfreight', name: 'Freight Over the Mountain', line: 'alps', from: 0, to: 4, trains: ['mountainfreight'], rank: 3, pay: 2100, tod: 'dusk' },
   { id: 'tiltcoast', name: 'Tilting Along the Coast', line: 'coast', from: 0, to: 4, trains: ['tilting'], rank: 3, pay: 2300, tod: 'day' },
-  { id: 'nightsleeper', name: 'The Night Sleeper', line: 'highspeed', from: 0, to: 2, trains: ['sleeper'], rank: 3, pay: 2600, tod: 'night' },
+  { id: 'nightsleeper', name: 'The Night Sleeper', line: 'coast', from: 0, to: 4, trains: ['sleeper'], rank: 3, pay: 2600, tod: 'night' },
   { id: 'bullet360', name: 'Bullet 360 Record Run', line: 'highspeed', from: 0, to: 2, trains: ['bullet360'], rank: 5, pay: 4000, tod: 'dusk' },
   { id: 'erikaexpress', name: 'Erika Express', line: 'maglevway', from: 0, to: 2, trains: ['erika'], rank: 0, pay: 0, tod: 'dusk', fun: true },
 ];
@@ -1025,11 +1110,12 @@ const Game = {
     { const S = this.smoke, pos = S.pts.geometry.attributes.position; for (let i = 0; i < S.n; i++) { const q = S.list[i]; if (!q || q.t <= 0) { pos.setXYZ(i, 0, -999, 0); continue; } q.t -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.vy *= .99; pos.setXYZ(i, q.x, q.y, q.z); } pos.needsUpdate = true;
       S.pts.material.color.setHex(T.kind === 'steam' ? 0xeeeeee : 0x333333); }
     // cameras: the cab, the outside, trackside, and from above
-    const f = trackPos(Ln, P.s, TRACK_OFF), ahead = trackPos(Ln, P.s + 60, TRACK_OFF), steam = T.kind === 'steam';
+    const f = trackPos(Ln, P.s, TRACK_OFF), ahead = trackPos(Ln, P.s + 60, TRACK_OFF), steam = T.kind === 'steam' || T.cabRear;   // these are driven from a cab at the back: no desk drawn, the real model stays
     const cabHide = this.camMode === 0 && !steam; lead.visible = !cabHide;
     if (this.camMode === 0) {
-      if (steam) { const tk = lead.userData.type === 'tank', c0 = new THREE.Vector3(tk ? .6 : .75, tk ? 3.25 : 3.55, -lead.userData.len / 2 + (tk ? 2.0 : 2.6)).applyMatrix4(lead.matrixWorld); cam.position.copy(c0); const tgt = trackPos(Ln, P.s + 70, TRACK_OFF); cam.lookAt(tgt.x - Math.sin(tgt.h) * .8, tgt.y + 2.2, tgt.z + Math.cos(tgt.h) * .8); }
-      else { const L = lead.userData.len, eye = new THREE.Vector3(-.45, T.cars[0].startsWith('tram') ? 2.35 : 3.05, L / 2 - (T.cars[0].startsWith('mag') || T.cars[0].startsWith('bullet') ? 6.5 : 1.9)).applyMatrix4(lead.matrixWorld); cam.position.copy(eye); cam.lookAt(ahead.x, ahead.y + 1.4, ahead.z); }
+      const eye = lead.userData.eye.clone().applyMatrix4(lead.matrixWorld); cam.position.copy(eye);
+      if (steam) { const tgt = trackPos(Ln, P.s + 70, TRACK_OFF); cam.lookAt(tgt.x - Math.sin(tgt.h) * .8, tgt.y + 2.2, tgt.z + Math.cos(tgt.h) * .8); }
+      else cam.lookAt(ahead.x, ahead.y + 1.4, ahead.z);
       cam.fov = 62; cam.near = .1;
     } else if (this.camMode === 1) {
       const fr = trackPos(Ln, P.s + 16, TRACK_OFF), tx = fr.x - Math.sin(fr.h) * 11, tz = fr.z + Math.cos(fr.h) * 11, ty = fr.y + 4.5, look = trackPos(Ln, P.s - 14, TRACK_OFF); this.cp = this.cp || { x: tx, y: ty, z: tz }; const k = 1 - Math.exp(-dt * 4);
@@ -1062,7 +1148,7 @@ const Game = {
       const lever = new THREE.Group(); lever.position.set(.55, 2.8, -.3); const st = new THREE.Mesh(new THREE.BoxGeometry(.05, .32, .05), new THREE.MeshStandardMaterial({ color: 0x9aa1a8, metalness: .8, roughness: .3 })); st.position.y = .16; lever.add(st);
       const knob = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd8262e })); knob.position.y = .33; lever.add(knob); g.add(lever); g.userData.lever = lever; this.cabRig = g; R3.scene.add(g); }
     const g = this.cabRig; g.visible = on; if (!on) return;
-    const L = lead.userData.len, z0 = L / 2 - (T.cars[0].startsWith('mag') || T.cars[0].startsWith('bullet') ? 6.5 : 1.9) + .95, yo = T.cars[0].startsWith('tram') ? -.7 : 0;
+    const E = lead.userData.eye, z0 = E.z + .95, yo = E.y - 3.05;
     g.position.set(0, yo, z0).applyMatrix4(lead.matrixWorld); g.quaternion.copy(lead.quaternion); g.userData.lever.rotation.x = clamp(P.notch, -8, 5) * -.07;
   },
   buildLever() { $('tLever').innerHTML = NOTCHES.map((n) => '<i class="' + (n[0] === 'P' ? 'p' : n === 'N' ? 'n' : n === 'EB' ? 'e' : 'b') + '">' + n + '</i>').join(''); this._lv = null; },
