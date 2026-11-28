@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Erika Rockets</title>
+<meta name="description" content="Launch real rockets: the V-2, New Shepard, Electron, Soyuz, Falcon 9, Falcon Heavy, Ariane 5, the Space Shuttle, Saturn V, SLS and Starship. Fly to space, to orbit and to the Moon, and land the booster.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wdth,wght@100..125,600..800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+
+/* Layout: full-screen 3D track; a menu card on the left (tabs: Race, Career, Garage) over a slowly circling preview; in the race a HUD
+   (position and laps top left, timing top right, speed and gear bottom centre, track map bottom right). Same Erika Pro look as the
+   other games. */
+:root {
+  color-scheme: dark;
+  --accent: #c6f24e; --accent-ink: #172200; --text: #eef1f5; --dim: #8d99a7; --line: rgba(255, 255, 255, .08); --line2: rgba(255, 255, 255, .16);
+  --panel: linear-gradient(180deg, rgba(20, 25, 33, .96), rgba(10, 13, 18, .96)); --raise: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .022));
+  --ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; --disp: "Saira Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #06080c; color: var(--text); font: 15px/1.45 var(--ui); -webkit-user-select: none; user-select: none; touch-action: none }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block }
+button { font: inherit; color: inherit; cursor: pointer }
+button[disabled] { opacity: .45; cursor: not-allowed }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+/* menu */
+#menu { position: fixed; inset: 0; display: flex; align-items: flex-start; overflow: auto; padding: 18px clamp(14px, 4vw, 56px);
+  background: linear-gradient(90deg, rgba(6, 8, 12, .9) 0%, rgba(6, 8, 12, .72) 46%, rgba(6, 8, 12, .08) 74%) }
+.card { margin: auto 0; width: min(700px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px 26px; display: grid; gap: 14px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05); position: relative; overflow: hidden }
+.card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--accent) }
+.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+h1 { margin: 0; font: 700 42px/1 var(--disp); letter-spacing: .1em; text-transform: uppercase; margin-right: auto }
+h1 b { color: var(--accent) }
+.wallet { font: 600 14px var(--ui); color: #ffd36b; border: 1px solid rgba(255, 211, 107, .28); background: rgba(255, 181, 46, .08); border-radius: 8px; padding: 6px 11px; white-space: nowrap }
+.lic { font: 500 12.5px var(--ui); color: var(--dim); border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px } .lic b { color: var(--text) }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line) }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 11px 12px 10px; font: 600 12.5px var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--dim) }
+.tabs button:hover { color: #fff } .tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--accent) }
+.pane { display: grid; gap: 14px }
+.sub { color: var(--dim); font-size: 13px }
+.lbl { font: 600 11px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px }
+.pick { text-align: left; background: var(--raise); border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; position: relative; overflow: hidden; transition: border-color .15s, transform .15s }
+.pick:hover:not([disabled]) { border-color: var(--line2); transform: translateY(-2px) }
+.pick::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--accent); opacity: 0 }
+.pick[aria-pressed="true"] { border-color: rgba(198, 242, 78, .8); background: linear-gradient(180deg, rgba(198, 242, 78, .13), rgba(198, 242, 78, .02)) }
+.pick[aria-pressed="true"]::before { opacity: 1 }
+.pick b { display: block; font: 700 18px/1.1 var(--disp); letter-spacing: .03em }
+.pick small { display: block; color: var(--dim); font-size: 11.5px; margin-top: 2px }
+.pick .pr { color: #ffd36b } .pick .own { color: #46d98a }
+.pick svg { width: 100%; height: 50px; display: block; margin-bottom: 6px }
+.pick svg path { fill: none; stroke: #cfd8e0; stroke-width: 3; stroke-linejoin: round }
+.pick[aria-pressed="true"] svg path { stroke: var(--accent) }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid rgba(255, 255, 255, .3) }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px }
+.seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line) }
+.seg button { flex: 1; border: 0; border-radius: 7px; background: transparent; padding: 8px 6px; font: 600 12px var(--ui); letter-spacing: .06em; color: #cdd6de }
+.seg button:hover { color: #fff } .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
+.btn { border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); padding: 12px 24px; font: 700 17px var(--disp); letter-spacing: .18em; text-transform: uppercase; box-shadow: 0 10px 26px rgba(198, 242, 78, .25) }
+.btn:hover:not([disabled]) { filter: brightness(1.07) } .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); box-shadow: none }
+.btn.sm { padding: 8px 14px; font-size: 14px; box-shadow: none }
+.foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap }
+.foot .links { margin-left: auto; display: flex; gap: 16px } .foot a { color: var(--dim); text-decoration: none; font-size: 13.5px } .foot a:hover { color: #fff }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12.5px; color: var(--dim) } .keys b { color: var(--text); font-weight: 600 }
+.note { color: var(--dim); font-size: 12.5px }
+.box { background: var(--raise); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px }
+.bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden } .bar i { display: block; height: 100%; background: var(--accent) }
+.ev { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; background: var(--raise); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px }
+.ev b { font: 700 18px/1.1 var(--disp); letter-spacing: .03em } .ev small { display: block; color: var(--dim); font-size: 12px }
+.ev .pr { font: 600 13px var(--ui); color: #ffd36b; text-align: right } .ev .done { color: #46d98a; font-size: 12px; font-weight: 600 }
+.ev.locked { opacity: .55 }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px } .stats div { background: rgba(255, 255, 255, .035); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px }
+.stats span { display: block; font: 600 10px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--dim) } .stats b { font: 700 18px var(--disp) }
+.upg { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--line) } .upg small { display: block; color: var(--dim); font-size: 11.5px }
+.pips { display: flex; gap: 3px } .pips i { width: 16px; height: 6px; border-radius: 2px; background: rgba(255, 255, 255, .1) } .pips i.on { background: #ffd36b }
+/* HUD */
+.hp { position: absolute; background: rgba(8, 11, 15, .8); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px }
+#hPos { left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top)); min-width: 150px; border-left: 3px solid var(--accent) }
+#hPos .p { font: 700 52px/1 var(--disp) } #hPos .p small { font-size: 22px; color: var(--dim); margin-left: 3px }
+#hPos .l { font: 600 12px var(--ui); letter-spacing: .14em; color: var(--dim); text-transform: uppercase; margin-top: 2px }
+#hTime { right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); text-align: right; min-width: 180px; font-variant-numeric: tabular-nums }
+#hTime .c { font: 700 30px/1 var(--disp); letter-spacing: .02em } #hTime .s { font-size: 12.5px; color: var(--dim); margin-top: 4px }
+#hSpd { left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); text-align: center; min-width: 220px; display: grid; grid-template-columns: auto 1fr; gap: 0 14px; align-items: center }
+#hG { font: 700 40px/1 var(--disp); color: var(--accent); min-width: 26px } #hV { font: 700 44px/.95 var(--disp) } #hSpd .u { font: 600 11px var(--ui); letter-spacing: .14em; color: var(--dim) }
+#hRpm { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; margin-top: 7px } #hRpm i { display: block; height: 100%; width: 0; background: #cfd8e0 }
+#hMap { right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: 220px; height: 220px; padding: 0; background: rgba(8, 11, 15, .88); border-top: 3px solid var(--accent) }
+#hMsg { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); font: 700 clamp(34px, 8vw, 84px)/1 var(--disp); letter-spacing: .06em; text-transform: uppercase; text-align: center;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, .6); pointer-events: none; white-space: nowrap }
+#hMsg small { display: block; font: 600 16px var(--ui); letter-spacing: .04em; color: #dfe6ec; margin-top: 8px; text-transform: none }
+#hBtns { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px }
+#hBtns button { background: rgba(8, 11, 15, .8); border: 1px solid var(--line2); border-radius: 8px; padding: 6px 12px; font: 600 12px var(--ui); letter-spacing: .06em }
+/* touch */
+#touch .t { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); width: 78px; height: 78px; border-radius: 50%; background: rgba(8, 11, 15, .6); border: 1px solid var(--line2);
+  display: grid; place-items: center; font: 700 15px var(--disp); letter-spacing: .08em; color: #dfe6ec; touch-action: none }
+#touch .t.on { background: rgba(198, 242, 78, .45) }
+/* overlays */
+.ov { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 9, .7); padding: 16px; z-index: 5; overflow: auto }
+.ov .card { width: min(560px, 100%) }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums } td { padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 14px }
+td:last-child { text-align: right } tr.me td { color: var(--accent); font-weight: 700 }
+.earn { font: 600 15px var(--ui); color: #ffd36b } .earn small { display: block; color: var(--dim); font-weight: 500; font-size: 12.5px }
+.btns { display: flex; gap: 8px; flex-wrap: wrap } .btns .btn { flex: 1 }
+@media (max-width: 700px) { #hMap { width: 132px; height: 132px; top: calc(max(14px, env(safe-area-inset-top)) + 92px); bottom: auto } #hSpd { bottom: 104px } #hPos .p { font-size: 38px } h1 { font-size: 34px } .stats { grid-template-columns: repeat(2, 1fr) } }
+/* ---------------- rockets: the flight HUD ----------------
+   top left: the mission and its goals; top right: the mission clock, time warp and assist; left: the flight numbers; bottom left: throttle
+   and the stages with their fuel; bottom centre: the attitude dial (horizon, where the nose points, the path and the guide); bottom right:
+   the orbit map. */
+#hMis { left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top)); min-width: 250px; max-width: 340px; border-left: 3px solid var(--accent) }
+#hMis .k { font: 700 10.5px var(--ui); letter-spacing: .16em; text-transform: uppercase; color: var(--dim) }
+#hMis .n { font: 700 23px/1.05 var(--disp); letter-spacing: .02em; margin: 2px 0 6px }
+#hMis .g { display: grid; grid-template-columns: 16px 1fr auto; gap: 3px 8px; font-size: 12.5px; align-items: center; font-variant-numeric: tabular-nums }
+#hMis .g i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #59636e; display: block } #hMis .g i.ok { background: #46d98a; border-color: #46d98a }
+#hMis .g span { color: #dfe6ec } #hMis .g b { font-weight: 600; color: #fff }
+#hClock { right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); text-align: right; min-width: 170px }
+#hClock .c { font: 600 28px/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .02em } #hClock .s { font-size: 12.5px; color: var(--dim); margin-top: 5px } #hClock .s b { color: var(--accent) }
+#hFly { left: max(14px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%); display: grid; grid-template-columns: auto auto; gap: 2px 14px; padding: 10px 14px; font-variant-numeric: tabular-nums; min-width: 210px }
+#hFly span { font: 600 10.5px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); align-self: center }
+#hFly b { font: 700 19px/1.2 var(--disp); text-align: right; letter-spacing: .02em } #hFly b.hot { color: #ff8a5a } #hFly b.ok { color: #46d98a }
+#hFly hr { grid-column: 1 / -1; border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100% }
+#hAtt { right: calc(max(14px, env(safe-area-inset-right)) + 262px); bottom: max(14px, env(safe-area-inset-bottom)); width: 210px; height: 210px; padding: 0; border-radius: 50% !important }
+#hStack { left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); display: flex; gap: 12px; align-items: stretch; padding: 10px 12px }
+#hThr { width: 22px; border-radius: 6px; background: rgba(255,255,255,.07); position: relative; overflow: hidden; min-height: 150px } #hThr i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, #ff8a3d, #ffd36b); display: block }
+#hThr u { position: absolute; left: -2px; right: -2px; height: 2px; background: #ff3030; text-decoration: none }
+#hStages { display: grid; gap: 5px; align-content: end; min-width: 150px }
+#hStages div { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 11.5px; color: var(--dim); padding: 4px 6px; border-radius: 7px; border: 1px solid transparent }
+#hStages div.cur { border-color: var(--line2); color: #fff; background: rgba(255,255,255,.04) } #hStages div.gone { opacity: .35 }
+#hStages .bar { grid-column: 1 / -1; height: 5px } #hStages div.cur .bar i { background: var(--accent) } #hStages .lbl2 { font-weight: 600 }
+#hThrTxt { font: 700 12px var(--ui); color: #ffd36b; text-align: center; margin-top: 4px }
+#hMap { right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: 250px; height: 250px; padding: 0; border-top: 3px solid var(--accent) }
+#hMap.big { width: min(86vw, 86vh); height: min(86vw, 86vh); right: 50%; bottom: 50%; transform: translate(50%, 50%); z-index: 3 }
+#hTip { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 230px); font: 600 14px var(--ui); color: #fff; text-align: center; background: rgba(8,11,15,.75); border: 1px solid var(--line2); border-radius: 999px; padding: 7px 16px; pointer-events: none; white-space: nowrap }
+#hTip:empty { display: none } #hTip b { color: var(--accent) }
+#hMsg { top: 22% }
+#touchR .t { position: absolute; width: 66px; height: 66px; border-radius: 50%; background: rgba(8, 11, 15, .6); border: 1px solid var(--line2); display: grid; place-items: center; font: 700 12px var(--disp); letter-spacing: .06em; color: #dfe6ec; touch-action: none; text-align: center; line-height: 1 }
+#touchR .t.on { background: rgba(198, 242, 78, .45) }
+.stars { color: #ffd36b; letter-spacing: 2px; font-size: 14px } .stars s { color: #4a525c; text-decoration: none }
+.ev { cursor: pointer; text-align: left; color: inherit; font: inherit } .ev[aria-pressed="true"] { border-color: rgba(198, 242, 78, .8); background: linear-gradient(180deg, rgba(198, 242, 78, .12), rgba(198, 242, 78, .02)) }
+.spec { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px } .spec div { background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px }
+.spec span { display: block; font: 600 10px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--dim) } .spec b { font: 700 16px var(--disp) }
+.pick canvas { width: 100%; height: 86px; display: block; margin-bottom: 6px }
+.res { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; font-size: 13.5px; font-variant-numeric: tabular-nums } .res span { color: var(--dim) }
+@media (max-width: 900px) { #hMap { width: 170px; height: 170px } #hAtt { right: calc(max(14px, env(safe-area-inset-right)) + 182px); width: 170px; height: 170px } #hFly { min-width: 0 } #hFly b { font-size: 16px } }
+@media (max-width: 700px) {
+  #hAtt { width: 120px; height: 120px; bottom: 96px; right: 50%; transform: translateX(50%) } #hTip { bottom: 236px; font-size: 12.5px } #hFly { top: auto; bottom: 240px; transform: none; grid-template-columns: auto auto auto auto; gap: 1px 8px; font-size: 11px } #hFly b { font-size: 14px } #hFly hr { display: none }
+  #hMap { width: 120px; height: 120px; top: calc(max(14px, env(safe-area-inset-top)) + 96px); bottom: auto } #hStack { bottom: 96px; padding: 6px 8px } #hThr { min-height: 90px } #hStages { min-width: 100px }
+  #hMis { min-width: 0; max-width: 58vw } #hMis .n { font-size: 18px } #hClock { min-width: 0 } #hClock .c { font-size: 20px }
+}
+select { width: 100%; padding: 10px 12px; font: 600 14px var(--ui); color: var(--text); background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 12px }
+select option { background: #11151c }
+#mList { max-height: min(330px, 40vh); overflow: auto; padding-right: 4px }
+/* short screens (a phone on its side): everything smaller, the map under the clock, the throttle next to the turn buttons */
+@media (max-height: 520px) {
+  #hMis { max-width: 240px; min-width: 0; padding: 6px 10px } #hMis .n { font-size: 16px; margin: 0 0 3px } #hMis .g { font-size: 11px }
+  #hClock { min-width: 0; padding: 6px 10px } #hClock .c { font-size: 20px } #hClock .s { font-size: 11px; margin-top: 2px }
+  #hFly { top: calc(max(10px, env(safe-area-inset-top)) + 84px); transform: none; grid-template-columns: auto auto auto auto; gap: 0 8px; padding: 6px 10px; min-width: 0 } #hFly b { font-size: 13px } #hFly span { font-size: 9px } #hFly hr { display: none }
+  #hStack { left: calc(max(14px, env(safe-area-inset-left)) + 150px); padding: 6px } #hStages { display: none } #hThr { min-height: 66px; width: 16px } #hThrTxt { font-size: 10px }
+  #hAtt { width: 110px; height: 110px; left: 50%; right: auto; transform: translateX(-50%) }
+  #hMap { width: 116px; height: 116px; top: calc(max(10px, env(safe-area-inset-top)) + 70px); bottom: auto }
+  #hTip { bottom: 132px; font-size: 12px } #hBtns button { padding: 5px 9px; font-size: 11px }
+}
+</style>
+<link rel="stylesheet" href="neo.css">
+</head>
+<body class="neo neo-kart neo-rocket">
+<canvas id="view"></canvas>
+<div id="hud" hidden>
+  <div class="hp" id="hMis"><div class="k" id="hMisK">Mission</div><div class="n" id="hMisN">-</div><div class="g" id="hGoals"></div></div>
+  <div class="hp" id="hClock"><div class="c" id="hT">T-00:10</div><div class="s" id="hS"></div></div>
+  <div class="hp" id="hFly"></div>
+  <div class="hp" id="hStack"><div><div id="hThr"><i></i><u></u></div><div id="hThrTxt">0%</div></div><div id="hStages"></div></div>
+  <canvas class="hp" id="hAtt" width="420" height="420"></canvas>
+  <canvas class="hp" id="hMap" width="600" height="600" title="Orbit map (M to enlarge)"></canvas>
+  <div id="hTip"></div>
+  <div id="hMsg"></div>
+  <div id="hBtns"><button type="button" id="bPause">Pause</button><button type="button" id="bCam">Camera</button><button type="button" id="bMap">Map</button><button type="button" id="bAssist">Assist</button><button type="button" id="bWarpD">&laquo;</button><button type="button" id="bWarpU">&raquo;</button></div>
+</div>
+<div id="touchR" hidden>
+  <div class="t" data-k="left" style="left:max(16px,env(safe-area-inset-left));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 4px)">&#8634;</div>
+  <div class="t" data-k="right" style="left:calc(max(16px,env(safe-area-inset-left)) + 76px);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 4px)">&#8635;</div>
+  <div class="t" data-k="up" style="right:max(16px,env(safe-area-inset-right));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 80px)">THR<br>+</div>
+  <div class="t" data-k="down" style="right:max(16px,env(safe-area-inset-right));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 4px)">THR<br>&minus;</div>
+  <div class="t" data-k="stage" style="right:calc(max(16px,env(safe-area-inset-right)) + 76px);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 4px);background:rgba(120,40,10,.6)">STAGE</div>
+  <div class="t" data-k="assist" style="right:calc(max(16px,env(safe-area-inset-right)) + 76px);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 80px)">ASSIST</div>
+</div>
+
+<section id="menu">
+  <div class="card">
+    <div class="top"><h1>Erika <b>Rockets</b></h1><span class="lic" id="mLic"></span><span class="wallet" id="mWallet"></span></div>
+    <div class="tabs" role="tablist"><button type="button" role="tab" data-tab="missions">Missions</button><button type="button" role="tab" data-tab="free">Free flight</button><button type="button" role="tab" data-tab="hangar">Hangar</button></div>
+    <div class="pane" id="pMissions">
+      <div class="pane" id="mList" style="gap:8px"></div>
+      <div class="box" id="mBrief"></div>
+    </div>
+    <div class="pane" id="pFree" hidden>
+      <div><div class="lbl">Rocket</div><div class="grid" id="fRockets"></div></div>
+      <div class="row">
+        <div><div class="lbl">Launch site</div><div class="seg" id="fSite"><button type="button" data-v="cape">Florida coast</button><button type="button" data-v="desert">Desert</button></div></div>
+      </div>
+      <div class="note" id="fInfo"></div>
+    </div>
+    <div class="pane" id="pHangar" hidden>
+      <div class="grid" id="hRockets"></div>
+      <div class="box" id="hDetail"></div>
+    </div>
+    <div class="row" id="mAssistRow"><div><div class="lbl">Assist</div><div class="seg" id="mAssist"><button type="button" data-v="manual">Manual</button><button type="button" data-v="steer">Steering help</button><button type="button" data-v="auto">Autopilot</button></div></div></div>
+    <div class="keys"><b>Shift / W &middot; Ctrl / S</b><span>Throttle up and down (Z full, X off)</span><b>A / D</b><span>Turn the rocket (it holds where it points when you let go)</span><b>Space</b><span>Light the engines, then drop each empty stage</span><b>T &middot; M &middot; C</b><span>Assist &middot; orbit map &middot; camera</span><b>, / .</b><span>Time warp down and up (when coasting in space)</span></div>
+    <div class="foot"><button class="btn" id="mGo" type="button">Launch</button><span class="links"><a href="#" class="msgF" title="Send Fernando a message">Message Fernando</a><a href="./" title="Back to the game choice">&larr; All games</a></span></div>
+  </div>
+</section>
+<div class="ov" id="pause" hidden><div class="card"><h1 style="font-size:36px">Paused</h1><div class="res" id="pInfo"></div><div class="btns"><button class="btn" id="pRes" type="button">Resume</button><button class="btn ghost" id="pRe" type="button">Restart</button><button class="btn ghost" id="pQuit" type="button">Menu</button></div></div></div>
+<div class="ov" id="res" hidden><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:14px"><div><h1 style="font-size:32px" id="rH">Mission complete</h1><div class="sub" id="rS"></div></div><div class="stars" id="rG" style="font-size:30px"></div></div><div class="res" id="rT"></div><div class="earn" id="rE"></div><div class="btns" id="rB"></div></div></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>window.ERIKA_GAME = 'rocket';   // Erika Rockets needs a rockets code</script>
+<script src="gate.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+(function () {
+
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; }
+const store = { get(k, d) { try { const v = localStorage.getItem('erika.rocket.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('erika.rocket.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } } };
+const fmtN = (n) => Math.round(n).toLocaleString('en-US');
+const fmtT = (t) => { const s = Math.max(0, Math.floor(t)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s % 60).padStart(2, '0'); };
+const fmtAlt = (m) => Math.abs(m) >= 1e6 ? fmtN(m / 1000) + ' km' : Math.abs(m) >= 1e4 ? (m / 1000).toFixed(1) + ' km' : fmtN(m) + ' m';
+const G0 = 9.80665, RE = 6.371e6, MU = 3.986004418e14, P0 = 101325;
+const OMEGA = 408 / RE;   // the Earth turns under Cape Canaveral (28.5 degrees north) at 408 m/s: the launch plane here turns at that rate
+const air = (h) => h > 150e3 ? 0 : 1.225 * Math.exp(-h / 8500);
+const press = (h) => h > 150e3 ? 0 : P0 * Math.exp(-h / 8000);
+
+// ------------------------------------------------------------------ rockets: real ones, with real numbers (rounded). Each stage: dry and propellant
+// mass (kg), thrust at sea level and in vacuum (N), specific impulse at sea level and in vacuum (s), how far it can throttle down, how many
+// times it can be relit. Parallel stages (boosters burning with the core) are counted as a first stage: boosters plus the core's first part.
+// look: what to draw, from the bottom up: 'core' segments stacked, 'side' boosters around the first core segment, a 'cone' or 'fairing' on top
+const ROCKETS = {
+  grasshopper: { name: 'SpaceX Grasshopper', maker: 'SpaceX', cls: 'Test vehicle', dia: 3.7, Cd: .5, rate: 12, legs: true, payload: 0,
+    stages: [{ dry: 20000, prop: 6000, Tsl: 420e3, Tvac: 470e3, IspSl: 282, IspVac: 311, minThr: .4, relight: 9 }],
+    look: [{ st: 0, kind: 'core', len: 32, dia: 3.7, col: '#f4f4f2', band: '#1b1b1b' }], price: 0, rank: 0,
+    blurb: 'A Falcon 9 first-stage tank with one Merlin engine and steel legs: it went up 744 m and landed back on its pad in 2012' },
+  v2: { name: 'V-2 (A4)', maker: 'Peenemuende', cls: 'Sounding rocket', dia: 1.65, Cd: .32, rate: 6, payload: 1000,
+    stages: [{ dry: 4000, prop: 8800, Tsl: 270e3, Tvac: 310e3, IspSl: 203, IspVac: 239, minThr: 1, relight: 0 }],
+    look: [{ st: 0, kind: 'core', len: 12.5, dia: 1.65, col: '#ecebe4', pattern: 'v2', fins: 4 }, { st: 0, kind: 'cone', len: 2, dia: 1.65, col: '#ecebe4' }], price: 0, rank: 0,
+    blurb: 'The first rocket to reach space, in 1944: alcohol and liquid oxygen, 27 tonnes of thrust, no throttle. Point it up and hold on' },
+  newshepard: { name: 'Blue Origin New Shepard', maker: 'Blue Origin', cls: 'Suborbital', dia: 3.7, Cd: .4, rate: 6, payload: 3000, legs: true, capsule: true,
+    stages: [{ dry: 11000, prop: 24000, Tsl: 490e3, Tvac: 530e3, IspSl: 320, IspVac: 370, minThr: .2, relight: 2 }],
+    look: [{ st: 0, kind: 'core', len: 15, dia: 3.7, col: '#f4f4f2', band: '#2c4a8f', fins: 4 }, { st: 0, kind: 'capsule', len: 3.6, dia: 3.7, col: '#f4f4f2' }], price: 900, rank: 0,
+    blurb: 'The space-tourist rocket: one hydrogen BE-3 engine, a capsule with the biggest windows in space, up past 100 km and back' },
+  electron: { name: 'Rocket Lab Electron', maker: 'Rocket Lab', cls: 'Small launcher', dia: 1.2, Cd: .3, rate: 6, payload: 200, turn: 1.1, faring: true,
+    stages: [{ dry: 950, prop: 9250, Tsl: 162e3, Tvac: 200e3, IspSl: 311, IspVac: 327, minThr: .5, relight: 0 }, { dry: 250, prop: 2050, Tsl: 15e3, Tvac: 25.8e3, IspSl: 250, IspVac: 343, minThr: .5, relight: 2 }],
+    look: [{ st: 0, kind: 'core', len: 12, dia: 1.2, col: '#141414' }, { st: 1, kind: 'core', len: 2.5, dia: 1.2, col: '#141414' }, { st: 2, kind: 'fairing', len: 2.5, dia: 1.2, col: '#141414' }], price: 2500, rank: 1,
+    blurb: 'A small carbon-fibre rocket with electric-pump Rutherford engines: 18 m tall, 300 kg to orbit, launched from New Zealand' },
+  soyuz: { name: 'Soyuz-2.1b', maker: 'Progress', cls: 'Crew launcher', dia: 2.95, Cd: .35, rate: 3, payload: 7000,
+    stages: [{ dry: 15000, prop: 194000, Tsl: 4146e3, Tvac: 5000e3, IspSl: 263, IspVac: 320, minThr: .7, relight: 0 }, { dry: 6500, prop: 54000, Tsl: 792e3, Tvac: 990e3, IspSl: 255, IspVac: 320, minThr: .7, relight: 0 },
+      { dry: 2400, prop: 25400, Tsl: 200e3, Tvac: 294e3, IspSl: 280, IspVac: 359, minThr: .7, relight: 1 }],
+    look: [{ st: 1, kind: 'core', len: 27, dia: 2.95, col: '#d5d9cf' }, { st: 0, kind: 'side', n: 4, len: 19.6, dia: 2.68, col: '#d5d9cf', cone: true }, { st: 2, kind: 'core', len: 6.7, dia: 2.66, col: '#d5d9cf' }, { st: 3, kind: 'capsule', len: 7.5, dia: 2.7, col: '#c9cfc0', tower: true }], price: 4000, rank: 1,
+    blurb: 'The rocket that has flown people since 1967: four boosters around a central core, the famous cross when they fall away' },
+  falcon9: { name: 'SpaceX Falcon 9', maker: 'SpaceX', cls: 'Medium launcher', dia: 3.7, Cd: .32, rate: 3.5, payload: 15600, faring: true, legs: true,
+    stages: [{ dry: 25600, prop: 411000, Tsl: 7607e3, Tvac: 8227e3, IspSl: 282, IspVac: 311, minThr: .4, relight: 3 }, { dry: 4000, prop: 107500, Tsl: 400e3, Tvac: 981e3, IspSl: 200, IspVac: 348, minThr: .4, relight: 2 }],
+    look: [{ st: 0, kind: 'core', len: 42.6, dia: 3.7, col: '#f4f4f2', band: '#1b1b1b' }, { st: 1, kind: 'core', len: 13.8, dia: 3.7, col: '#f4f4f2' }, { st: 2, kind: 'fairing', len: 13, dia: 5.2, col: '#f4f4f2' }], price: 6000, rank: 2,
+    blurb: 'Nine Merlin engines, a reusable first stage and the rocket that launches most of the world\'s satellites today' },
+  ariane5: { name: 'Ariane 5 ECA', maker: 'ArianeGroup', cls: 'Heavy launcher', dia: 5.4, Cd: .4, rate: 3, payload: 10000, faring: true,
+    stages: [{ dry: 66000, prop: 521000, Tsl: 12960e3, Tvac: 14200e3, IspSl: 275, IspVac: 290, minThr: .8, relight: 0 }, { dry: 14700, prop: 129000, Tsl: 960e3, Tvac: 1390e3, IspSl: 310, IspVac: 432, minThr: .8, relight: 0 },
+      { dry: 4500, prop: 14900, Tsl: 30e3, Tvac: 67e3, IspSl: 300, IspVac: 446, minThr: 1, relight: 1 }],
+    look: [{ st: 1, kind: 'core', len: 30.5, dia: 5.4, col: '#efefe8' }, { st: 0, kind: 'side', n: 2, len: 31.6, dia: 3.05, col: '#efefe8', cone: true }, { st: 2, kind: 'core', len: 4.7, dia: 5.4, col: '#e8e6df' }, { st: 3, kind: 'fairing', len: 17, dia: 5.4, col: '#efefe8' }], price: 9000, rank: 2,
+    blurb: 'Europe\'s heavy rocket: two huge solid boosters and a hydrogen core, built to put big satellites on the way to geostationary orbit' },
+  shuttle: { name: 'Space Shuttle', maker: 'NASA', cls: 'Crewed spaceplane', dia: 8.4, Cd: .55, rate: 2.5, payload: 103000, shuttle: true,
+    stages: [{ dry: 174000, prop: 1191000, Tsl: 30580e3, Tvac: 34437e3, IspSl: 270, IspVac: 300, minThr: .9, relight: 0 }, { dry: 26500, prop: 539000, Tsl: 5580e3, Tvac: 6837e3, IspSl: 366, IspVac: 452, minThr: .67, relight: 0 },
+      { dry: 0, prop: 10800, Tsl: 30e3, Tvac: 53.4e3, IspSl: 250, IspVac: 316, minThr: 1, relight: 9 }],
+    look: [{ st: 1, kind: 'tank', len: 46.9, dia: 8.4, col: '#c8641c' }, { st: 0, kind: 'side', n: 2, len: 45.5, dia: 3.71, col: '#f4f4f2', cone: true }, { st: 2, kind: 'orbiter' }], price: 14000, rank: 3,
+    blurb: 'Two solid boosters, the orange tank and the orbiter with its three main engines: 135 flights from 1981 to 2011' },
+  falconheavy: { name: 'SpaceX Falcon Heavy', maker: 'SpaceX', cls: 'Heavy launcher', dia: 3.7, Cd: .4, rate: 3, payload: 20000, faring: true, legs: true,
+    stages: [{ dry: 44400, prop: 1022000, Tsl: 22819e3, Tvac: 24681e3, IspSl: 282, IspVac: 311, minThr: .4, relight: 3 }, { dry: 25600, prop: 211000, Tsl: 7607e3, Tvac: 8227e3, IspSl: 282, IspVac: 311, minThr: .4, relight: 3 },
+      { dry: 4000, prop: 107500, Tsl: 400e3, Tvac: 981e3, IspSl: 200, IspVac: 348, minThr: .4, relight: 2 }],
+    look: [{ st: 1, kind: 'core', len: 42.6, dia: 3.7, col: '#f4f4f2', band: '#1b1b1b' }, { st: 0, kind: 'side', n: 2, len: 42.6, dia: 3.7, col: '#f4f4f2', cone: true, band: '#1b1b1b' }, { st: 2, kind: 'core', len: 13.8, dia: 3.7, col: '#f4f4f2' }, { st: 3, kind: 'fairing', len: 13, dia: 5.2, col: '#f4f4f2' }], price: 16000, rank: 3,
+    blurb: 'Three Falcon 9 cores side by side, 27 engines: the side boosters fly home and land together while the centre core keeps going' },
+  saturnv: { name: 'Saturn V', maker: 'NASA', cls: 'Moon rocket', dia: 10.1, Cd: .4, rate: 2, payload: 45000,
+    stages: [{ dry: 131000, prop: 2149000, Tsl: 34020e3, Tvac: 38700e3, IspSl: 263, IspVac: 304, minThr: 1, relight: 0 }, { dry: 36000, prop: 444000, Tsl: 4400e3, Tvac: 5141e3, IspSl: 360, IspVac: 421, minThr: 1, relight: 0 },
+      { dry: 10000, prop: 109000, Tsl: 800e3, Tvac: 1033e3, IspSl: 360, IspVac: 421, minThr: 1, relight: 1 }],
+    look: [{ st: 0, kind: 'core', len: 42, dia: 10.1, col: '#f4f4f2', pattern: 'saturn', fins: 4 }, { st: 1, kind: 'core', len: 24.9, dia: 10.1, col: '#f4f4f2', band: '#1b1b1b' }, { st: 2, kind: 'core', len: 17.8, dia: 6.6, col: '#f4f4f2', band: '#1b1b1b' }, { st: 3, kind: 'capsule', len: 25, dia: 6.6, col: '#f4f4f2', tower: true, apollo: true }], price: 22000, rank: 4,
+    blurb: 'The rocket that took people to the Moon: 111 m tall, five F-1 engines, 3,000 tonnes and 35 million newtons at lift-off' },
+  sls: { name: 'SLS Block 1', maker: 'NASA', cls: 'Moon rocket', dia: 8.4, Cd: .45, rate: 2.2, payload: 27000,
+    stages: [{ dry: 196000, prop: 1515000, Tsl: 39440e3, Tvac: 44316e3, IspSl: 269, IspVac: 290, minThr: .9, relight: 0 }, { dry: 85000, prop: 728000, Tsl: 7440e3, Tvac: 9116e3, IspSl: 366, IspVac: 452, minThr: .67, relight: 0 },
+      { dry: 3500, prop: 27000, Tsl: 50e3, Tvac: 110e3, IspSl: 300, IspVac: 465, minThr: 1, relight: 1 }],
+    look: [{ st: 1, kind: 'core', len: 64.6, dia: 8.4, col: '#d8762b' }, { st: 0, kind: 'side', n: 2, len: 54, dia: 3.71, col: '#f4f4f2', cone: true }, { st: 2, kind: 'core', len: 13.7, dia: 5, col: '#f4f4f2' }, { st: 3, kind: 'capsule', len: 10, dia: 5, col: '#f4f4f2', tower: true }], price: 26000, rank: 4,
+    blurb: 'NASA\'s Artemis Moon rocket: an orange core with four RS-25 engines from the Shuttle and two five-segment solid boosters' },
+  starship: { name: 'SpaceX Starship', maker: 'SpaceX', cls: 'Super heavy', dia: 9, Cd: .5, rate: 2, payload: 100000, legs: false,
+    stages: [{ dry: 200000, prop: 3400000, Tsl: 74400e3, Tvac: 80000e3, IspSl: 327, IspVac: 350, minThr: .4, relight: 3 }, { dry: 100000, prop: 1200000, Tsl: 7000e3, Tvac: 14500e3, IspSl: 330, IspVac: 380, minThr: .4, relight: 3 }],
+    look: [{ st: 0, kind: 'core', len: 71, dia: 9, col: '#b9bec4', steel: true, gridfins: true }, { st: 1, kind: 'core', len: 40, dia: 9, col: '#c4c9ce', steel: true }, { st: 2, kind: 'starship', len: 10, dia: 9, col: '#c4c9ce' }], price: 34000, rank: 5,
+    blurb: 'The biggest rocket ever flown: 121 m of stainless steel and 33 Raptor engines on the Super Heavy booster, with the Ship on top' },
+  erika: { name: 'Erika Rocket', maker: 'Erika', cls: 'Erika', dia: 4, Cd: .3, rate: 8, payload: 20000, music: true, fun: true,
+    stages: [{ dry: 50000, prop: 2000000, Tsl: 120000e3, Tvac: 125000e3, IspSl: 600, IspVac: 700, minThr: .1, relight: 99 }, { dry: 10000, prop: 300000, Tsl: 6000e3, Tvac: 8000e3, IspSl: 700, IspVac: 900, minThr: .1, relight: 99 }],
+    look: [{ st: 0, kind: 'core', len: 40, dia: 4, col: '#d4af37', band: '#10161c', fins: 4 }, { st: 1, kind: 'core', len: 12, dia: 4, col: '#d4af37' }, { st: 2, kind: 'cone', len: 8, dia: 4, col: '#10161c' }], price: 0, rank: 0,
+    blurb: 'The gold rocket: impossible engines, it plays the Erika song, and it goes anywhere. Its flights pay no prizes' },
+  f9booster: { name: 'Falcon 9 booster (landing)', maker: 'SpaceX', cls: 'Landing', dia: 3.7, Cd: .9, rate: 10, legs: true, payload: 0, hidden: true,
+    stages: [{ dry: 25600, prop: 34000, Tsl: 845e3, Tvac: 914e3, IspSl: 282, IspVac: 311, minThr: .4, relight: 3 }],
+    look: [{ st: 0, kind: 'core', len: 42.6, dia: 3.7, col: '#e9e9e4', band: '#1b1b1b', gridfins: true, sooty: true }], price: 0, rank: 0 },
+};
+
+// solid boosters cannot be throttled or shut down once lit
+ROCKETS.shuttle.stages[0].solid = ROCKETS.ariane5.stages[0].solid = ROCKETS.sls.stages[0].solid = true;
+const ROCKET_ORDER = Object.keys(ROCKETS).filter((k) => !ROCKETS[k].hidden);
+
+// ------------------------------------------------------------------ flight physics in the launch plane. Origin at the Earth's centre, the launch pad
+// starts at (0, RE) and the Earth turns clockwise, so east is +x at the pad. Gravity, air drag (the air turns with the Earth), thrust that grows as
+// the air thins, and the rocket's pointing
+const PAD0 = Math.PI / 2;
+function newCraft(id, o) {
+  const R = ROCKETS[id], st = R.stages.map((s) => Object.assign({}, s, { left: s.prop, lit: 0 }));
+  const c = { id, R, st, k: 0, x: 0, y: RE, vx: OMEGA * RE, vy: 0, ang: PAD0, thr: 0, on: false, t: 0, q: 0, g: 1, aoa: 0, maxQ: 0, maxH: 0, maxG: 0,
+    landed: true, crashed: null, broke: null, pay: R.payload, events: [], touch: null, padAng0: PAD0, flown: false };
+  if (o) Object.assign(c, o);
+  return c;
+}
+const mass = (c) => { let m = c.pay; for (let i = c.k; i < c.st.length; i++) m += c.st[i].dry + c.st[i].left; return m; };
+const alt = (c) => Math.hypot(c.x, c.y) - RE;
+const upAng = (c) => Math.atan2(c.y, c.x);
+const padAng = (c) => c.padAng0 - OMEGA * c.t;
+const wrapA = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+function orbit(c) {   // apoapsis and periapsis (altitude, m) of the current path; apo is Infinity when it escapes
+  const r = Math.hypot(c.x, c.y), v2 = c.vx * c.vx + c.vy * c.vy, eps = v2 / 2 - MU / r, hh = c.x * c.vy - c.y * c.vx;
+  const e = Math.sqrt(Math.max(0, 1 + 2 * eps * hh * hh / (MU * MU)));
+  if (eps >= 0) return { apo: Infinity, peri: (hh * hh / MU) / (1 + e) - RE, e, a: Infinity, h: hh };
+  const a = -MU / (2 * eps); return { apo: a * (1 + e) - RE, peri: a * (1 - e) - RE, e, a, h: hh, T: 2 * Math.PI * Math.sqrt(a * a * a / MU) };
+}
+const airVel = (c) => ({ x: c.vx - OMEGA * c.y, y: c.vy + OMEGA * c.x });   // velocity relative to the air and the ground
+function local(c) {   // vertical and eastward speeds relative to the ground, distance east of the pad, how far the rocket leans from upright
+  const up = upAng(c), ux = Math.cos(up), uy = Math.sin(up), ex = uy, ey = -ux, av = airVel(c);
+  return { up, vr: av.x * ux + av.y * uy, ve: av.x * ex + av.y * ey, d: wrapA(padAng(c) - up) * RE, tilt: wrapA(c.ang - up), vi: c.vx * ex + c.vy * ey, vri: c.vx * ux + c.vy * uy };
+}
+function thrustMax(c) { const s = c.st[c.k]; if (!s || s.left <= 0) return 0; const p = press(alt(c)) / P0; return s.Tvac - (s.Tvac - s.Tsl) * p; }
+const thrustNow = (c) => c.on ? thrustMax(c) * c.thr : 0;
+function ignite(c) { const s = c.st[c.k]; if (!s || s.left <= 0 || c.on) return !!c.on; if (s.lit > s.relight) return false; s.lit++; c.on = true; if (c.thr < s.minThr) c.thr = Math.max(c.thr, s.minThr); return true; }
+function cutoff(c) { const s = c.st[c.k]; if (s && s.solid && s.left > 0 && c.on) return false; c.on = false; return true; }
+function stageSep(c) {
+  if (c.k >= c.st.length - 1) return false;
+  const was = c.on, s = c.st[c.k]; c.events.push({ k: c.k, t: c.t, x: c.x, y: c.y, vx: c.vx, vy: c.vy, ang: c.ang, empty: s.left <= 0 });
+  c.k++; c.on = false; if (was) ignite(c);   // the next stage lights straight away when the last one was burning
+  return true;
+}
+// one physics step. ctl: { rate: commanded turn (rad/s, clipped to what the rocket can do), thr: 0..1 }
+function step(c, dt, ctl) {
+  if (c.crashed) return;
+  const s = c.st[c.k], r = Math.hypot(c.x, c.y), h = r - RE;
+  if (ctl.thr != null) c.thr = clamp(ctl.thr, 0, 1);
+  if (s && s.solid && c.on) c.thr = 1;
+  const minT = s ? s.minThr : 0;
+  if (c.on && c.thr < minT) c.thr = minT;
+  const mr = c.R.rate * Math.PI / 180; c.ang = wrapA(c.ang + clamp(ctl.rate || 0, -mr, mr) * dt);
+  let T = c.on ? thrustMax(c) * c.thr : 0; const m = mass(c);
+  if (T > 0) { const flow = s.Tvac / (s.IspVac * G0) * c.thr * dt; if (flow >= s.left) { T *= s.left / flow; s.left = 0; c.on = false; c.flameout = c.t; } else s.left -= flow; }
+  c.T = T;
+  const av = airVel(c), va = Math.hypot(av.x, av.y), q = .5 * air(h) * va * va, A = Math.PI * c.R.dia * c.R.dia / 4;
+  let ax = -MU * c.x / (r * r * r), ay = -MU * c.y / (r * r * r);
+  const tx = Math.cos(c.ang), ty = Math.sin(c.ang); ax += T / m * tx; ay += T / m * ty;
+  // drag grows when the rocket is not pointing along its path through the air
+  if (va > .1) { c.aoa = Math.acos(clamp((tx * av.x + ty * av.y) / va, -1, 1)); const side = Math.sin(c.aoa), D = q * c.R.Cd * A * (1 + 3 * side * side) / m; ax -= D * av.x / va; ay -= D * av.y / va; }
+  else c.aoa = 0;
+  c.q = q; c.maxQ = Math.max(c.maxQ, q);
+  if (c.landed) {   // on the ground: held there until the thrust beats the weight
+    const wt = MU / (r * r) * m; c.g = T / m / G0;
+    if (T > wt * 1.0005 && Math.cos(wrapA(c.ang - upAng(c))) > .5) { c.landed = false; c.flown = true; }
+    else { c.vx = OMEGA * c.y; c.vy = -OMEGA * c.x; c.t += dt; const k = RE / r; c.x *= k; c.y *= k; const nx = c.x * Math.cos(-OMEGA * dt) - c.y * Math.sin(-OMEGA * dt); c.y = c.x * Math.sin(-OMEGA * dt) + c.y * Math.cos(-OMEGA * dt); c.x = nx; return; }
+  }
+  c.vx += ax * dt; c.vy += ay * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.t += dt;
+  const gx = ax + MU * c.x / (r * r * r), gy = ay + MU * c.y / (r * r * r); c.g = Math.hypot(gx, gy) / G0; c.maxG = Math.max(c.maxG, c.g);
+  const h2 = alt(c); c.maxH = Math.max(c.maxH, h2);
+  if (!c.broke && q > 15e3 && Math.min(c.aoa, Math.PI - c.aoa) > 16 * Math.PI / 180) c.broke = 'It broke apart: it turned too far across the air at ' + Math.round(q / 1000) + ' kPa';
+  if (!c.broke && c.R.heat && va > 900 && q > 30e3) c.broke = 'It burned up coming down: slow down with an entry burn first';
+  if (h2 <= 0) {   // touchdown or crash
+    const L = local(c), sp = Math.hypot(L.vr, L.ve), tl = Math.abs(L.tilt) * 180 / Math.PI;
+    c.touch = { v: sp, vr: L.vr, ve: L.ve, tilt: tl, d: L.d, t: c.t };
+    const k = RE / Math.hypot(c.x, c.y); c.x *= k; c.y *= k;
+    if (c.R.legs && sp < 8 && tl < 12) { c.landed = true; c.on = false; c.vx = OMEGA * c.y; c.vy = -OMEGA * c.x; }
+    else { c.crashed = sp < 8 ? 'It tipped over on landing (leaning ' + Math.round(tl) + '°)' : 'It hit the ground at ' + Math.round(sp * 3.6) + ' km/h'; c.on = false; c.vx = c.vy = 0; }
+  }
+}
+
+// ------------------------------------------------------------------ missions: each one names its rocket, what counts as done, and pays credits
+// type: hop (go up to alt and land back on the pad), space (cross the Karman line at 100 km), spaceland (space, then land the booster),
+// orbit (low point of the orbit above peri), gto (orbit, then the high point out to geostationary height), tli (out to the Moon's distance),
+// land (bring a falling booster down on the drone ship)
+const KARMAN = 100e3, GEO = 35786e3, MOON = 384400e3;
+const MISSIONS = [
+  { id: 'hop', name: 'Grasshopper hop', rocket: 'grasshopper', type: 'hop', alt: 250, padD: 0, zone: 20, pay: 300, rank: 0,
+    brief: 'Lift off, climb to 250 m and come back down on the pad, slower than 4 m/s. Hover with a light touch on the throttle.' },
+  { id: 'v2', name: 'The first rocket in space', rocket: 'v2', type: 'space', pay: 400, rank: 0,
+    brief: 'Fly the V-2 straight up past 100 km, the edge of space. It has no throttle, so it is all about pointing it the right way.' },
+  { id: 'ns', name: 'Space tourists', rocket: 'newshepard', type: 'spaceland', padD: -1500, zone: 300, pay: 700, rank: 0,
+    brief: 'Take the capsule past 100 km (it lets go at the top and comes down on parachutes), then land the booster on its landing pad, 1.5 km west of the launch pad (the Earth turns under it while it is up).' },
+  { id: 'electron', name: 'First orbit', rocket: 'electron', type: 'orbit', peri: 150e3, apo: 300e3, pay: 1000, rank: 1,
+    brief: 'Put a small satellite in orbit: tip over east as you climb, then build up sideways speed until the low point of the orbit is above 150 km.' },
+  { id: 'soyuz', name: 'Crew to the space station', rocket: 'soyuz', type: 'orbit', peri: 380e3, apo: 420e3, pay: 1400, rank: 1,
+    brief: 'Take a crew up to the height of the International Space Station: an orbit with its low point above 380 km.' },
+  { id: 'f9', name: 'Satellites to orbit', rocket: 'falcon9', type: 'orbit', peri: 250e3, apo: 320e3, pay: 1600, rank: 1,
+    brief: 'Carry 15.6 tonnes of satellites to an orbit at least 250 km up.' },
+  { id: 'f9land', name: 'Land the booster', rocket: 'f9booster', type: 'land', padD: 0, zone: 25, pay: 1800, rank: 2,
+    brief: 'The first stage is falling back from 60 km at 3,900 km/h. Do an entry burn to slow down, then light the engine at the last moment and touch down on the drone ship, slower than 6 m/s.' },
+  { id: 'ariane', name: 'Geostationary transfer', rocket: 'ariane5', type: 'gto', peri: 180e3, apo2: GEO, pay: 2400, rank: 2,
+    brief: 'Send a big telecom satellite on its way to geostationary orbit: reach orbit, keep burning until the high point is out at 35,786 km.' },
+  { id: 'shuttle', name: 'Space Shuttle', rocket: 'shuttle', type: 'orbit', peri: 250e3, apo: 320e3, pay: 2800, rank: 3,
+    brief: 'Fly the orbiter to an orbit above 250 km. The solid boosters cannot be turned off once they are lit.' },
+  { id: 'fh', name: 'Falcon Heavy to GTO', rocket: 'falconheavy', type: 'gto', peri: 180e3, apo2: GEO, pay: 3200, rank: 3,
+    brief: '27 engines, three cores: drop the side boosters, then the centre core, and send 20 tonnes out to geostationary height.' },
+  { id: 'apollo', name: 'To the Moon', rocket: 'saturnv', type: 'tli', peri: 150e3, apo2: MOON, pay: 4500, rank: 4,
+    brief: 'Apollo: three stages into orbit, then relight the third stage to send the spacecraft out to the Moon\'s distance (384,400 km).' },
+  { id: 'artemis', name: 'Artemis', rocket: 'sls', type: 'tli', peri: 150e3, apo2: MOON, pay: 5000, rank: 4,
+    brief: 'Launch Orion on the Space Launch System and send it out to the Moon.' },
+  { id: 'starship', name: 'Starship to orbit', rocket: 'starship', type: 'orbit', peri: 200e3, apo: 260e3, pay: 6000, rank: 5,
+    brief: 'The biggest rocket ever: 100 tonnes to an orbit above 200 km.' },
+];
+const MISSION = Object.fromEntries(MISSIONS.map((m) => [m.id, m]));
+
+// where a flight starts: on the pad, or (for the landing mission) a falling booster
+function startState(M, rocketId) {
+  const c = newCraft(rocketId || M.rocket);
+  if (M.type === 'land') {   // 60 km up, 1.1 km/s down and drifting back towards the ship, which is 1.5 km west of where it would fall
+    const h = 60e3, r = RE + h, ph = PAD0 - 1500 / RE, ux = Math.cos(ph), uy = Math.sin(ph), ex = uy, ey = -ux, vr = -1080, ve = -60;
+    c.x = r * ux; c.y = r * uy; c.vx = vr * ux + ve * ex + OMEGA * c.y; c.vy = vr * uy + ve * ey - OMEGA * c.x;
+    c.ang = Math.atan2(-c.vy, -c.vx); c.landed = false; c.flown = true; c.st[0].lit = 1; c.R = Object.assign({}, c.R, { heat: true });
+    // its own fall would bring it down at the pad; the ship is waiting there
+  }
+  return c;
+}
+
+// ------------------------------------------------------------------ the autopilot: flies every mission (the "Auto" assist, and the tests).
+// Returns where to point (want, an angle in the launch plane), the throttle, and whether to light, cut or stage.
+function autopilot(c, M, mem) {
+  const L = local(c), h = alt(c), up = L.up, o = orbit(c), s = c.st[c.k], m = mass(c), Tm = thrustMax(c), Am = Tm / m, gl = MU / Math.pow(h + RE, 2);
+  const av = airVel(c), surfPro = Math.atan2(av.y, av.x), east = up - Math.PI / 2;
+  const out = { want: up, thr: c.thr, light: false, cut: false, stage: false };
+  const empty = !s || s.left <= 0;
+  if (empty && c.k < c.st.length - 1) { out.stage = true; return out; }
+  const landing = M.type === 'hop' || M.type === 'land' || (M.type === 'spaceland' && mem.space);
+  if (landing) return land(c, M, mem, L, h, Am, gl, out);
+  if (M.type === 'free') return out;
+  if (M.type === 'hop') return out;
+  if (M.type === 'space' || M.type === 'spaceland') {
+    out.want = up + (L.ve > 0 ? 1 : -1) * Math.min(.05, Math.abs(L.ve) / 2000); out.thr = 1;
+    if (M.type === 'spaceland') { // stop burning once the climb will carry it past 100 km, keeping the fuel for landing
+      const top = h + Math.max(0, L.vr) * L.vr / (2 * gl); if (top > KARMAN + 6e3 || mem.cutUp) { out.thr = 0; out.cut = true; mem.cutUp = true; }
+      if (h > KARMAN) mem.space = true;
+    }
+    if (!c.on && !out.cut && !empty) out.light = true;
+    return out;
+  }
+  // orbital missions. 1) straight up off the pad; 2) a pitch program that tips the rocket east as it climbs, kept close to its path through the air;
+  // 3) above the thick air, steer to climb to the target height and hold it, burning until the orbit is high enough all the way round
+  const H = (M.peri || 200e3) + 12e3, ga = Math.atan2(L.vr, L.vi);   // flight-path angle (inertial)
+  const twr0 = c.R.stages[0].Tsl / (mass(newCraft(c.id)) * G0);
+  const done = o.peri >= (M.peri || 150e3) && (!M.apo2 || o.apo >= M.apo2);
+  if (done) { out.thr = 0; out.cut = true; out.want = Math.atan2(c.vy, c.vx); return out; }
+  if (h < 60e3 && !mem.vac) {
+    const vs = Math.hypot(av.x, av.y);
+    if (vs < 60) out.want = up;
+    else {
+      const k = (mem.k || c.R.turn || 1) * (1 + (twr0 - 1.4) * .5);   // stronger rockets tip over sooner
+      const pitchFromUp = clamp(Math.pow(clamp(h / 90e3, 0, 1), .5) * k * 1.25, 0, 1.4);
+      let w = up - pitchFromUp;
+      if (c.q > 2.5e3) { const lim = c.q > 12e3 ? .05 : .12; w = surfPro + clamp(wrapA(w - surfPro), -lim, lim); }
+      out.want = w;
+    }
+    out.thr = c.q > 30e3 ? .75 : 1;
+    if (h > 45e3 && c.q < 1500) mem.vac = true;
+  } else {
+    mem.vac = true;
+    const parked = o.peri >= (M.peri || 150e3);
+    if (parked && M.apo2) { out.want = Math.atan2(c.vy, c.vx); out.thr = 1; }
+    else {
+      const vcH = Math.sqrt(MU / (H + RE)), geff = gl - L.vi * L.vi / (h + RE);
+      // time left to reach orbit speed with this stage, from the rocket equation
+      const ve = s ? s.IspVac * G0 : 3000, flow = s ? s.Tvac / ve : 1, dv = Math.max(0, vcH - L.vi), tgo = m / flow * (1 - Math.exp(-dv / ve));
+      const relight = s && s.lit <= s.relight, tApo = L.vri > 0 ? L.vri / Math.max(geff, .3) : 0;
+      out.thr = 1;
+      if (false) {
+      } else if (relight && tApo > tgo * .5 + 4 && h > 90e3) {   // then coast up to near the top and burn there
+        out.thr = 0; out.cut = true; out.want = east;
+      } else {   // burn sideways, steering the climb so the target height comes as the orbit speed does
+        const vrd = clamp((H - h) / Math.max(tgo * .55, 25), -150, 900), ar = (vrd - L.vri) / 10 + geff;
+        const sp = Am > .1 ? clamp(ar / Am, -.5, .9) : 0;
+        out.want = east + Math.asin(sp);
+      }
+    }
+  }
+  if (!c.on && !empty && out.thr > 0) out.light = true;
+  return out;
+}
+// landing: fall pointing back along the path through the air; an entry burn when it is too fast; then the landing burn lit late, its throttle
+// set so it stops just at the ground, steering the last bit over the pad
+function land(c, M, mem, L, h, Am, gl, out) {
+  const av = airVel(c), retro = Math.atan2(-av.y, -av.x), up = L.up, vs = Math.hypot(L.vr, L.ve), m = mass(c);
+  out.thr = 0;
+  if (M.type === 'hop' && !mem.top) {   // climb gently to the hop height
+    const vrd = clamp((M.alt + 8 - h) / 6, -5, 22), a = (vrd - L.vr) * .8 + gl;
+    out.thr = clamp(a / Math.max(Am, .1), 0, 1); out.want = up - clamp((-(L.d - (M.padD || 0)) / 25 - L.ve) * .02, -.1, .1);
+    if (h >= M.alt) mem.top = true;
+    if (!c.on) out.light = true; return out;
+  }
+  if (M.type === 'hop') {   // a gentle descent onto the pad
+    const vrd = h > 40 ? -12 : h > 8 ? -4 : -1.5, a = (vrd - L.vr) * .8 + gl;
+    out.thr = clamp(a / Math.max(Am, .1), 0, 1); out.want = up - clamp((-(L.d - (M.padD || 0)) / 15 - L.ve) * .03, -.12, .12);
+    if (!c.on) out.light = true; return out;
+  }
+  // a falling booster: coast pointing back along its path; for the drone-ship landing an entry burn high up to slow down; then the landing burn
+  if (!mem.ph) mem.ph = M.type === 'land' ? 'coast' : 'fall';
+  const s = c.st[c.k], canLight = s && s.left > 0 && s.lit <= s.relight;
+  if (mem.ph === 'coast') { out.want = retro; if (h < 56e3 && vs > 700) { if (Math.abs(wrapA(c.ang - retro)) < .08) { out.light = true; out.thr = 1; mem.ph = 'entry'; } } else if (h < 40e3) mem.ph = 'fall'; return out; }
+  if (mem.ph === 'entry') { out.want = retro; out.thr = 1; if (vs < 650 || h < 30e3) { out.cut = true; out.thr = 0; mem.ph = 'fall'; } return out; }
+  const stopH = L.vr < 0 ? L.vr * L.vr / (2 * Math.max(.5, Am * .8 - gl)) : 0;
+  if (mem.ph === 'fall') { out.want = retro; if (h < 3000) out.want = up + clamp(wrapA(retro - up), -.15, .15);
+    if (L.vr < -5 && canLight && stopHeight(c, h, L.vr, m, .9) < 12) { out.light = true; mem.ph = 'burn'; out.thr = .8; } return out; }
+  // the landing burn: throttle set so the speed reaches zero just at the ground, leaning a little to slide over the pad
+  const Amin = (s ? s.minThr : 0) * thrustMax(c) / m;
+  const need = L.vr < 0 ? L.vr * L.vr / (2 * Math.max(h - 1, .5)) + gl : gl * .9;
+  let vert = h < 12 ? (-1.5 - L.vr) * 1.5 + gl : need;
+  const dd = L.d - (M.padD || 0), vhd = -Math.sign(dd) * Math.min(40, Math.sqrt(2 * 1.2 * Math.abs(dd))) * clamp((h - 20) / 200, 0, 1), ah = clamp((vhd - L.ve) * .5, -5, 5);
+  out.thr = clamp(Math.hypot(vert, ah) / Math.max(Am, .1), 0, 1);
+  const lean = clamp(Math.atan2(ah, Math.max(vert, 1)), h < 5 ? -.06 : -.22, h < 5 ? .06 : .22);
+  out.want = up - lean;
+  if (vs > 150 && h > 800) out.want = retro + clamp(wrapA(out.want - retro), -.1, .1);
+  if (c.on && h < 3 && L.vr > -.6) { out.cut = true; out.thr = 0; }
+  else if (c.on && Amin > need + 1.5 && L.vr > -4 && h > 6) { out.cut = true; out.thr = 0; mem.ph = 'fall'; }   // it would stop in the air: drop a little and relight
+  return out;
+}
+
+// how high a falling booster would stop if it lit its engine now at this throttle (straight up and down, with the drag)
+function stopHeight(c, h, vr, m, thr) {
+  const s = c.st[c.k], A = Math.PI * c.R.dia * c.R.dia / 4, dt = .1;
+  for (let i = 0; i < 1200; i++) {
+    const T = (s.Tvac - (s.Tvac - s.Tsl) * press(h) / P0) * thr, D = .5 * air(h) * vr * vr * c.R.Cd * A;
+    vr += ((T + D) / m - MU / Math.pow(RE + h, 2)) * dt; h += vr * dt;
+    if (vr >= 0) return h;
+    if (h <= 0) return -1;
+  }
+  return h;
+}
+
+// ------------------------------------------------------------------ the referee: has the mission been done, or failed?
+function judge(c, M, mem) {
+  const h = alt(c), o = orbit(c), s = c.st[c.k], fuelOut = c.k === c.st.length - 1 && (!s || s.left <= 0);
+  if (c.broke) return { fail: c.broke };
+  if (c.crashed) return { fail: c.crashed };
+  if (h > KARMAN) mem.space = true;
+  const touched = c.landed && c.flown && c.touch, off = touched ? Math.abs(c.touch.d - (M.padD || 0)) : 0;
+  const where = () => M.type === 'land' ? 'Missed the drone ship by ' + Math.round(off - M.zone) + ' m' : 'Landed ' + Math.round(off) + ' m from the pad';
+  switch (M.type) {
+    case 'hop': if (h >= M.alt) mem.top = true;
+      if (touched) { if (!mem.top) { c.touch = null; return null; } return off < M.zone && c.touch.v < 4 ? { done: true } : { fail: off >= M.zone ? where() : 'Landed too hard: ' + c.touch.v.toFixed(1) + ' m/s' }; }
+      return null;
+    case 'space': return mem.space ? { done: true } : (c.flown && local(c).vr < -5 && h < KARMAN ? { fail: 'It came back down from ' + fmtAlt(c.maxH) + ': not high enough' } : null);
+    case 'spaceland':
+      if (touched) { if (!mem.space) return { fail: 'It landed without reaching space' }; return off < M.zone && c.touch.v < 6 ? { done: true } : { fail: off >= M.zone ? where() : 'Landed too hard: ' + c.touch.v.toFixed(1) + ' m/s' }; }
+      if (c.flown && !mem.space && local(c).vr < -5) return { fail: 'It came back down from ' + fmtAlt(c.maxH) + ': not high enough' };
+      return null;
+    case 'land': if (touched) return off < M.zone && c.touch.v < 6 ? { done: true } : { fail: off >= M.zone ? where() : 'Landed too hard: ' + c.touch.v.toFixed(1) + ' m/s' };
+      return null;
+    default: {
+      const ok = o.peri >= M.peri && (!M.apo2 || o.apo >= M.apo2);
+      if (ok) return { done: true };
+      if (c.flown && h < 60e3 && local(c).vr < -50 && c.t > 30) return { fail: 'It fell back: it needs more sideways speed to stay up' };
+      if (fuelOut && !c.on) return { fail: o.peri < M.peri ? 'Out of fuel with the low point of the orbit at ' + fmtAlt(Math.max(o.peri, -RE)) : 'Out of fuel before the high point reached ' + fmtAlt(M.apo2) };
+      return null;
+    }
+  }
+}
+// things that happen by themselves during a mission: the tourist capsule lets go at the top of the climb
+function missionTick(c, M, mem) {
+  if (c.R.capsule && c.pay > 0 && alt(c) > 60e3 && local(c).vr < 0) { c.pay = 0; mem.capsule = c.t; return 'Capsule away: it comes down on parachutes'; }
+  return null;
+}
+// turn towards an angle, slowing the turn near it
+const steerTo = (c, want) => wrapA(want - c.ang) * 2.2;
+
+// ------------------------------------------------------------------ the 3D world. Everything is drawn around the rocket: each frame the scene is moved so
+// the rocket sits at the origin (that keeps the numbers small enough for the graphics card even 400,000 km out). The launch plane is the
+// picture's x-y plane, the Earth's poles point along z.
+const R3 = { renderer: null, scene: null, cam: null };
+const FUEL = { grasshopper: ['kero'], v2: ['alc'], newshepard: ['hydro'], electron: ['kero', 'kero'], soyuz: ['kero', 'kero', 'kero'], falcon9: ['kero', 'kero'],
+  ariane5: ['solid', 'hydro', 'hydro'], shuttle: ['solid', 'hydro', 'hyper'], falconheavy: ['kero', 'kero', 'kero'], saturnv: ['kero', 'hydro', 'hydro'],
+  sls: ['solid', 'hydro', 'hydro'], starship: ['meth', 'meth'], erika: ['erika', 'erika'], f9booster: ['kero'] };
+// engines on each part of each rocket (by its place in the look list): how many bells and how big
+const ENG = { grasshopper: [[1, .55]], v2: [[1, .45]], newshepard: [[1, .7]], electron: [[9, .14], [1, .3]], soyuz: [[4, .3], [4, .3], [1, .5]], falcon9: [[9, .45], [1, 1.1]],
+  ariane5: [[1, 1.0], [1, 1.2], [1, .5]], shuttle: [[0], [1, 1.9]], falconheavy: [[9, .45], [9, .45], [1, 1.1]], saturnv: [[5, 1.9], [5, 1.0], [1, 1.2]],
+  sls: [[4, 1.15], [1, 1.9], [1, .7]], starship: [[33, .62], [6, .65]], erika: [[5, .7], [1, 1.2]], f9booster: [[9, .45]] };
+const FLAME = { kero: [0xffb347, 0xff7a1a, 1], hydro: [0xbfd8ff, 0x7aa7ff, .55], solid: [0xfff4d0, 0xffc04a, 1.2], meth: [0xc7c9ff, 0x7f86ff, .75], alc: [0xffa060, 0xff5a20, .95],
+  hyper: [0xffc89a, 0xff9a50, .5], erika: [0xffe27a, 0xff5fd2, 1.2] };
+
+function canvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } t.anisotropy = 4; return t; }
+function hash2(a, b) { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); }
+function vnoise(x, y) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  return lerp(lerp(hash2(xi, yi), hash2(xi + 1, yi), u), lerp(hash2(xi, yi + 1), hash2(xi + 1, yi + 1), u), v); }
+function fbm(x, y, o) { let s = 0, a = .5, f = 1; for (let i = 0; i < (o || 5); i++) { s += a * vnoise(x * f, y * f); f *= 2.03; a *= .5; } return s; }
+
+function initRenderer() {
+  const r = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
+  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+  R3.renderer = r; R3.scene = new THREE.Scene(); R3.cam = new THREE.PerspectiveCamera(55, 1, .5, 5e9); R3.scene.add(R3.cam);
+  const resize = () => { const w = window.innerWidth, h = window.innerHeight; r.setSize(w, h, false); R3.cam.aspect = w / h; R3.cam.updateProjectionMatrix(); };
+  window.addEventListener('resize', resize); resize();
+  World.build();
+}
+
+// a smooth rotationally symmetric shape from a profile [[radius, height], ...]
+function lathe(pts, mat, seg) { return new THREE.Mesh(new THREE.LatheGeometry(pts.map((p) => new THREE.Vector2(Math.max(.001, p[0]), p[1])), seg || 32), mat); }
+function ogive(r, len, n) { const p = []; for (let i = 0; i <= (n || 14); i++) { const t = i / (n || 14); p.push([r * Math.sqrt(Math.max(0, 1 - t * t)) * (1 - .04 * t), t * len]); } return p; }
+
+const World = {
+  sunDir: new THREE.Vector3(.35, .8, .5).normalize(),
+  build() {
+    const S = R3.scene;
+    this.hemi = new THREE.HemisphereLight(0xcfe3ff, 0x5b5040, .55); S.add(this.hemi);
+    this.sun = new THREE.DirectionalLight(0xfff3e0, 2.1); S.add(this.sun); S.add(this.sun.target);
+    // stars, far away in every direction
+    const N = 2600, sp = new Float32Array(N * 3), sc = new Float32Array(N * 3), rr = rng(7);
+    for (let i = 0; i < N; i++) { const u = rr() * 2 - 1, a = rr() * Math.PI * 2, s = Math.sqrt(1 - u * u), R = 4e9; sp[i * 3] = R * s * Math.cos(a); sp[i * 3 + 1] = R * s * Math.sin(a); sp[i * 3 + 2] = R * u;
+      const b = .45 + rr() * .55, w = rr(); sc[i * 3] = b * (w < .2 ? .8 : 1); sc[i * 3 + 1] = b * .95; sc[i * 3 + 2] = b * (w > .8 ? .8 : 1); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sg.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+    this.stars = new THREE.Points(sg, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false })); this.stars.frustumCulled = false; S.add(this.stars);
+    // the Earth: a textured ball (land, sea, ice and clouds made up from noise; the launch site sits on a coast at the middle of the texture)
+    const etex = canvasTex(2048, 1024, (x, w, h) => {
+      const img = x.createImageData(w, h), d = img.data;
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+        const u = i / w, v = j / h, lat = (v - .5) * Math.PI, k = (j * w + i) * 4;
+        let n = fbm(u * 9, v * 5, 6) + .22 * Math.cos(u * Math.PI * 2 * 3 + 1) - .5;
+        const nearPad = Math.exp(-Math.pow((u - .5) * 60, 2) - Math.pow((v - .5) * 30, 2)); n = lerp(n, (u - .5) * 40 + .02, nearPad);   // coast at the pad: land west, sea east
+        const ice = Math.abs(lat) > 1.2 + fbm(u * 20, v * 10, 3) * .2;
+        let col;
+        if (ice) col = [235, 240, 245];
+        else if (n > .04) { const dry = fbm(u * 30 + 9, v * 30, 4), g = Math.abs(lat) < .35 ? .6 : 1; col = dry > .62 * g && nearPad < .2 ? [176, 150, 104] : [62 + dry * 40, 104 + dry * 30, 52]; if (n > .3) col = [130, 118, 100]; }
+        else { const dp = clamp(-n * 3, 0, 1); col = [lerp(36, 10, dp), lerp(96, 40, dp), lerp(150, 105, dp)]; }
+        d[k] = col[0]; d[k + 1] = col[1]; d[k + 2] = col[2]; d[k + 3] = 255;
+      }
+      x.putImageData(img, 0, 0);
+    });
+    const eg = new THREE.SphereGeometry(RE - 2500, 192, 96); eg.rotateX(Math.PI / 2);
+    this.earth = new THREE.Mesh(eg, new THREE.MeshPhongMaterial({ map: etex, specular: 0x223344, shininess: 12 })); S.add(this.earth);
+    const ctex = canvasTex(2048, 1024, (x, w, h) => { const img = x.createImageData(w, h), d = img.data;
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const k = (j * w + i) * 4, n = fbm(i / w * 14 + 3, j / h * 7, 6); const a = clamp((n - .5) * 3.2, 0, 1); d[k] = d[k + 1] = d[k + 2] = 255; d[k + 3] = a * 235; }
+      x.putImageData(img, 0, 0); });
+    const cg = new THREE.SphereGeometry(RE + 9000, 160, 80); cg.rotateX(Math.PI / 2);
+    this.clouds = new THREE.Mesh(cg, new THREE.MeshLambertMaterial({ map: ctex, transparent: true, depthWrite: false, opacity: 0 })); S.add(this.clouds);
+    // the glow of the air around the Earth, seen from space
+    const ag = new THREE.SphereGeometry(RE + 90e3, 128, 64);
+    this.atmo = new THREE.Mesh(ag, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending, uniforms: { sun: { value: this.sunDir }, k: { value: 1 } },
+      vertexShader: '#include <common>\n#include <logdepthbuf_pars_vertex>\nvarying vec3 vN; varying vec3 vV;\nvoid main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position,1.); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv;\n#include <logdepthbuf_vertex>\n}',
+      fragmentShader: '#include <common>\n#include <logdepthbuf_pars_fragment>\nuniform float k; varying vec3 vN; varying vec3 vV;\nvoid main(){\n#include <logdepthbuf_fragment>\n float r = 1. - abs(dot(vN, vV)); float g = pow(clamp(r * 1.12, 0., 1.), 7.) ; gl_FragColor = vec4(vec3(.28,.52,1.) * g * .9 * k, 1.); }' }));
+    S.add(this.atmo);
+    // the Moon, at its real distance, for the trips out there
+    this.moon = new THREE.Mesh(new THREE.SphereGeometry(1.7374e6, 48, 24), new THREE.MeshLambertMaterial({ map: canvasTex(512, 256, (x, w, h) => { x.fillStyle = '#9a9a96'; x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 300; i++) { const r = Math.random() * 14 + 2; x.fillStyle = 'rgba(' + (Math.random() < .5 ? '70,70,72' : '170,170,166') + ',' + (.2 + Math.random() * .3) + ')'; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, r, 0, 7); x.fill(); } }) }));
+    S.add(this.moon);
+    this.site = new THREE.Group(); S.add(this.site);
+    this.rocket = new THREE.Group(); S.add(this.rocket);
+    this.debris = []; this.fx = new Fx(S);
+  },
+  // ---------------------------------------------------------------- the ground near the launch: a slightly curved disc with land and sea, the pad, the tower,
+  // a landing pad or the drone ship
+  setSite(kind, id, M) {
+    const g = this.site; while (g.children.length) { const o = g.children.pop(); o.traverse((m) => { if (m.geometry) m.geometry.dispose(); }); }
+    this.siteKind = kind;
+    const Rg = 60e3, seg = 160, pos = [], col = [], idx = [], rr = rng(kind === 'sea' ? 3 : kind === 'desert' ? 5 : 1);
+    const ground = (x, z) => {   // colour of the ground at x (east), z (north)
+      if (kind === 'sea') return null;
+      const n = fbm(x / 900 + 40, z / 900, 5), n2 = fbm(x / 90, z / 90, 3);
+      if (kind === 'cape') { const coast = 1400 + (fbm(z / 2500, 1, 4) - .5) * 900; if (x > coast) return null; if (x > coast - 80) return [214, 200, 160];
+        const swamp = n > .58; return swamp ? [70 + n2 * 25, 96 + n2 * 20, 70] : [96 + n2 * 40, 122 + n2 * 30, 74]; }
+      const sand = [178 + n2 * 30, 146 + n2 * 22, 102 + n2 * 10]; return n > .62 ? [150, 128, 96] : sand;   // desert
+    };
+    for (let j = 0; j <= seg; j++) for (let i = 0; i <= seg; i++) {
+      const fx = i / seg * 2 - 1, fz = j / seg * 2 - 1, s = Math.pow(Math.max(Math.abs(fx), Math.abs(fz)), 2.2) / Math.max(1e-6, Math.max(Math.abs(fx), Math.abs(fz)));
+      const x = fx * s * Rg, z = fz * s * Rg, y = -(x * x + z * z) / (2 * RE) - .05;
+      pos.push(x, y, z); const c = ground(x, z) || [30, 70, 110]; col.push(Math.pow(c[0] / 255, 2.2), Math.pow(c[1] / 255, 2.2), Math.pow(c[2] / 255, 2.2));
+    }
+    for (let j = 0; j < seg; j++) for (let i = 0; i < seg; i++) { const a = j * (seg + 1) + i, b = a + 1, c = a + seg + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+    const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); gg.setIndex(idx); gg.computeVertexNormals();
+    this.groundMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true });
+    g.add(new THREE.Mesh(gg, this.groundMat));
+    // the sea: a big shiny disc just below the land, also curved
+    const wg = new THREE.CircleGeometry(Rg, 96); wg.rotateX(-Math.PI / 2); const wp = wg.attributes.position; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, -(x * x + z * z) / (2 * RE) - .6); } wg.computeVertexNormals();
+    this.seaMat = new THREE.MeshPhongMaterial({ color: 0x1c4f78, specular: 0x9fc4e0, shininess: 60, transparent: true, map: canvasTex(256, 256, (x, w, h) => { x.fillStyle = '#7f9fb5'; x.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { x.fillStyle = 'rgba(255,255,255,' + Math.random() * .25 + ')'; x.fillRect(Math.random() * w, Math.random() * h, 6 + Math.random() * 10, 1); } }, [900, 900]) });
+    g.add(new THREE.Mesh(wg, this.seaMat));
+    const concrete = new THREE.MeshLambertMaterial({ color: 0xbdb9b0 }), dark = new THREE.MeshLambertMaterial({ color: 0x3a3d42 }), red = new THREE.MeshLambertMaterial({ color: 0xb8402a });
+    const steel = new THREE.MeshStandardMaterial({ color: 0x6b737b, roughness: .55, metalness: .5 }), white = new THREE.MeshLambertMaterial({ color: 0xe8e8e4 });
+    const R = ROCKETS[id], H = rocketHeight(id);
+    if (kind === 'sea') {   // the drone ship: a flat barge 90 x 52 m with a target painted on it
+      const ship = new THREE.Group();
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(52, 4, 90), new THREE.MeshLambertMaterial({ map: canvasTex(256, 448, (x, w, h) => { x.fillStyle = '#4a4d52'; x.fillRect(0, 0, w, h);
+        x.strokeStyle = '#f2f2ee'; x.lineWidth = 6; x.beginPath(); x.arc(w / 2, h / 2, 100, 0, 7); x.stroke(); x.beginPath(); x.arc(w / 2, h / 2, 60, 0, 7); x.stroke();
+        x.fillStyle = '#e8c020'; x.beginPath(); x.arc(w / 2, h / 2, 20, 0, 7); x.fill(); x.fillStyle = '#d33'; for (let i = 0; i < 10; i++) { x.fillRect(0, i * 46, 10, 23); x.fillRect(w - 10, i * 46 + 23, 10, 23); } }) }));
+      deck.position.y = -2; ship.add(deck);
+      for (const sx of [-27, 27]) { const wall = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 90), steel); wall.position.set(sx, 2, 0); ship.add(wall); }
+      for (const [sx, sz] of [[-20, 40], [20, 40], [-20, -40], [20, -40]]) { const th = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 6, 12), dark); th.position.set(sx, -1, sz); ship.add(th); }
+      ship.position.y = .5; g.add(ship); this.ship = ship;
+    } else {
+      // the launch pad: a concrete square with a flame trench, the launch tower beside the rocket and a water tower
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(90, 3, 90), concrete); pad.position.y = -1.5; g.add(pad);
+      const trench = new THREE.Mesh(new THREE.BoxGeometry(14, 3.2, 70), dark); trench.position.set(0, -1.4, 0); g.add(trench);
+      if (M && (M.type !== 'hop' || true)) {
+        const tw = Math.max(4, R.dia * .9), th = H + 12, tx = -(R.dia / 2 + tw / 2 + 4) * (R.shuttle ? 1.9 : 1);
+        if (['v2', 'newshepard', 'grasshopper', 'electron'].indexOf(id) < 0) {
+          const tower = new THREE.Group(), cols = id === 'starship' ? new THREE.MeshLambertMaterial({ color: 0x2c2f33 }) : id === 'saturnv' ? red : new THREE.MeshLambertMaterial({ color: 0x6d747c });
+          for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(.7, th, .7), cols); p.position.set(px * tw / 2, th / 2, pz * tw / 2); tower.add(p); }
+          for (let yy = 4; yy < th; yy += 5) for (const rot of [0, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(rot ? .4 : tw, .4, rot ? tw : .4), cols); b.position.set(0, yy, 0); tower.add(b.clone()); b.position.z = rot ? 0 : tw / 2; b.position.x = rot ? tw / 2 : 0; tower.add(b); }
+          for (let yy = 8; yy < th - 4; yy += 14) { const arm = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(tx) - R.dia / 2 - 1, 1.6, 2.2), steel); arm.position.set((Math.abs(tx) - R.dia / 2 - 1) / 2 + tw / 2, yy, 0); tower.add(arm); }
+          tower.position.set(tx, 0, 0); g.add(tower); this.tower = tower;
+        }
+      }
+      const wt = new THREE.Group(); const leg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 50, 8), steel); leg.position.y = 25; wt.add(leg);
+      const tank = new THREE.Mesh(new THREE.SphereGeometry(8, 16, 12), white); tank.position.y = 54; wt.add(tank); wt.position.set(-170, 0, -160); g.add(wt);
+      // buildings: the assembly hall, a few sheds, the lightning masts
+      const vab = new THREE.Mesh(new THREE.BoxGeometry(160, 160, 200), new THREE.MeshLambertMaterial({ map: canvasTex(256, 256, (x, w, h) => { x.fillStyle = '#d9d8d2'; x.fillRect(0, 0, w, h); x.fillStyle = '#c4c3bc'; for (let i = 0; i < 16; i++) x.fillRect(0, i * 16, w, 1); x.fillStyle = '#5a6b80'; x.fillRect(w * .3, h * .1, w * .4, h * .9); }) }));
+      vab.position.set(-5200, 80, -2600); g.add(vab);
+      for (let i = 0; i < 18; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(20 + rr() * 50, 6 + rr() * 14, 20 + rr() * 40), white); b.position.set(-600 - rr() * 3000, 4, -300 - rr() * 2200); g.add(b); }
+      for (const [mx, mz] of [[-90, -110], [90, -110]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.4, .9, H + 30, 6), steel); m.position.set(mx, (H + 30) / 2, mz); g.add(m); }
+      // the landing pad for boosters that come back (a circle with a big X)
+      if (M && M.padD) { const lp = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshLambertMaterial({ map: canvasTex(256, 256, (x, w, h) => { x.fillStyle = '#c9c5bc'; x.fillRect(0, 0, w, h); x.strokeStyle = '#f4f4f0'; x.lineWidth = 10; x.beginPath(); x.arc(128, 128, 110, 0, 7); x.stroke(); x.fillStyle = '#20242a'; x.font = 'bold 150px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('X', 128, 136); }) }));
+        lp.rotation.x = -Math.PI / 2; lp.position.set(M.padD, .05, 0); g.add(lp); }
+      // roads
+      const road = new THREE.MeshLambertMaterial({ color: 0x55575b });
+      const r1 = new THREE.Mesh(new THREE.PlaneGeometry(8, 6000), road); r1.rotation.x = -Math.PI / 2; r1.position.set(-300, .04, 0); g.add(r1);
+      const r2 = new THREE.Mesh(new THREE.PlaneGeometry(300, 8), road); r2.rotation.x = -Math.PI / 2; r2.position.set(-150, .04, 0); g.add(r2);
+    }
+  },
+  // ---------------------------------------------------------------- the rocket model, made from its look list
+  setRocket(id) {
+    const g = this.rocket; while (g.children.length) g.remove(g.children[0]);
+    this.parts = buildRocket(id); this.parts.forEach((p) => g.add(p.obj)); this.rid = id; this.H = rocketHeight(id);
+    this.debris.forEach((d) => R3.scene.remove(d.obj)); this.debris = [];
+  },
+  // a part falls away: it becomes debris with its own path
+  drop(p, c, push) {
+    const o = p.obj, wp = new THREE.Vector3(); o.getWorldPosition(wp); const q = new THREE.Quaternion(); o.getWorldQuaternion(q);
+    this.rocket.remove(o); R3.scene.add(o); o.position.copy(wp); o.quaternion.copy(q);
+    const ax = Math.cos(c.ang), ay = Math.sin(c.ang), side = push || { x: 0, z: 0 };
+    this.debris.push({ obj: o, x: c.x + wp.x, y: c.y + wp.y, z: wp.z, vx: c.vx - ax * 4 + side.x, vy: c.vy - ay * 4 + side.y, vz: side.z || 0, spin: new THREE.Vector3((Math.random() - .5) * .3, (Math.random() - .5) * .3, (Math.random() - .5) * .3), life: 0, Cd: .02 + Math.random() * .02 });
+    p.dropped = true;
+  },
+  update(c, dt) {
+    for (const d of this.debris) {   // spent stages coast on and fall back
+      d.life += dt; const r = Math.hypot(d.x, d.y), h = r - RE;
+      if (h > 0) { const g = MU / (r * r * r), av = { x: d.vx - OMEGA * d.y, y: d.vy + OMEGA * d.x }, va = Math.hypot(av.x, av.y), D = air(h) * va * d.Cd;
+        d.vx += (-g * d.x - D * av.x) * dt; d.vy += (-g * d.y - D * av.y) * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
+        d.obj.rotateX(d.spin.x * dt); d.obj.rotateY(d.spin.y * dt); d.obj.rotateZ(d.spin.z * dt); }
+      d.obj.position.set(d.x - c.x, d.y - c.y, d.z);
+      d.obj.visible = d.life < 400 && Math.hypot(d.x - c.x, d.y - c.y) < 4e5;
+    }
+    this.debris = this.debris.filter((d) => { if (d.life > 400) { R3.scene.remove(d.obj); return false; } return true; });
+  },
+};
+
+// ------------------------------------------------------------------ rocket models
+function rocketHeight(id) { let h = 0; for (const p of ROCKETS[id].look) if (p.kind !== 'side') h += p.kind === 'orbiter' ? 0 : p.len || 0; return h; }
+function bodyTex(p, len) {   // the paint on a body section, wrapped round the cylinder
+  return canvasTex(256, 512, (x, w, h) => {
+    x.fillStyle = p.col; x.fillRect(0, 0, w, h);
+    if (p.steel) { for (let i = 0; i < 90; i++) { x.fillStyle = 'rgba(' + (Math.random() < .5 ? '255,255,255' : '40,45,50') + ',' + Math.random() * .08 + ')'; x.fillRect(0, Math.random() * h, w, 1 + Math.random() * 3); } for (let i = 0; i < len / 1.8; i++) { x.fillStyle = 'rgba(60,64,70,.25)'; x.fillRect(0, i * h / (len / 1.8), w, 1); } }
+    if (p.band) { x.fillStyle = p.band; x.fillRect(0, 0, w, h * Math.min(.18, 3.5 / len)); }
+    if (p.pattern === 'v2') { x.fillStyle = '#151515'; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) x.fillRect(i * w / 4, j * h / 4, w / 4, h / 4); }
+    if (p.pattern === 'saturn') { x.fillStyle = '#151515'; for (let i = 0; i < 4; i++) if (i % 2) x.fillRect(i * w / 4, h * .78, w / 4, h * .22); x.fillRect(0, 0, w, h * .04);
+      x.save(); x.translate(w * .62, h * .3); x.rotate(Math.PI / 2); x.fillStyle = '#1b1b1b'; x.font = 'bold 40px Arial'; x.fillText('USA', 0, 0); x.restore(); }
+    if (p.sooty) { const gr = x.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(40,38,34,.15)'); gr.addColorStop(.5, 'rgba(40,38,34,.55)'); gr.addColorStop(1, 'rgba(30,28,25,.85)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); }
+    if (p.col === '#d8762b' || p.col === '#c8641c') { for (let i = 0; i < 260; i++) { x.fillStyle = 'rgba(120,50,10,' + Math.random() * .25 + ')'; x.fillRect(Math.random() * w, Math.random() * h, 3, 3); } }
+  });
+}
+function buildRocket(id) {
+  const R = ROCKETS[id], parts = [], eng = ENG[id] || [], mat = (p, len) => new THREE.MeshStandardMaterial({ map: bodyTex(p, len), roughness: p.steel ? .35 : .6, metalness: p.steel ? .75 : .05 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x1d1f22, roughness: .6, metalness: .3 }), bellM = new THREE.MeshStandardMaterial({ color: 0x3b3430, roughness: .45, metalness: .8, side: THREE.DoubleSide });
+  const white = new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: .55 });
+  let y = 0, coreBase = null;
+  const addBells = (grp, li, rad, yb) => {   // engine bells under a part
+    const e = eng[li]; if (!e || !e[0]) return [];
+    const n = e[0], br = e[1], out = [], pos = [];
+    if (n === 1) pos.push([0, 0]);
+    else if (n <= 9) { if (n === 9 || n === 5) pos.push([0, 0]); const m = n === 9 ? 8 : n === 5 ? 4 : n; for (let i = 0; i < m; i++) { const a = i / m * Math.PI * 2 + Math.PI / 4; pos.push([Math.cos(a) * rad * .62, Math.sin(a) * rad * .62]); } }
+    else { for (const [cnt, rf] of [[3, .12], [10, .45], [20, .82]]) for (let i = 0; i < cnt; i++) { const a = i / cnt * Math.PI * 2; pos.push([Math.cos(a) * rad * rf, Math.sin(a) * rad * rf]); } }
+    const bg = new THREE.CylinderGeometry(br * .45, br, br * 1.8, 18, 1, true);
+    for (const [px, pz] of pos) { const b = new THREE.Mesh(bg, bellM); b.position.set(px, yb - br * .9, pz); grp.add(b); out.push(b); }
+    return out;
+  };
+  R.look.forEach((p, li) => {
+    const grp = new THREE.Group(), part = { obj: grp, st: p.st, kind: p.kind, li, flames: [], len: p.len || 0 };
+    const r = (p.dia || R.dia) / 2;
+    if (p.kind === 'core' || p.kind === 'tank') {
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, p.len, 40), mat(p, p.len)); body.position.y = p.len / 2; grp.add(body);
+      if (p.kind === 'tank') { const top = lathe(ogive(r, r * 2.2), mat(p, 10)); top.position.y = p.len; grp.add(top); part.len = p.len; }
+      if (p.fins) for (let i = 0; i < p.fins; i++) { const sh = new THREE.Shape(); const fl = Math.min(p.len * .3, r * 2.4); sh.moveTo(0, 0); sh.lineTo(r * 1.1, -fl * .1); sh.lineTo(r * 1.1, fl * .35); sh.lineTo(0, fl); sh.lineTo(0, 0);
+        const f = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .18, bevelEnabled: false }), p.pattern === 'v2' ? black : mat(p, 5)); f.rotation.y = i / p.fins * Math.PI * 2 + Math.PI / 4; f.position.y = 0;
+        const holder = new THREE.Group(); holder.add(f); f.position.set(r * .95, 0, -.09); holder.rotation.y = i / p.fins * Math.PI * 2 + Math.PI / 4; f.rotation.y = 0; grp.add(holder); }
+      if (p.gridfins) for (let i = 0; i < 4; i++) { const h2 = new THREE.Group(), gf = new THREE.Mesh(new THREE.BoxGeometry(.25, r * .8, r * .9), black); gf.position.set(r + .3, p.len - r * .7, 0); h2.add(gf); h2.rotation.y = i * Math.PI / 2; grp.add(h2); }
+      if (R.legs && li === 0 && id !== 'starship') for (let i = 0; i < 4; i++) { const h2 = new THREE.Group(), lg = new THREE.Mesh(new THREE.BoxGeometry(.35, Math.min(9, p.len * .25), .6), black);
+        lg.position.set(r + .15, Math.min(9, p.len * .25) / 2 + .5, 0); h2.add(lg); h2.rotation.y = i * Math.PI / 2 + Math.PI / 4; grp.add(h2); part.legs = part.legs || []; part.legs.push(lg); }
+      if (li > 0 && p.kind === 'core' && Math.abs(r - (R.look[li - 1].dia || R.dia) / 2) > .3 && R.look[li - 1].kind !== 'side') {   // a cone between two different widths
+        const r0 = (R.look[li - 1].dia || R.dia) / 2; const ad = lathe([[r0, 0], [r, Math.abs(r0 - r) * 1.6]], mat(p, 4)); ad.position.y = -Math.abs(r0 - r) * 1.6 * 0; grp.add(ad); }
+      part.flames = addBells(grp, li, r, 0);
+      grp.position.y = y; part.y0 = y; if (!coreBase) coreBase = { y, r, part }; y += p.len;
+      part.r = r;
+    } else if (p.kind === 'side') {
+      const n = p.n, br = p.dia / 2, cr = coreBase.r;
+      for (let i = 0; i < n; i++) {
+        const sg = new THREE.Group(), a = n === 2 ? (i ? 0 : Math.PI) + (R.shuttle ? Math.PI / 2 : 0) : i / n * Math.PI * 2 + Math.PI / 4;
+        const conical = id === 'soyuz';   // Soyuz boosters taper to a point at the top
+        const body = conical ? lathe([[br, 0], [br, p.len * .55], [br * .45, p.len * .92], [.05, p.len]], mat(p, p.len)) : new THREE.Mesh(new THREE.CylinderGeometry(br, br, p.len, 28), mat(p, p.len));
+        if (!conical) { body.position.y = p.len / 2; if (p.cone) { const ct = lathe(ogive(br, br * 2.6), mat(p, 5)); ct.position.y = p.len; sg.add(ct); } }
+        sg.add(body);
+        const fl = addBells(sg, li, br, 0);
+        const off = cr + br + .15; sg.position.set(Math.cos(a) * off, coreBase.y, Math.sin(a) * off); sg.userData.dir = { x: Math.cos(a), z: Math.sin(a) };
+        grp.add(sg); part.flames.push(...fl); (part.sub = part.sub || []).push(sg);
+      }
+      part.r = br; part.y0 = coreBase.y;
+    } else if (p.kind === 'cone') {
+      const c = lathe(ogive(r, p.len), mat(p, p.len)); grp.add(c); grp.position.y = y; part.y0 = y; y += p.len;
+    } else if (p.kind === 'fairing') {
+      const prev = R.look[li - 1], r0 = (prev && prev.dia ? prev.dia : R.dia) / 2, cyl = p.len * .45;
+      const prof = [[r0, 0], [r, Math.max(.3, (r - r0) * 1.4)], [r, cyl]].concat(ogive(r, p.len - cyl).map((q) => [q[0], q[1] + cyl]).slice(1));
+      for (const side of [0, 1]) { const g2 = new THREE.Mesh(new THREE.LatheGeometry(prof.map((q) => new THREE.Vector2(Math.max(.001, q[0]), q[1])), 20, side * Math.PI, Math.PI), mat(p, p.len)); const half = new THREE.Group(); half.add(g2); grp.add(half); (part.halves = part.halves || []).push(half); }
+      grp.position.y = y; part.y0 = y; y += p.len;
+    } else if (p.kind === 'capsule') {
+      if (p.apollo) {   // service module, command module, escape tower
+        const sm = new THREE.Mesh(new THREE.CylinderGeometry(r * .6, r * .6, 7.5, 32), new THREE.MeshStandardMaterial({ color: 0xd8d8d2, roughness: .4, metalness: .5 })); sm.position.y = 6.5; grp.add(sm);
+        const ad = lathe([[r, 0], [r * .6, 2.8]], white); grp.add(ad);
+        const cm = lathe([[r * .6, 0], [.4, 3.6]], new THREE.MeshStandardMaterial({ color: 0xe9e6dc, roughness: .3, metalness: .6 })); cm.position.y = 10.2; grp.add(cm);
+        const tw = new THREE.Mesh(new THREE.CylinderGeometry(.2, .45, 6, 6), new THREE.MeshLambertMaterial({ color: 0xb03a2a })); tw.position.y = 16.8; grp.add(tw); part.tower = tw;
+        const lam = lathe(ogive(.55, 2.2), white); lam.position.y = 19.6; grp.add(lam); (part.towerParts = [tw, lam]);
+      } else if (p.tower) {   // Soyuz / Orion: a fairing-like shroud with an escape tower on top
+        const body = lathe([[r, 0], [r, p.len * .35], [r * .62, p.len * .62], [r * .4, p.len * .7]], mat(p, p.len)); grp.add(body);
+        const tw = new THREE.Mesh(new THREE.CylinderGeometry(.15, .35, p.len * .45, 6), new THREE.MeshLambertMaterial({ color: id === 'sls' ? 0xf0f0ea : 0x8a8f86 })); tw.position.y = p.len * .9; grp.add(tw); part.towerParts = [tw];
+      } else {   // New Shepard crew capsule: a rounded cone with big windows
+        const cap = lathe([[r * .98, 0], [r * .98, .8], [r * .7, 2.6], [r * .35, 3.4], [.05, 3.6]], white); grp.add(cap);
+        const band = lathe([[r * .95, 1.05], [r * .86, 1.8]], new THREE.MeshStandardMaterial({ color: 0x22313f, roughness: .15, metalness: .6 })); band.scale.set(1.012, 1, 1.012); grp.add(band);   // the window band
+      }
+      grp.position.y = y; part.y0 = y; y += p.len;
+    } else if (p.kind === 'starship') {   // the Ship's nose with its forward flaps; aft flaps on the body below
+      const n = lathe(ogive(r, 14), mat(p, 14)); grp.add(n);
+      const tile = new THREE.MeshStandardMaterial({ color: 0x1a1b1d, roughness: .8 });
+      const shield = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.002, r * 1.002, 40, 40, 1, true, -Math.PI / 2, Math.PI), tile); shield.position.y = -20; grp.add(shield);
+      const sn = lathe(ogive(r * 1.003, 14), tile); sn.scale.set(1, 1, 1); grp.add(sn); sn.visible = false;
+      for (const [fy, fw, fh] of [[3, 2.2, 5], [-37, 3.6, 8]]) for (const sx of [-1, 1]) { const f = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, .3), tile); f.position.set(sx * (r + fw / 2 - .2), fy, -r * .3); f.rotation.y = 0; grp.add(f); }
+      grp.position.y = y; part.y0 = y; y += 14;
+    } else if (p.kind === 'orbiter') {   // the Space Shuttle orbiter, on the back of the tank
+      const o = new THREE.Group(), wm = new THREE.MeshStandardMaterial({ color: 0xf1f0ea, roughness: .6 }), bm = new THREE.MeshStandardMaterial({ color: 0x18191b, roughness: .7 });
+      const fus = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 30, 24), wm); fus.position.y = 15 + 4; o.add(fus);
+      const nose = lathe(ogive(2.6, 6), wm); nose.position.y = 34 + 0; o.add(nose);
+      const belly = new THREE.Mesh(new THREE.CylinderGeometry(2.62, 2.62, 30, 24, 1, true, Math.PI * .5, Math.PI), bm); belly.position.y = 19; o.add(belly);
+      const ws = new THREE.Shape(); ws.moveTo(0, 0); ws.lineTo(11.9, 0); ws.lineTo(11.9, 3); ws.lineTo(2.6, 20); ws.lineTo(0, 22); ws.lineTo(0, 0);
+      const wg = new THREE.ExtrudeGeometry(ws, { depth: .8, bevelEnabled: false });
+      for (const sx of [-1, 1]) { const w = new THREE.Mesh(wg, wm); w.scale.x = sx; w.position.set(0, 4, -.4); o.add(w); }
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(.5, 9, 6), wm); fin.position.set(0, 9, -6.2); o.add(fin);
+      const bells = []; for (const [bx, bz] of [[-1.6, 0], [1.6, 0], [0, -1.6]]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.6, 1.15, 2.6, 16, 1, true), bellM); b.position.set(bx, 2.6, bz - .6); o.add(b); bells.push(b); }
+      const R0 = (R.look[0].dia || R.dia) / 2; o.position.set(0, 4, -(R0 + 2.9)); const turn = new THREE.Group(); turn.rotation.y = -Math.PI / 2; turn.add(o); grp.add(turn); part.flames = bells; part.r = 2.6; part.y0 = coreBase.y + 4;
+      grp.position.y = coreBase.y;
+    }
+    parts.push(part);
+  });
+  return parts;
+}
+
+// ------------------------------------------------------------------ flames, smoke and the steam cloud at lift-off
+function Fx(scene) {
+  const soft = canvasTex(64, 64, (x, w, h) => { const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.45, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); });
+  const plumeTex = canvasTex(64, 256, (x, w, h) => { const gr = x.createLinearGradient(0, h, 0, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.45, 'rgba(255,255,255,.5)'); gr.addColorStop(.88, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,1)'); x.fillStyle = gr; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 6; i++) { x.fillStyle = 'rgba(255,255,255,.3)'; x.fillRect(0, h * (.06 + i * .06), w, 4); } });   // bright at the nozzle, fading out, with shock diamonds
+  this.plumeTex = plumeTex; this.scene = scene;
+  const N = 2400, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), size = new Float32Array(N);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('size', new THREE.BufferAttribute(size, 1));
+  const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, vertexColors: true, uniforms: { map: { value: soft }, scale: { value: 600 } },
+    vertexShader: '#include <common>\n#include <logdepthbuf_pars_vertex>\nattribute float size; uniform float scale; varying vec3 vC; varying float vA;\nvoid main(){ vC = color; vA = clamp(size, 0., 1.) ; vec4 mv = modelViewMatrix * vec4(position,1.); gl_PointSize = min(1200., abs(size) * scale / max(1., -mv.z)); gl_Position = projectionMatrix * mv;\n#include <logdepthbuf_vertex>\n}',
+    fragmentShader: '#include <common>\n#include <logdepthbuf_pars_fragment>\nuniform sampler2D map; varying vec3 vC;\nvoid main(){\n#include <logdepthbuf_fragment>\n vec4 t = texture2D(map, gl_PointCoord); gl_FragColor = vec4(vC, t.a * .5); if (gl_FragColor.a < .01) discard; }' });
+  this.pts = new THREE.Points(g, mat); this.pts.frustumCulled = false; scene.add(this.pts);
+  this.N = N; this.list = []; this.k = 0; this.pos = pos; this.col = col; this.size = size; this.g = g;
+  this.plumes = [];
+}
+Fx.prototype.puff = function (x, y, z, vx, vy, vz, s0, s1, life, c) { const p = { x, y, z, vx, vy, vz, s0, s1, life, t: 0, c }; if (this.list.length < this.N) this.list.push(p); else { this.list[this.k] = p; this.k = (this.k + 1) % this.N; } };
+Fx.prototype.update = function (cx, cy, dt) {
+  this.pts.material.uniforms.scale.value = R3.renderer.domElement.height / 2 / Math.tan(R3.cam.fov * Math.PI / 360);
+  let n = 0; const P = this.pos, C = this.col, S = this.size;
+  for (const p of this.list) { p.t += dt; if (p.t > p.life) continue; const f = p.t / p.life, dmp = Math.exp(-dt * 1.4);
+    p.vx *= dmp; p.vy *= dmp; p.vz *= dmp; p.x += (p.vx + OMEGA * p.y) * dt; p.y += (p.vy - OMEGA * p.x) * dt; p.z += p.vz * dt;   // the smoke drifts with the air, which turns with the Earth
+    P[n * 3] = p.x - cx; P[n * 3 + 1] = p.y - cy; P[n * 3 + 2] = p.z; const fade = 1 - f * f, b = p.c * fade; C[n * 3] = b; C[n * 3 + 1] = b; C[n * 3 + 2] = b * .98; S[n] = lerp(p.s0, p.s1, Math.sqrt(f)); n++; }
+  this.list = this.list.filter((p) => p.t <= p.life); this.k = 0;
+  this.g.setDrawRange(0, n); this.g.attributes.position.needsUpdate = true; this.g.attributes.color.needsUpdate = true; this.g.attributes.size.needsUpdate = true;
+};
+// a flame under a part: a glowing cone that gets longer with throttle and wider as the air thins
+function makePlume(r, fuel) {
+  const F = FLAME[fuel] || FLAME.kero, g = new THREE.Group();
+  const outer = new THREE.Mesh(new THREE.CylinderGeometry(1, .35, 1, 24, 1, true), new THREE.MeshBasicMaterial({ color: F[1], map: fx().plumeTex, transparent: true, opacity: .55 * F[2], blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(.55, .3, 1, 18, 1, true), new THREE.MeshBasicMaterial({ color: F[0], map: fx().plumeTex, transparent: true, opacity: .9 * F[2], blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+  outer.geometry.translate(0, -.5, 0); inner.geometry.translate(0, -.5, 0); g.add(outer); g.add(inner); g.userData = { r, outer, inner, fuel };
+  return g;
+}
+const fx = () => World.fx;
+
+// ------------------------------------------------------------------ sound: the roar of the engines (rumble and crackle that fade as the air thins),
+// the wind, bangs for staging, the countdown voice
+const Snd = {
+  ac: null, on: store.get('sound', true),
+  init() { if (this.ac) return; try { const AC = window.AudioContext || window.webkitAudioContext; this.ac = new AC(); } catch (e) { return; }
+    const a = this.ac; this.master = a.createGain(); this.master.gain.value = this.on ? .6 : 0; this.master.connect(a.destination);
+    const nb = a.createBuffer(1, a.sampleRate * 2, a.sampleRate), d = nb.getChannelData(0); let b = 0; for (let i = 0; i < d.length; i++) { b = b * .985 + (Math.random() * 2 - 1) * .15; d[i] = b; } this.nb = nb;
+    const wb = a.createBuffer(1, a.sampleRate * 2, a.sampleRate), w = wb.getChannelData(0); for (let i = 0; i < w.length; i++) w[i] = Math.random() * 2 - 1; this.wb = wb;
+    const src = (buf) => { const s = a.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; };
+    this.rumLp = a.createBiquadFilter(); this.rumLp.type = 'lowpass'; this.rumLp.frequency.value = 160; this.rumG = a.createGain(); this.rumG.gain.value = 0; src(nb).connect(this.rumLp); this.rumLp.connect(this.rumG); this.rumG.connect(this.master);
+    this.crkBp = a.createBiquadFilter(); this.crkBp.type = 'bandpass'; this.crkBp.frequency.value = 900; this.crkBp.Q.value = .6; this.crkG = a.createGain(); this.crkG.gain.value = 0; src(wb).connect(this.crkBp); this.crkBp.connect(this.crkG); this.crkG.connect(this.master);
+    this.windLp = a.createBiquadFilter(); this.windLp.type = 'lowpass'; this.windLp.frequency.value = 600; this.windG = a.createGain(); this.windG.gain.value = 0; src(wb).connect(this.windLp); this.windLp.connect(this.windG); this.windG.connect(this.master);
+  },
+  burst(f, q, dur, vol, type) { if (!this.ac || !this.on) return; const a = this.ac, s = a.createBufferSource(); s.buffer = this.wb; const bp = a.createBiquadFilter(); bp.type = type || 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const g = a.createGain(), t = a.currentTime; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(bp); bp.connect(g); g.connect(this.master); s.start(t, Math.random()); s.stop(t + dur + .05); },
+  bang() { this.burst(120, .7, .9, .9, 'lowpass'); this.burst(1800, 1, .25, .3); },
+  update(thrust, big, airK, q, inside) { if (!this.ac) return; const t = this.ac.currentTime, on = thrust > 0;
+    const loud = on ? clamp(.25 + big * .2, .2, .7) * thrust : 0, k = .15 + .85 * airK;   // the roar fades in thin air: in space only the structure carries it
+    this.rumG.gain.setTargetAtTime(loud * k * (inside ? .6 : 1), t, .15); this.crkG.gain.setTargetAtTime(loud * .35 * airK * (inside ? .2 : 1), t, .15);
+    this.rumLp.frequency.setTargetAtTime(110 + big * 50, t, .3); this.crkBp.frequency.setTargetAtTime(700 + Math.random() * 500, t, .05);
+    this.windG.gain.setTargetAtTime(clamp(q / 40000, 0, .35), t, .2); this.windLp.frequency.setTargetAtTime(300 + clamp(q / 30, 0, 2400), t, .2); },
+  tone(f, d, vol) { if (!this.ac || !this.on) return; const a = this.ac, o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol || .25, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(this.master); o.start(t); o.stop(t + d + .05); },
+  beep() { this.tone(1046, .12, .15); },
+  chime() { this.tone(784, .4, .2); setTimeout(() => this.tone(1175, .7, .2), 260); },
+  say(text) { if (!this.on || !window.speechSynthesis) return; try { const u = new SpeechSynthesisUtterance(text); u.rate = 1.05; u.volume = .85; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { /* no speech */ } },
+  toggle() { this.on = !this.on; store.set('sound', this.on); if (this.master) this.master.gain.value = this.on ? .6 : 0; if (!this.on && window.speechSynthesis) speechSynthesis.cancel(); },
+};
+const Song = {
+  files: ['erika.mp3', 'Erika..mp3', 'Erika.mp3', "German Soldier's Song - _Erika_ (with English Subtitles) (128).mp3", 'ERIKA.mp3', 'erika.m4a', 'erika.ogg'], el: null, k: 0, failed: false, busy: false,
+  update(on) { if (!on || document.hidden || !Snd.on) { if (this.el && !this.el.paused) this.el.pause(); return; } if (this.failed) return;
+    if (!this.el) { this.el = new Audio(encodeURIComponent(this.files[this.k])); this.el.loop = true; this.el.addEventListener('error', () => { this.el = null; this.busy = false; if (++this.k >= this.files.length) this.failed = true; }); }
+    if (this.el && this.el.paused && !this.busy) { const el = this.el; this.busy = true; const p = el.play(); (p && p.catch ? p.catch(() => {}) : Promise.resolve()).then(() => { if (this.el === el) this.busy = false; }); } },
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden && Song.el) Song.el.pause(); });
+
+// ------------------------------------------------------------------ input: throttle, turning, staging; keys, touch buttons and a gamepad
+const Input = {
+  k: {}, pressed: {}, touch: {}, prev: {},
+  init() {
+    window.addEventListener('keydown', (e) => { if (e.target && e.target.matches && e.target.matches('input, textarea, select')) return; if (!e.repeat) this.pressed[e.code] = true; this.k[e.code] = true;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && Game.mode !== 'menu') e.preventDefault(); });
+    window.addEventListener('keyup', (e) => { this.k[e.code] = false; }); window.addEventListener('blur', () => { this.k = {}; this.touch = {}; });
+    document.querySelectorAll('#touchR [data-k]').forEach((el) => { const key = el.dataset.k, on = (v) => (e) => { e.preventDefault(); if (v && !this.touch[key]) this.pressed['T_' + key] = true; this.touch[key] = v; el.classList.toggle('on', !!v); };
+      el.addEventListener('pointerdown', on(1)); el.addEventListener('pointerup', on(0)); el.addEventListener('pointercancel', on(0)); el.addEventListener('pointerleave', on(0)); });
+  },
+  read() {
+    const k = this.k, p = this.pressed, t = this.touch, o = { turn: 0, thrUp: 0, thrDn: 0, full: false, cut: false, stage: false, cam: false, map: false, pause: false, mute: false, assist: false, warpUp: false, warpDn: false, prograde: false };
+    o.turn = ((k.KeyD || k.ArrowRight || t.right) ? 1 : 0) - ((k.KeyA || k.ArrowLeft || t.left) ? 1 : 0);
+    o.thrUp = (k.ShiftLeft || k.ShiftRight || k.KeyW || k.ArrowUp || t.up) ? 1 : 0; o.thrDn = (k.ControlLeft || k.ControlRight || k.KeyS || k.ArrowDown || t.down) ? 1 : 0;
+    if (p.KeyZ) o.full = true; if (p.KeyX) o.cut = true; if (p.Space || p.T_stage) o.stage = true; if (p.KeyC) o.cam = true; if (p.KeyM || p.Tab) o.map = true;
+    if (p.Escape || p.KeyP) o.pause = true; if (p.KeyN) o.mute = true; if (p.KeyT || p.T_assist) o.assist = true; if (p.Period || p.NumpadAdd) o.warpUp = true; if (p.Comma || p.NumpadSubtract) o.warpDn = true;
+    const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const g of gps) { if (!g || !g.connected) continue; const bt = (i) => g.buttons[i] && g.buttons[i].pressed, edge = (i, n) => { const b = bt(i), e = b && !this.prev[n]; this.prev[n] = b; return e; };
+      const ax = g.axes[0] || 0; if (Math.abs(ax) > .2) o.turn = ax;
+      if ((g.buttons[7] && g.buttons[7].value > .3) || bt(12)) o.thrUp = 1; if ((g.buttons[6] && g.buttons[6].value > .3) || bt(13)) o.thrDn = 1;
+      if (edge(0, 'a')) o.stage = true; if (edge(3, 'y')) o.cam = true; if (edge(9, 's')) o.pause = true; if (edge(2, 'x')) o.assist = true; if (edge(8, 'b8')) o.map = true; if (edge(5, 'rb')) o.warpUp = true; if (edge(4, 'lb')) o.warpDn = true; break; }
+    this.pressed = {}; return o;
+  },
+};
+
+// ------------------------------------------------------------------ career: credits, the astronaut's rank, owned rockets, best results
+const RANKS = [['Cadet', 0], ['Flight Engineer', 900], ['Mission Specialist', 2600], ['Pilot', 5400], ['Commander', 9500], ['Flight Director', 16000]];
+const Cr = {
+  w() { const w = store.get('wallet', null) || { credits: 500, owned: ['v2', 'grasshopper', 'erika'] }; w.owned = (w.owned || []).filter((id) => ROCKETS[id] && !ROCKETS[id].hidden); if (!w.owned.length) w.owned.push('v2'); return w; },
+  save(w) { store.set('wallet', w); }, credits() { return this.w().credits; }, add(n) { const w = this.w(); w.credits = Math.max(0, Math.round(w.credits + n)); this.save(w); },
+  owned(id) { return this.w().owned.indexOf(id) >= 0; },
+  xp() { return (store.get('rank', null) || { pts: 0 }).pts; }, addXp(n) { const d = store.get('rank', null) || { pts: 0 }; d.pts += Math.round(n); store.set('rank', d); },
+  rank() { const p = this.xp(); let i = 0; RANKS.forEach((r, k) => { if (p >= r[1]) i = k; }); return { i, name: RANKS[i][0], pts: p, next: RANKS[i + 1] || null }; },
+  buy(id) { const R = ROCKETS[id], w = this.w(); if (!R || this.owned(id) || w.credits < R.price || this.rank().i < R.rank) return false; w.credits -= R.price; w.owned.push(id); this.save(w); return true; },
+  best(id) { return (store.get('best', {}) || {})[id] || null; }, setBest(id, v) { const b = store.get('best', {}) || {}; const o = b[id]; if (!o || v.stars > o.stars || (v.stars === o.stars && v.score > o.score)) { b[id] = v; store.set('best', b); return true; } return false; },
+};
+
+// ------------------------------------------------------------------ the game: menus, the flight, the cameras, the HUD and the results
+const SITE_OF = { hop: 'desert', v2: 'desert', ns: 'desert', f9land: 'sea' };
+const WARPS = [1, 2, 4, 10, 50, 100, 1000];
+const ASSIST_NAME = { manual: 'Manual', steer: 'Steering help', auto: 'Autopilot' };
+const PAYK = { manual: 1, steer: .8, auto: .5 };
+const kmh = (v) => Math.round(v * 3.6).toLocaleString('en-US');
+function drawThumb(cv, id) {   // a side view of the rocket, drawn from its look list
+  const R = ROCKETS[id], x = cv.getContext('2d'), w = cv.width, h = cv.height; x.clearRect(0, 0, w, h);
+  const H = rocketHeight(id) + (R.shuttle ? 0 : 0), maxW = R.look.reduce((m, p) => Math.max(m, p.kind === 'side' ? (R.dia + p.dia * 2) : (p.dia || R.dia)), R.dia) * (R.shuttle ? 2.2 : 1);
+  const s = Math.min((h - 8) / H, (w - 8) / Math.max(maxW, H * .18)), cx = w / 2; let y = h - 4;
+  const col = (c) => c === '#141414' ? '#3a3d42' : c;
+  let coreY = null, coreR = 0;
+  for (const p of R.look) {
+    const r = (p.dia || R.dia) / 2 * s;
+    if (p.kind === 'core' || p.kind === 'tank') { x.fillStyle = col(p.col); x.fillRect(cx - r, y - p.len * s, r * 2, p.len * s); if (p.band) { x.fillStyle = p.band; x.fillRect(cx - r, y - p.len * s, r * 2, Math.max(1, Math.min(p.len * s * .18, 3.5 * s))); }
+      if (p.pattern === 'v2' || p.pattern === 'saturn') { x.fillStyle = '#151515'; x.fillRect(cx, y - p.len * s * .25, r, p.len * s * .25); }
+      if (p.kind === 'tank') { x.beginPath(); x.ellipse(cx, y - p.len * s, r, r * 2.2, 0, Math.PI, 0); x.fill(); }
+      if (p.fins) { x.fillStyle = p.pattern === 'v2' ? '#151515' : col(p.col); x.beginPath(); x.moveTo(cx - r, y); x.lineTo(cx - r * 2.1, y + 2); x.lineTo(cx - r, y - r * 2.5); x.fill(); x.beginPath(); x.moveTo(cx + r, y); x.lineTo(cx + r * 2.1, y + 2); x.lineTo(cx + r, y - r * 2.5); x.fill(); }
+      if (coreY == null) { coreY = y; coreR = r; } y -= p.len * s; }
+    else if (p.kind === 'side') { const br = p.dia / 2 * s; x.fillStyle = col(p.col); for (const sx of [-1, 1]) { const bx = cx + sx * (coreR + br); x.fillRect(bx - br, coreY - p.len * s, br * 2, p.len * s); x.beginPath(); x.moveTo(bx - br, coreY - p.len * s); x.lineTo(bx, coreY - p.len * s - br * 2.4); x.lineTo(bx + br, coreY - p.len * s); x.fill(); } }
+    else if (p.kind === 'cone' || p.kind === 'fairing' || p.kind === 'capsule' || p.kind === 'starship') { const L = (p.kind === 'starship' ? 14 : p.len) * s; x.fillStyle = col(p.col);
+      x.beginPath(); x.moveTo(cx - r, y); if (p.kind === 'fairing') { x.lineTo(cx - r, y - L * .45); } x.quadraticCurveTo(cx - r, y - L, cx, y - L); x.quadraticCurveTo(cx + r, y - L, cx + r, p.kind === 'fairing' ? y - L * .45 : y); x.lineTo(cx + r, y); x.fill();
+      if (p.tower) { x.fillStyle = '#8a8f86'; x.fillRect(cx - 1, y - L * 1.15, 2, L * .3); } y -= L; }
+    else if (p.kind === 'orbiter') { x.fillStyle = '#f1f0ea'; const ox = cx + coreR + 2.6 * s; x.fillRect(ox - 2.6 * s, coreY - 34 * s, 5.2 * s, 30 * s); x.beginPath(); x.moveTo(ox - 2.6 * s, coreY - 34 * s); x.quadraticCurveTo(ox, coreY - 41 * s, ox + 2.6 * s, coreY - 34 * s); x.fill();
+      x.beginPath(); x.moveTo(ox + 2.6 * s, coreY - 6 * s); x.lineTo(ox + 9 * s, coreY - 4 * s); x.lineTo(ox + 2.6 * s, coreY - 22 * s); x.fill(); x.fillRect(ox - 2.6 * s, coreY - 13 * s, 1.5 * s, 9 * s); }
+  }
+}
+const Game = {
+  mode: 'menu', tab: store.get('tab', 'missions'), cam: 0, paused: false,
+  cfg: Object.assign({ mission: 'hop', rocket: 'v2', site: 'cape', assist: 'steer' }, store.get('cfg', {})),
+  saveCfg() { store.set('cfg', this.cfg); },
+  init() {
+    initRenderer(); Input.init();
+    const c = this.cfg; if (!MISSION[c.mission]) c.mission = 'hop'; if (!Cr.owned(c.rocket)) c.rocket = Cr.w().owned[0]; this.hSel = c.rocket;
+    document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => { this.tab = b.dataset.tab; store.set('tab', this.tab); this.menu(); }));
+    $('mGo').addEventListener('click', () => { Snd.init(); this.start(); });
+    $('bPause').addEventListener('click', () => this.pause(true)); $('bCam').addEventListener('click', () => this.nextCam()); $('bMap').addEventListener('click', () => $('hMap').classList.toggle('big'));
+    $('bAssist').addEventListener('click', () => this.cycleAssist()); $('bWarpU').addEventListener('click', () => this.warp(1)); $('bWarpD').addEventListener('click', () => this.warp(-1));
+    $('pRes').addEventListener('click', () => this.pause(false)); $('pRe').addEventListener('click', () => { this.pause(false); this.start(this.run && this.run.free); }); $('pQuit').addEventListener('click', () => { this.pause(false); this.endFree(true); });
+    $('hMap').addEventListener('click', () => $('hMap').classList.toggle('big'));
+    document.querySelectorAll('.msgF').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); if (window.ErikaAccess && ErikaAccess.message) ErikaAccess.message(); }));
+    if (matchMedia('(pointer: coarse)').matches) this.touch = true;
+    // dragging on the picture turns the chase camera; the wheel zooms
+    this.view = { yaw: .35, pitch: .12, zoom: 1 }; let drag = null; const cv = $('view');
+    cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; }); window.addEventListener('pointerup', () => { drag = null; });
+    window.addEventListener('pointermove', (e) => { if (!drag) return; this.view.yaw -= (e.clientX - drag.x) * .006; this.view.pitch = clamp(this.view.pitch + (e.clientY - drag.y) * .005, -1.3, 1.45); drag = { x: e.clientX, y: e.clientY }; });
+    cv.addEventListener('wheel', (e) => { this.view.zoom = clamp(this.view.zoom * Math.exp(e.deltaY * .001), .25, 40); }, { passive: true });
+    if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
+      credits: () => Cr.credits(), setCredits: (n) => { const w = Cr.w(); w.credits = Math.max(0, Math.round(n)); Cr.save(w); },
+      ownedIds: () => Cr.w().owned.slice(), give: (id) => { if (!ROCKETS[id] || ROCKETS[id].hidden) return; const w = Cr.w(); if (w.owned.indexOf(id) < 0) w.owned.push(id); Cr.save(w); },
+      take: (id) => { const w = Cr.w(); w.owned = w.owned.filter((x) => x !== id); Cr.save(w); }, name: (id) => (ROCKETS[id] ? ROCKETS[id].name : id),
+      career: () => [{ id: 'rank', name: 'Astronaut rank', levels: RANKS.map((r) => r[0]), level: Cr.rank().i }],
+      setCareer: (t, lvl) => { if (t !== 'rank' || !RANKS[lvl]) return null; store.set('rank', { pts: RANKS[lvl][1] }); return 'astronaut rank: ' + RANKS[lvl][0]; },
+      refresh: () => { if (!Cr.owned(this.cfg.rocket)) { this.cfg.rocket = Cr.w().owned[0]; this.saveCfg(); } if (this.mode === 'menu') this.menu(); },
+    });
+    this.menu();
+    let last = performance.now(); const loop = (now) => { requestAnimationFrame(loop); const dt = Math.min(.1, (now - last) / 1000); last = now; try { this.frame(dt); } catch (e) { if (!this._err) { this._err = true; console.error(e); } } }; requestAnimationFrame(loop);
+  },
+  // ---------------------------------------------------------------- menus
+  menu() {
+    this.mode = 'menu'; $('menu').hidden = false; $('hud').hidden = true; $('touchR').hidden = true; $('res').hidden = true; $('pause').hidden = true;
+    const c = this.cfg, rk = Cr.rank();
+    $('mWallet').textContent = fmtN(Cr.credits()) + ' credits'; $('mLic').innerHTML = '<b>' + rk.name + '</b>' + (rk.next ? ' &middot; ' + fmtN(rk.pts) + ' / ' + fmtN(rk.next[1]) + ' points' : '');
+    document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === this.tab ? 'true' : 'false'));
+    $('pMissions').hidden = this.tab !== 'missions'; $('pFree').hidden = this.tab !== 'free'; $('pHangar').hidden = this.tab !== 'hangar';
+    $('mAssistRow').hidden = this.tab === 'hangar'; $('mGo').hidden = this.tab === 'hangar';
+    document.querySelectorAll('#mAssist button').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.v === c.assist ? 'true' : 'false'); b.onclick = () => { c.assist = b.dataset.v; this.saveCfg(); this.menu(); }; });
+    const stars = (n) => '<span class="stars">' + '★'.repeat(n) + '<s>' + '★'.repeat(3 - n) + '</s></span>';
+    let preview = c.rocket, site = c.site;
+    if (this.tab === 'missions') {
+      $('mList').innerHTML = MISSIONS.map((M) => { const R = ROCKETS[M.rocket], b = Cr.best(M.id), lock = rk.i < M.rank;
+        return '<button type="button" class="ev' + (lock ? ' locked' : '') + '" data-m="' + M.id + '" aria-pressed="' + (M.id === c.mission) + '"' + (lock ? ' disabled' : '') + '><div><b>' + M.name + '</b><small>' + R.name + (lock ? ' &middot; needs ' + RANKS[M.rank][0] : '') + '</small></div><div class="pr">' + (b ? stars(b.stars) + '<br>' : '') + fmtN(M.pay) + ' cr</div></button>'; }).join('');
+      $('mList').querySelectorAll('.ev').forEach((el) => el.addEventListener('click', () => { c.mission = el.dataset.m; this.saveCfg(); this.menu(); }));
+      const M = MISSION[c.mission], R = ROCKETS[M.rocket]; preview = M.rocket === 'f9booster' ? 'falcon9' : M.rocket; site = SITE_OF[M.id] || 'cape';
+      $('mBrief').innerHTML = '<div style="display:flex;gap:14px;align-items:center"><canvas id="mThumb" width="90" height="190" style="width:45px;height:95px;flex:none"></canvas><div><div class="lbl" style="margin:0">' + R.maker + ' &middot; ' + R.cls + '</div><b style="font:700 22px var(--disp)">' + M.name + '</b><div class="note" style="color:#dfe6ec;font-size:13px;margin-top:4px">' + M.brief + '</div></div></div>' +
+        '<div class="note">' + R.blurb + '.</div>';
+      drawThumb($('mThumb'), M.rocket);
+      $('mGo').disabled = rk.i < M.rank; $('mGo').textContent = 'Launch';
+    } else if (this.tab === 'free') {
+      const w = Cr.w();
+      $('fRockets').innerHTML = ROCKET_ORDER.map((id) => { const R = ROCKETS[id], own = w.owned.indexOf(id) >= 0; return '<button type="button" class="pick" data-r="' + id + '" aria-pressed="' + (id === c.rocket) + '"' + (own ? '' : ' disabled') + '><canvas width="200" height="172"></canvas><b>' + R.name.replace(/^(SpaceX|Blue Origin|Rocket Lab) /, '') + '</b><small>' + (own ? R.cls : '<span class="pr">' + fmtN(R.price) + ' cr in the Hangar</span>') + '</small></button>'; }).join('');
+      $('fRockets').querySelectorAll('.pick').forEach((el) => { drawThumb(el.querySelector('canvas'), el.dataset.r); el.addEventListener('click', () => { c.rocket = el.dataset.r; this.saveCfg(); this.menu(); }); });
+      document.querySelectorAll('#fSite button').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.v === c.site ? 'true' : 'false'); b.onclick = () => { c.site = b.dataset.v; this.saveCfg(); this.menu(); }; });
+      $('fInfo').textContent = 'Fly anywhere you like: no goals and no prizes. ' + ROCKETS[c.rocket].blurb + '.';
+      $('mGo').disabled = !Cr.owned(c.rocket); $('mGo').textContent = 'Launch';
+    } else {
+      const w = Cr.w(); if (!ROCKETS[this.hSel] || ROCKETS[this.hSel].hidden) this.hSel = 'v2';
+      $('hRockets').innerHTML = ROCKET_ORDER.map((id) => { const R = ROCKETS[id], own = w.owned.indexOf(id) >= 0; return '<button type="button" class="pick" data-r="' + id + '" aria-pressed="' + (id === this.hSel) + '"><canvas width="200" height="172"></canvas><b>' + R.name.replace(/^(SpaceX|Blue Origin|Rocket Lab) /, '') + '</b><small>' + (own ? '<span class="own">Owned</span>' : '<span class="pr">' + fmtN(R.price) + ' cr</span>') + '</small></button>'; }).join('');
+      $('hRockets').querySelectorAll('.pick').forEach((el) => { drawThumb(el.querySelector('canvas'), el.dataset.r); el.addEventListener('click', () => { this.hSel = el.dataset.r; this.menu(); }); });
+      const id = this.hSel, R = ROCKETS[id], own = Cr.owned(id), m0 = mass(newCraft(id)), T0 = R.stages[0].Tsl;
+      let dv = 0, mm = m0; for (const s of R.stages) { dv += s.IspVac * G0 * Math.log(mm / (mm - s.prop)); mm -= s.prop + s.dry; }
+      $('hDetail').innerHTML = '<div><div class="lbl" style="margin:0">' + R.maker + ' &middot; ' + R.cls + '</div><b style="font:700 24px var(--disp)">' + R.name + '</b></div><div class="note" style="color:#dfe6ec">' + R.blurb + '.</div>' +
+        '<div class="spec"><div><span>Height</span><b>' + Math.round(rocketHeight(id)) + ' m</b></div><div><span>Lift-off mass</span><b>' + fmtN(m0 / 1000) + ' t</b></div><div><span>Thrust</span><b>' + fmtN(T0 / 9806.65) + ' tf</b></div>' +
+        '<div><span>Stages</span><b>' + R.stages.length + '</b></div><div><span>Payload</span><b>' + (R.payload ? fmtN(R.payload / 1000 * 10) / 10 + ' t' : '-') + '</b></div><div><span>Delta-v</span><b>' + fmtN(dv) + ' m/s</b></div></div>' +
+        '<div class="foot">' + (own ? '<span class="own" style="color:#46d98a;font-weight:600">In your hangar: fly it in Free flight</span>' : rk.i < R.rank ? '<span class="note">Needs the rank ' + RANKS[R.rank][0] + '</span>' : '<button class="btn sm" id="hBuy" type="button"' + (Cr.credits() < R.price ? ' disabled' : '') + '>Buy for ' + fmtN(R.price) + ' cr</button>') + '</div>';
+      const bb = $('hBuy'); if (bb) bb.addEventListener('click', () => { if (Cr.buy(id)) { Snd.init(); Snd.chime(); this.cfg.rocket = id; this.saveCfg(); } this.menu(); });
+      preview = id;
+    }
+    // the rocket waits on its pad behind the menu
+    if (this.prevKey !== preview + site) { this.prevKey = preview + site; World.setSite(site === 'sea' ? 'cape' : site, preview, null); World.setRocket(preview); this.menuCraft = newCraft(preview); World.fx.list = []; }
+  },
+  // ---------------------------------------------------------------- start a flight
+  start(free) {
+    const c = this.cfg; free = free != null ? free : this.tab === 'free';
+    const M = free ? { id: 'free', name: 'Free flight', rocket: c.rocket, type: 'free', pay: 0 } : MISSION[c.mission];
+    const site = free ? c.site : (SITE_OF[M.id] || 'cape');
+    const craft = startState(M, M.rocket);
+    World.setSite(site, M.rocket === 'f9booster' ? 'falcon9' : M.rocket, M); World.setRocket(M.rocket); World.fx.list = [];
+    this.run = { M, c: craft, mem: {}, free, site, assist: c.assist, warp: 0, thrSet: 1, count: M.type === 'land' ? 0 : 10, live: M.type === 'land', t: 0, msgs: [], said: {}, maxTilt: 0, maxV: 0,
+      done: null, endT: 0, fairing: false, tower: false };
+    if (M.type === 'land') { craft.on = false; craft.thr = 0; this.run.thrSet = 0; }
+    this.prevKey = null; this.mode = 'fly'; this.paused = false; this.cam = M.type === 'land' ? 0 : 1; this.view.zoom = 1; this.view.yaw = .35; this.view.pitch = .1;
+    $('menu').hidden = true; $('hud').hidden = false; $('res').hidden = true; $('touchR').hidden = !this.touch; $('hMap').classList.remove('big');
+    $('hMisK').textContent = free ? 'Free flight' : 'Mission'; $('hMisN').textContent = free ? ROCKETS[M.rocket].name : M.name;
+    this.msg(M.type === 'land' ? 'Booster falling' : ROCKETS[M.rocket].name, M.type === 'land' ? 'Turn it engine-first and do an entry burn' : 'T-10 seconds: press Space to launch now', 3);
+    if (M.type !== 'land') Snd.say('T minus 10');
+  },
+  cycleAssist() { if (!this.run) return; const o = ['manual', 'steer', 'auto'], r = this.run; r.assist = o[(o.indexOf(r.assist) + 1) % 3]; r.usedAssist = r.usedAssist === 'auto' || r.assist === 'auto' ? 'auto' : r.usedAssist === 'steer' || r.assist === 'steer' ? 'steer' : (r.usedAssist || 'manual'); this.msg(ASSIST_NAME[r.assist], '', 1.2); },
+  nextCam() { this.cam = (this.cam + 1) % 4; this.msg(['Chase camera', 'Tracking camera', 'Onboard camera', 'Far view'][this.cam], '', 1); },
+  warp(d) { const r = this.run; if (!r) return; const nw = clamp(r.warp + d, 0, WARPS.length - 1); if (nw > 2 && !this.canWarp()) { this.msg('No fast warp now', 'Time warp above 4× works when the engines are off and you are above 70 km', 2); r.warp = Math.min(nw, 2); return; } r.warp = nw; },
+  canWarp() { const c = this.run.c; return !c.on && alt(c) > 70e3 && !c.landed; },
+  msg(t, s, d) { this.msgT = d || 2; $('hMsg').innerHTML = t + (s ? '<small>' + s + '</small>' : ''); $('hMsg').style.opacity = 1; },
+  pause(on) { if (this.mode !== 'fly') return; this.paused = on; $('pause').hidden = !on; if (on) { const r = this.run, c = r.c; $('pInfo').innerHTML = '<span>Rocket</span><b>' + c.R.name + '</b><span>Time</span><b>T+' + fmtT(Math.max(0, r.t)) + '</b><span>Highest</span><b>' + fmtAlt(c.maxH) + '</b><span>Assist</span><b>' + ASSIST_NAME[r.assist] + '</b>'; $('pQuit').textContent = r.free ? 'End flight' : 'Menu'; } },
+  endFree(quit) { const r = this.run; if (r && r.free && !r.done && quit) { r.done = { free: true }; this.results(); return; } this.toMenu(); },
+  toMenu() { this.run = null; Song.update(false); if (Snd.ac) Snd.update(0, 0, 0, 0, false); this.menu(); },
+  // ---------------------------------------------------------------- every frame
+  frame(dt) {
+    if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) $('hMsg').style.opacity = 0; }
+    if (this.mode === 'menu') { this.renderMenu(dt); return; }
+    const inp = Input.read();
+    if (inp.pause) this.pause(!this.paused);
+    if (inp.mute) Snd.toggle();
+    if (this.paused) { this.render(0); return; }
+    if (inp.cam) this.nextCam(); if (inp.map) $('hMap').classList.toggle('big'); if (inp.assist) this.cycleAssist();
+    if (inp.warpUp) this.warp(1); if (inp.warpDn) this.warp(-1);
+    this.fly(dt, inp); this.render(dt); this.hud();
+  },
+  fly(dt, inp) {
+    const r = this.run, c = r.c, M = r.M, s = c.st[c.k];
+    r.usedAssist = r.usedAssist || r.assist; if (r.assist === 'auto') r.usedAssist = 'auto'; else if (r.assist === 'steer' && r.usedAssist === 'manual') r.usedAssist = 'steer';
+    // the countdown
+    if (!r.live) { r.count -= dt; r.t = -r.count; const sec = Math.ceil(r.count);
+      if (sec !== r.lastSec && sec <= 10 && sec > 0) { r.lastSec = sec; if (sec <= 5) { Snd.beep(); Snd.say(String(sec)); } }
+      if (r.count <= 0 || inp.stage || (r.assist === 'auto' && r.count <= 0)) { r.live = true; r.t = 0; ignite(c); c.thr = 1; r.thrSet = 1; Snd.say('Ignition'); this.msg('Ignition', '', 1.2); inp.stage = false; }
+      else { this.stepPhys(c, dt, 0, 0); return; } }
+    if (r.done) { r.endT += dt; this.stepPhys(c, dt * WARPS[0], c.thr, 0); World.update(c, dt); if (r.endT > 2.5 && !r.shown) { r.shown = true; this.results(); } return; }
+    // controls (the autopilot answers first; the pilot's keys win)
+    const ap = autopilot(c, M.type === 'free' ? { type: 'orbit', peri: 200e3 } : M, r.mem); r.ap = ap;
+    let rate = 0, thr = r.thrSet;
+    if (r.assist === 'auto') { if (ap.stage) this.doStage(); if (ap.cut) cutoff(c); if (ap.light) ignite(c); thr = ap.thr; r.thrSet = thr; rate = steerTo(c, ap.want); if (M.type === 'free' && inp.turn) r.assist = 'manual'; }
+    else {
+      if (inp.full) r.thrSet = 1; if (inp.cut) { r.thrSet = 0; }
+      r.thrSet = clamp(r.thrSet + (inp.thrUp - inp.thrDn) * dt * .7, 0, 1);
+      const minT = s ? s.minThr : 0;
+      if (c.on && r.thrSet < minT - .02) { if (!cutoff(c)) r.thrSet = 1; }
+      if (!c.on && r.thrSet > .02 && (inp.thrUp || inp.full) && s && s.left > 0 && r.wasOff) { ignite(c); }
+      r.wasOff = !c.on;
+      if (inp.stage) { if (!c.on && s && s.left > 0) ignite(c); else this.doStage(); }
+      if (r.assist === 'steer') { rate = steerTo(c, ap.want); if (ap.stage && (!s || s.left <= 0)) this.doStage(); }
+      if (inp.turn) rate = -inp.turn * c.R.rate * Math.PI / 180;
+      thr = r.thrSet;
+    }
+    // physics, in small steps (more of them under time warp)
+    if (r.warp > 2 && !this.canWarp()) r.warp = 2;
+    const h0 = alt(c), L0 = local(c); if (r.warp > 0 && !c.on && L0.vr < 0 && h0 < 90e3 && h0 > 0) r.warp = Math.min(r.warp, 1);
+    this.stepPhys(c, dt * WARPS[r.warp], thr, rate);
+    World.update(c, dt * WARPS[r.warp]);
+    r.t = c.t;
+    const msg = missionTick(c, M, r.mem); if (msg) { this.msg('Capsule away', 'It comes down on parachutes', 2.5); const cap = World.parts.find((p) => p.kind === 'capsule'); if (cap && !cap.dropped) World.drop(cap, c, { x: 0, y: 3, z: 0 }); }
+    // events: lift-off, max Q, fairing, escape tower
+    const h = alt(c), L = local(c);
+    if (c.flown && !r.said.lift && M.type !== 'land') { r.said.lift = true; Snd.say('Liftoff!'); this.msg('Lift-off', '', 1.5); }
+    if (c.q > 15e3 && c.q < c.maxQ * .97 && !r.said.maxq && c.maxQ > 18e3) { r.said.maxq = true; this.msg('Max Q', fmtN(c.maxQ / 1000) + ' kPa: the hardest push of the air', 1.6); }
+    if (!r.fairing && h > 110e3) { r.fairing = true; World.parts.forEach((p) => { if (p.kind === 'fairing' && !p.dropped) { p.halves.forEach((hv, i) => World.drop({ obj: hv }, c, { x: 0, y: 0, z: i ? 6 : -6 })); p.dropped = true; this.msg('Fairing separation', '', 1.5); } }); }
+    if (!r.tower && (h > 60e3 || c.k > 0)) { r.tower = true; World.parts.forEach((p) => { if (p.towerParts) p.towerParts.forEach((m) => World.drop({ obj: m }, c, { x: 0, y: 0, z: 2 })); }); }
+    if (c.flameout && c.flameout !== r.lastFlame) { r.lastFlame = c.flameout; if (c.k < c.st.length - 1 && r.assist === 'manual') this.msg('Stage empty', 'Press Space to drop it and light the next one', 2); }
+    r.maxTilt = Math.max(r.maxTilt, c.flown && h < 90e3 ? Math.abs(L.tilt) : 0); r.maxV = Math.max(r.maxV, Math.hypot(c.vx, c.vy));
+    // the referee
+    let res = M.type === 'free' ? (c.broke || c.crashed ? { fail: c.broke || c.crashed } : (c.landed && c.flown && c.touch ? { free: true, landed: true } : null)) : judge(c, M, r.mem);
+    if (c.broke && !c.crashed) { c.crashed = c.broke; this.boom(c); }
+    if (res) { r.done = res; r.endT = 0; r.warp = 0;
+      if (res.fail) { if (c.crashed && !r.boomed) this.boom(c); Snd.say('Mission failed'); this.msg('Mission failed', res.fail, 3); }
+      else if (res.done) { Snd.chime(); Snd.say('Mission complete'); this.msg('Mission complete', '', 2.5); } }
+  },
+  stepPhys(c, T, thr, rate) {
+    let left = T, n = 0;
+    while (left > 1e-6 && n++ < 800) {
+      const h = alt(c), coast = !c.on && h > 140e3, dt = Math.min(left, coast ? 2 : h < 3000 ? 1 / 120 : 1 / 60);
+      step(c, dt, { thr, rate }); left -= dt;
+      if (c.crashed) break;
+    }
+  },
+  doStage() {
+    const r = this.run, c = r.c, k0 = c.k;
+    if (!stageSep(c)) return false;
+    Snd.bang(); this.msg('Stage separation', 'Stage ' + (k0 + 1) + ' away' + (c.on ? ', stage ' + (c.k + 1) + ' lit' : ''), 1.6);
+    World.parts.forEach((p) => { if (p.st === k0 && !p.dropped) {
+      if (p.sub) p.sub.forEach((sg) => { const d = sg.userData.dir; World.drop({ obj: sg }, c, { x: d.x * 5 * Math.sin(c.ang), y: -d.x * 5 * Math.cos(c.ang), z: d.z * 5 }); });
+      else World.drop(p, c, null);
+      p.dropped = true; } });
+    return true;
+  },
+  boom(c) { const r = this.run; if (r.boomed) return; r.boomed = true; Snd.bang(); Snd.bang();
+    for (let i = 0; i < 160; i++) { const a = Math.random() * 6.28, b = Math.random() * 3.14, sp = 10 + Math.random() * 60; World.fx.puff(c.x, c.y, 0, Math.cos(a) * Math.sin(b) * sp, Math.cos(b) * sp, Math.sin(a) * Math.sin(b) * sp, 8, 60 + Math.random() * 60, 4 + Math.random() * 4, .9); }
+    World.rocket.visible = false; },
+  // ---------------------------------------------------------------- drawing the 3D view
+  renderMenu(dt) {
+    const c = this.menuCraft; if (!c) return; this.mt = (this.mt || 0) + dt;
+    const H = World.H; this.place(c, dt, true);
+    const U = new THREE.Vector3(0, 1, 0), N = new THREE.Vector3(0, 0, 1), E = new THREE.Vector3(1, 0, 0), a = Math.sin(this.mt * .05) * .5 + .3, d = Math.max(48, H * 2.5);
+    const tgt = new THREE.Vector3(0, H * .5, 0);
+    R3.cam.position.copy(tgt).addScaledVector(N, Math.cos(a) * d).addScaledVector(E, Math.sin(a) * d).addScaledVector(U, d * .05);
+    R3.cam.up.copy(U); R3.cam.lookAt(tgt.clone().addScaledVector(E.clone().applyAxisAngle(U, a), -d * .32)); R3.cam.fov = 50; R3.cam.updateProjectionMatrix();
+    R3.renderer.render(R3.scene, R3.cam);
+  },
+  // put everything in place around the rocket: the ground, the Earth, the sky, the flames and the smoke
+  place(c, dt, menu) {
+    const h = alt(c), up = upAng(c), U = new THREE.Vector3(Math.cos(up), Math.sin(up), 0), pa = padAng(c);
+    World.rocket.rotation.set(0, 0, c.ang - Math.PI / 2); World.rocket.position.set(0, 0, 0);
+    World.site.position.set(RE * Math.cos(pa) - c.x, RE * Math.sin(pa) - c.y, 0); World.site.rotation.set(0, 0, pa - Math.PI / 2);
+    const gk = 1 - smooth(25e3, 70e3, h); World.site.visible = gk > .01; World.groundMat.opacity = gk; World.seaMat.opacity = gk; World.groundMat.depthWrite = gk > .99; World.seaMat.depthWrite = gk > .99;
+    World.earth.position.set(-c.x, -c.y, 0); World.earth.rotation.set(0, 0, pa - Math.PI / 2 + Math.PI / 2 - Math.PI / 2); World.earth.rotation.z = pa;
+    World.clouds.position.copy(World.earth.position); World.clouds.rotation.z = pa + .2; World.clouds.material.opacity = smooth(14e3, 45e3, h) * .85; World.clouds.visible = h > 14e3;
+    World.atmo.position.copy(World.earth.position); World.atmo.visible = h > 92e3; World.atmo.material.uniforms.k.value = smooth(92e3, 180e3, h);
+    const mA = Math.PI / 2 - 2.2; World.moon.position.set(MOON * Math.cos(mA) - c.x, MOON * Math.sin(mA) - c.y, 0);
+    World.stars.position.copy(R3.cam.position);
+    // the sky: blue near the ground, black in space; haze low down
+    const sk = smooth(0, 55e3, h), sky = new THREE.Color(0x7fb0de).lerp(new THREE.Color(0x02040a), sk);
+    R3.scene.background = sky; if (!R3.scene.fog) R3.scene.fog = new THREE.FogExp2(0x9cc2e6, 1e-5);
+    R3.scene.fog.color.copy(new THREE.Color(0xa9c9e8).lerp(new THREE.Color(0x02040a), sk)); R3.scene.fog.density = h < 40e3 ? 1.6e-5 * (1 - sk) : 0;
+    World.stars.material.opacity = smooth(15e3, 50e3, h);
+    World.sun.position.copy(World.sunDir).multiplyScalar(1e5); World.sun.target.position.set(0, 0, 0); World.hemi.intensity = .55 * (1 - sk * .6);
+    // flames: on the parts whose engines are burning
+    const p = press(h) / P0, thrust = c.on ? c.thr : 0, F = FUEL[c.id] || ['kero'], fuel = F[Math.min(c.k, F.length - 1)];
+    for (const part of World.parts) {
+      if (part.dropped || !part.flames.length) continue;
+      let burning = thrust > 0 && (part.st === c.k || (c.k === 0 && c.st.length > 1 && part.kind !== 'side' && part.st === 1 && c.R.look.some((q) => q.kind === 'side')));
+      if (part.kind === 'orbiter') burning = thrust > 0 && c.k <= 1;
+      if (part.kind === 'side') burning = thrust > 0 && c.k === 0;
+      const pf = part.kind === 'side' ? F[0] : part.kind === 'orbiter' ? (c.k <= 1 ? 'hydro' : 'hyper') : fuel;
+      if (!part.plumes) { const groups = new Map(); for (const bl of part.flames) { const k = bl.parent; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(bl); }
+        part.plumes = []; for (const [par, bells] of groups) { const b0 = bells[0], bh = b0.geometry.parameters.height, by = b0.position.y - bh / 2;
+          const rad = bells.length > 1 ? Math.max(...bells.map((q) => Math.hypot(q.position.x, q.position.z))) + b0.geometry.parameters.radiusBottom : b0.geometry.parameters.radiusBottom;
+          const pl = makePlume(rad, pf); par.add(pl); pl.position.set(bells.length > 1 ? 0 : b0.position.x, by, bells.length > 1 ? 0 : b0.position.z); part.plumes.push(pl); } }
+      for (const pl of part.plumes) { pl.visible = burning; if (!burning) continue;
+        const rr = pl.userData.r, vac = 1 - p, L = rr * (6 + 9 * thrust) * (1 + 1.3 * vac) * (pf === 'solid' ? 1.6 : 1) * (.94 + Math.random() * .12), wdt = rr * (1.05 + 3.5 * vac);
+        pl.scale.set(wdt, Math.max(L, 4), wdt); const fade = .3 + .7 * p; pl.userData.outer.material.opacity = .55 * FLAME[pf][2] * fade; pl.userData.inner.material.opacity = .85 * FLAME[pf][2] * (.45 + .55 * p); }
+    }
+    // smoke behind the rocket in the air, and the cloud of steam on the pad at lift-off
+    if (!menu && thrust > 0 && h < 30e3 && dt > 0) {
+      const ax = Math.cos(c.ang), ay = Math.sin(c.ang), gvx = OMEGA * c.y, gvy = -OMEGA * c.x, big = Math.min(1, World.H / 90), solid = F[0] === 'solid' && c.k === 0;
+      const nP = Math.min(14, Math.ceil(dt * 60 * (2 + big * 4) * (solid ? 2 : 1) * (1 - h / 30e3)));
+      for (let i = 0; i < nP; i++) { const back = 4 + Math.random() * World.H * .3, sp = 3 + Math.random() * 4; World.fx.puff(c.x - ax * back, c.y - ay * back, (Math.random() - .5) * 6, (Math.random() - .5) * sp, (Math.random() - .5) * sp, (Math.random() - .5) * sp, 6 + big * 8, 30 + big * 50 + h / 200, 10 + Math.random() * 10, .92); }
+      if (h < 150 && this.run && this.run.site !== 'sea') for (let i = 0; i < Math.ceil(dt * 90); i++) { const a = Math.random() * 6.28, sp = 25 + Math.random() * 40, ux = Math.cos(up), uy = Math.sin(up), ex = uy, ey = -ux, ca = Math.cos(a), sa = Math.sin(a);
+        const px = RE * Math.cos(pa) + ux * 4, py = RE * Math.sin(pa) + uy * 4; World.fx.puff(px, py, 0, ex * ca * sp + ux * 6, ey * ca * sp + uy * 6, sa * sp, 12, 70 + Math.random() * 40, 9 + Math.random() * 8, .95); }
+    }
+    World.fx.update(c.x, c.y, dt);
+    return U;
+  },
+  render(dt) {
+    const r = this.run, c = r.c, h = alt(c), up = upAng(c), U = this.place(c, dt);
+    const Hs = this.stackH(), A = new THREE.Vector3(Math.cos(c.ang), Math.sin(c.ang), 0), N = new THREE.Vector3(0, 0, 1), E = new THREE.Vector3(Math.sin(up), -Math.cos(up), 0);
+    const tgt = A.clone().multiplyScalar(Hs * .5), cam = R3.cam; let fov = 55;
+    if (this.cam === 0 || this.cam === 3) {   // chase: a camera that circles the rocket (drag to turn it, wheel to zoom)
+      const d = Math.max(30, Hs * 2.1) * this.view.zoom * (this.cam === 3 ? 6 : 1), y = this.view.yaw, p = this.view.pitch;
+      cam.position.copy(tgt).addScaledVector(N, Math.cos(p) * Math.cos(y) * d).addScaledVector(E, Math.cos(p) * Math.sin(y) * d).addScaledVector(U, Math.sin(p) * d);
+      cam.up.copy(U); cam.lookAt(tgt);
+    } else if (this.cam === 1) {   // a tracking camera on the ground 2 km from the pad with a long lens; once the rocket is far it hands over to the chase camera
+      const pa = padAng(c), gp = new THREE.Vector3(RE * Math.cos(pa) - c.x, RE * Math.sin(pa) - c.y, 0), gu = new THREE.Vector3(Math.cos(pa), Math.sin(pa), 0), ge = new THREE.Vector3(Math.sin(pa), -Math.cos(pa), 0);
+      const spot = gp.addScaledVector(ge, -900).addScaledVector(N, 2100).addScaledVector(gu, 22), dist = spot.distanceTo(tgt);
+      if (dist > 120e3) { this.cam = 0; } else { cam.position.copy(spot); cam.up.copy(gu); cam.lookAt(tgt); fov = clamp(2 * Math.atan(Math.max(Hs * 1.6, 40) / dist) * 180 / Math.PI, 1.2, 55); }
+    } else if (this.cam === 2) {   // onboard: a camera on the side looking back down the rocket
+      const side = N.clone(), rr = (c.R.dia / 2 + 1.2) * (c.R.shuttle ? 2.2 : 1), at = A.clone().multiplyScalar(Hs * .72);
+      cam.position.copy(at).addScaledVector(side, rr); cam.up.copy(side.clone().multiplyScalar(-1)).cross(A).cross(A).negate(); cam.up.copy(N); cam.lookAt(A.clone().multiplyScalar(-60)); fov = 70;
+      cam.up.copy(A); cam.lookAt(A.clone().multiplyScalar(-80).addScaledVector(side, rr));
+    }
+    if (Math.abs(cam.fov - fov) > .01) { cam.fov = fov; cam.updateProjectionMatrix(); }
+    World.stars.position.copy(cam.position);
+    // the sound follows the thrust, the air and the camera
+    const q = c.q, airK = press(h) / P0;
+    Snd.update(c.on ? c.thr : 0, Math.min(1, World.H / 80), airK, q, this.cam === 2);
+    Song.update(!!c.R.music && this.mode === 'fly' && !this.paused);
+    R3.renderer.render(R3.scene, cam);
+  },
+  stackH() { let h = 0; for (const p of World.parts) if (!p.dropped && p.kind !== 'side' && p.kind !== 'orbiter') h = Math.max(h, (p.y0 || 0) + (p.kind === 'starship' ? 14 : p.len)); return h || 20; },
+  // ---------------------------------------------------------------- the HUD
+  hud() {
+    const r = this.run, c = r.c, M = r.M, h = alt(c), o = orbit(c), L = local(c), s = c.st[c.k];
+    this.hudT = (this.hudT == null ? 5 : this.hudT) + 1; const slow = this.hudT % 6 === 0;
+    $('hT').textContent = (r.live ? 'T+' : 'T-') + fmtT(Math.abs(r.live ? r.t : r.count));
+    if (slow) {
+      $('hS').innerHTML = ASSIST_NAME[r.assist] + ' &middot; warp <b>' + WARPS[r.warp] + '×</b>';
+      const vs = Math.hypot(L.vr, L.ve), vo = Math.hypot(c.vx, c.vy), apo = o.apo === Infinity ? 'escape' : o.apo < -RE * .5 ? '-' : fmtAlt(o.apo), peri = o.peri < -RE * .5 ? '-' : fmtAlt(o.peri);
+      const dPad = M.padD != null ? Math.abs(L.d - M.padD) : null;
+      $('hFly').innerHTML = '<span>Altitude</span><b>' + fmtAlt(h) + '</b><span>' + (h < 60e3 ? 'Speed' : 'Orbit speed') + '</span><b>' + kmh(h < 60e3 ? vs : vo) + ' km/h</b><span>Climb</span><b>' + fmtN(L.vr) + ' m/s</b><hr>' +
+        '<span>High point</span><b' + (M.apo2 && o.apo >= M.apo2 ? ' class="ok"' : '') + '>' + apo + '</b><span>Low point</span><b' + (M.peri && o.peri >= M.peri ? ' class="ok"' : '') + '>' + peri + '</b><hr>' +
+        (dPad != null ? '<span>To the ' + (M.type === 'land' ? 'ship' : 'pad') + '</span><b>' + fmtN(dPad) + ' m</b>' : '<span>Downrange</span><b>' + fmtAlt(Math.abs(L.d)) + '</b>') +
+        '<span>Air push</span><b' + (c.q > 30e3 ? ' class="hot"' : '') + '>' + (c.q / 1000).toFixed(1) + ' kPa</b><span>G</span><b>' + c.g.toFixed(1) + '</b>';
+      // the goals
+      const goals = this.goals(r);
+      $('hGoals').innerHTML = goals.map((g) => '<i' + (g[2] ? ' class="ok"' : '') + '></i><span>' + g[0] + '</span><b>' + g[1] + '</b>').join('');
+      // stages and fuel
+      $('hStages').innerHTML = c.st.map((st, i) => '<div class="' + (i === c.k ? 'cur' : i < c.k ? 'gone' : '') + '"><span class="lbl2">Stage ' + (i + 1) + (st.solid ? ' (solid)' : '') + '</span><span>' + Math.round(st.left / st.prop * 100) + '%</span><div class="bar"><i style="width:' + (st.left / st.prop * 100) + '%"></i></div></div>').reverse().join('');
+    }
+    const thrPct = c.on ? c.thr : 0; $('hThr').firstChild.style.height = (thrPct * 100) + '%'; $('hThr').lastChild.style.bottom = ((s ? s.minThr : 0) * 100) + '%';
+    $('hThrTxt').textContent = c.on ? Math.round(c.thr * 100) + '%' : 'OFF';
+    // a hint for what to do next
+    let tip = '';
+    if (!r.live) tip = 'Press <b>Space</b> to light the engines';
+    else if (r.done) tip = '';
+    else if (s && s.left <= 0 && c.k < c.st.length - 1) tip = 'Stage empty: press <b>Space</b> to drop it';
+    else if (!c.on && s && s.left > 0 && M.type === 'land' && r.assist !== 'auto') tip = r.mem.ph === 'burn' ? '' : h > 30e3 ? 'Turn engine-first (A/D) and press <b>Space</b> for the entry burn' : h < 4000 ? 'Light the landing burn: <b>Space</b>, then throttle to land softly' : '';
+    else if (r.assist === 'manual' && c.flown && h < 2000 && M.type !== 'land' && M.type !== 'hop' && L.vr > 0) tip = 'Tip over east: hold <b>D</b> a little, then follow the green guide';
+    $('hTip').innerHTML = tip;
+    this.drawAtt(); if (slow || $('hMap').classList.contains('big')) this.drawMap();
+  },
+  goals(r) {
+    const c = r.c, M = r.M, o = orbit(c), h = alt(c), L = local(c), km = (v) => fmtAlt(v);
+    switch (M.type) {
+      case 'hop': return [['Climb to ' + M.alt + ' m', fmtN(c.maxH) + ' m', c.maxH >= M.alt], ['Land on the pad', c.touch ? c.touch.v.toFixed(1) + ' m/s' : fmtN(Math.abs(L.d)) + ' m', !!(r.done && r.done.done)]];
+      case 'space': return [['Reach space (100 km)', km(c.maxH), c.maxH >= KARMAN]];
+      case 'spaceland': return [['Reach space (100 km)', km(c.maxH), c.maxH >= KARMAN], ['Land on the landing pad', fmtN(Math.abs(L.d - M.padD)) + ' m', !!(r.done && r.done.done)]];
+      case 'land': return [['Slow down to land', kmh(Math.hypot(L.vr, L.ve)) + ' km/h', !!(r.done && r.done.done)], ['Touch down on the ship', fmtN(Math.abs(L.d)) + ' m', !!(r.done && r.done.done)]];
+      case 'orbit': return [['Low point above ' + km(M.peri), o.peri < -RE * .5 ? '-' : km(o.peri), o.peri >= M.peri]];
+      case 'gto': case 'tli': return [['Orbit: low point above ' + km(M.peri), o.peri < -RE * .5 ? '-' : km(o.peri), o.peri >= M.peri], [(M.type === 'gto' ? 'High point out to ' : 'Out to the Moon: ') + km(M.apo2), o.apo === Infinity ? 'escape' : o.apo < 0 ? '-' : km(o.apo), o.apo >= M.apo2]];
+      default: return [['Space', km(c.maxH), c.maxH >= KARMAN], ['Orbit', o.peri < -RE * .5 ? '-' : km(o.peri), o.peri > 100e3]];
+    }
+  },
+  // the attitude dial: the local horizon, where the nose points, the direction of travel (and against it) and the guide's suggestion
+  drawAtt() {
+    const r = this.run, c = r.c, cv = $('hAtt'), x = cv.getContext('2d'), W = cv.width, cx = W / 2, R = W / 2 - 8, up = upAng(c), h = alt(c);
+    x.clearRect(0, 0, W, W); x.save(); x.beginPath(); x.arc(cx, cx, R, 0, 7); x.clip();
+    const gr = x.createLinearGradient(0, 0, 0, W); gr.addColorStop(0, '#1b4f86'); gr.addColorStop(.5, '#4f8fcf'); gr.addColorStop(.5, '#6b4b2e'); gr.addColorStop(1, '#2e1f12'); x.fillStyle = gr; x.fillRect(0, 0, W, W);
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; for (const a of [-60, -30, 30, 60]) { const yy = cx - Math.sin(a * Math.PI / 180) * R; x.beginPath(); x.moveTo(cx - 40, yy); x.lineTo(cx + 40, yy); x.stroke(); }
+    x.strokeStyle = '#fff'; x.beginPath(); x.moveTo(0, cx); x.lineTo(W, cx); x.stroke();
+    const dir = (a, len) => { const rel = wrapA(a - up); return [cx - Math.sin(rel) * len, cx - Math.cos(rel) * len]; };
+    // the rocket's nose
+    const [nx, ny] = dir(c.ang, R * .82), [tx, ty] = dir(c.ang + Math.PI, R * .3);
+    x.strokeStyle = '#ffd36b'; x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.moveTo(tx, ty); x.lineTo(nx, ny); x.stroke();
+    x.fillStyle = '#ffd36b'; x.beginPath(); x.arc(nx, ny, 9, 0, 7); x.fill();
+    // direction of travel (through the air low down, round the Earth higher up)
+    const av = airVel(c), pv = h < 40e3 ? av : { x: c.vx, y: c.vy }, sp = Math.hypot(pv.x, pv.y);
+    if (sp > 15 && c.flown) { const pro = Math.atan2(pv.y, pv.x); const [px, py] = dir(pro, R * .7); x.strokeStyle = '#46d98a'; x.lineWidth = 4; x.beginPath(); x.arc(px, py, 14, 0, 7); x.stroke(); x.beginPath(); x.moveTo(px - 22, py); x.lineTo(px - 14, py); x.moveTo(px + 14, py); x.lineTo(px + 22, py); x.moveTo(px, py - 14); x.lineTo(px, py - 22); x.stroke();
+      const [rx, ry] = dir(pro + Math.PI, R * .7); x.strokeStyle = '#ff9a5a'; x.beginPath(); x.arc(rx, ry, 13, 0, 7); x.moveTo(rx - 9, ry - 9); x.lineTo(rx + 9, ry + 9); x.moveTo(rx + 9, ry - 9); x.lineTo(rx - 9, ry + 9); x.stroke(); }
+    // the guide (where the autopilot would point)
+    if (r.ap && r.live && !r.done) { const [gx, gy] = dir(r.ap.want, R * .9); x.fillStyle = '#c6f24e'; x.beginPath(); x.moveTo(gx, gy - 13); x.lineTo(gx + 13, gy); x.lineTo(gx, gy + 13); x.lineTo(gx - 13, gy); x.closePath(); x.fill(); }
+    x.restore();
+    x.strokeStyle = 'rgba(255,255,255,.25)'; x.lineWidth = 3; x.beginPath(); x.arc(cx, cx, R, 0, 7); x.stroke();
+    const pitch = 90 - Math.abs(wrapA(c.ang - up)) * 180 / Math.PI;
+    x.fillStyle = '#fff'; x.font = '700 26px Saira Condensed, sans-serif'; x.textAlign = 'center'; x.fillText(Math.round(pitch) + '°', cx, W - 26);
+    x.font = '600 15px Inter, sans-serif'; x.fillStyle = 'rgba(255,255,255,.7)'; x.fillText('W', 26, cx - 8); x.fillText('E', W - 26, cx - 8);
+  },
+  // the orbit map: the Earth, the path the rocket is on (where it would go with the engines off), the high and low points
+  drawMap() {
+    const r = this.run, c = r.c, M = r.M, cv = $('hMap'), x = cv.getContext('2d'), W = cv.width, o = orbit(c), h = alt(c);
+    x.fillStyle = '#05070b'; x.fillRect(0, 0, W, W);
+    const rr = Math.hypot(c.x, c.y), ev = { x: 0, y: 0 }, v2 = c.vx * c.vx + c.vy * c.vy, rv = c.x * c.vx + c.y * c.vy;
+    ev.x = ((v2 - MU / rr) * c.x - rv * c.vx) / MU; ev.y = ((v2 - MU / rr) * c.y - rv * c.vy) / MU;
+    const e = Math.hypot(ev.x, ev.y), hh = c.x * c.vy - c.y * c.vx, p = hh * hh / MU, w = Math.atan2(ev.y, ev.x), dirS = Math.sign(hh) || 1;
+    // the scale: close to the rocket for short hops, the whole Earth for orbits, out to the Moon for the Moon trips
+    let cxw = 0, cyw = 0, span;
+    const far = M.type === 'tli' || (o.apo !== Infinity && o.apo > 60000e3) || o.apo === Infinity;
+    if (!far && (o.apo < 1200e3 && o.peri < 0 || h < 2000) && M.type !== 'orbit' && M.type !== 'gto') { cxw = c.x; cyw = c.y; span = Math.max(60e3, Math.min(1500e3, Math.max(c.maxH, o.apo === Infinity ? 0 : o.apo) * 2.4 + 30e3)); }
+    else span = far ? MOON * 1.15 : Math.max(RE * 1.35, (o.apo === Infinity ? RE * 3 : o.apo + RE) * 1.12);
+    const sc = W / 2 / span, X = (wx) => W / 2 + (wx - cxw) * sc, Y = (wy) => W / 2 - (wy - cyw) * sc;
+    const ang = -(upAng(c) - Math.PI / 2);   // turn the picture so the rocket is at the top
+    x.save(); x.translate(W / 2, W / 2); x.rotate(cxw ? ang : 0); x.translate(-W / 2, -W / 2);
+    // the path
+    if (c.flown || r.M.type === 'land') { x.strokeStyle = '#c6f24e'; x.lineWidth = 3; x.beginPath(); let started = false;
+      const n = 360, lim = e < 1 ? Math.PI : Math.acos(-1 / e) * .98;
+      for (let i = 0; i <= n; i++) { const th = -lim + 2 * lim * i / n, rad = p / (1 + e * Math.cos(th)); if (rad <= 0 || rad > span * 4) { started = false; continue; } const a = w + th * dirS;
+        const px = X(rad * Math.cos(a)), py = Y(rad * Math.sin(a)); if (!started) { x.moveTo(px, py); started = true; } else x.lineTo(px, py); }
+      x.stroke(); }
+    // the Earth and its air
+    x.fillStyle = 'rgba(80,140,230,.18)'; x.beginPath(); x.arc(X(0), Y(0), (RE + 100e3) * sc, 0, 7); x.fill();
+    x.fillStyle = '#1d4f86'; x.beginPath(); x.arc(X(0), Y(0), RE * sc, 0, 7); x.fill();
+    x.strokeStyle = '#3f7fc0'; x.lineWidth = 2; x.stroke();
+    // the pad (and the landing pad)
+    const pa = padAng(c); x.fillStyle = '#ffd36b'; x.beginPath(); x.arc(X(RE * Math.cos(pa)), Y(RE * Math.sin(pa)), 4, 0, 7); x.fill();
+    if (far) { const mA = Math.PI / 2 - 2.2; x.fillStyle = '#bdbdb8'; x.beginPath(); x.arc(X(MOON * Math.cos(mA)), Y(MOON * Math.sin(mA)), Math.max(5, 1.737e6 * sc), 0, 7); x.fill(); x.strokeStyle = 'rgba(189,189,184,.25)'; x.setLineDash([4, 6]); x.beginPath(); x.arc(X(0), Y(0), MOON * sc, 0, 7); x.stroke(); x.setLineDash([]); }
+    // high and low points
+    const mark = (th, col, t) => { const rad = p / (1 + e * Math.cos(th)); if (!(rad > 0) || rad > span * 3) return; const a = w + th * dirS, px = X(rad * Math.cos(a)), py = Y(rad * Math.sin(a)); x.fillStyle = col; x.beginPath(); x.arc(px, py, 5, 0, 7); x.fill(); x.save(); x.translate(px, py); x.rotate(-(cxw ? ang : 0)); x.font = '600 17px Inter, sans-serif'; x.fillText(t, 8, -6); x.restore(); };
+    if (c.flown && e < 1 && o.apo > 0) mark(Math.PI, '#ffd36b', 'Ap ' + fmtAlt(o.apo));
+    if (c.flown && o.peri > -RE * .3 && e > .002) mark(0, '#7ec8ff', 'Pe ' + fmtAlt(o.peri));
+    // the rocket
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(X(c.x), Y(c.y), 6, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke();
+    x.restore();
+    x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '600 16px Inter, sans-serif'; x.textAlign = 'left'; x.fillText('Orbit map', 12, 24); x.textAlign = 'right'; x.fillText(fmtAlt(span * 2) + ' across', W - 12, W - 12); x.textAlign = 'left';
+  },
+  // ---------------------------------------------------------------- results
+  results() {
+    const r = this.run, c = r.c, M = r.M, res = r.done, ok = !!res.done, s = c.st[c.k], L = local(c);
+    let fuelLeft = 0, fuelAll = 0; for (let i = c.k; i < c.st.length; i++) { fuelLeft += c.st[i].left; fuelAll += c.st[i].prop; }
+    const assist = r.usedAssist || r.assist;
+    let quality = false;
+    if (M.type === 'orbit' || M.type === 'gto' || M.type === 'tli') quality = fuelLeft / Math.max(1, fuelAll) >= .05;
+    else if (c.touch && (M.type === 'hop' || M.type === 'land' || M.type === 'spaceland')) quality = c.touch.v < 2.5 && Math.abs(c.touch.d - (M.padD || 0)) < (M.zone || 20) / 2;
+    else if (M.type === 'space') quality = r.maxTilt < 10 * Math.PI / 180;
+    const stars = ok ? 1 + (assist !== 'auto' ? 1 : 0) + (assist === 'manual' && quality ? 1 : 0) : 0;
+    let pay = 0, first = false;
+    if (ok && !r.free && !ROCKETS[M.rocket].fun) { first = !Cr.best(M.id); pay = Math.round(M.pay * PAYK[assist] * (first ? 1.25 : 1) * (stars === 3 ? 1.2 : 1)); Cr.add(pay); Cr.addXp(pay); Cr.setBest(M.id, { stars, score: pay }); }
+    $('res').hidden = false; $('touchR').hidden = true;
+    $('rH').textContent = r.free ? (res.fail ? 'Flight over' : 'Flight complete') : ok ? 'Mission complete' : 'Mission failed';
+    $('rS').textContent = r.free ? c.R.name : M.name + ' · ' + c.R.name;
+    $('rG').innerHTML = r.free ? '' : '★'.repeat(stars) + '<s style="color:#4a525c;text-decoration:none">' + '★'.repeat(3 - stars) + '</s>';
+    const o = orbit(c);
+    const rows = [['Result', res.fail || (r.free ? (res.landed ? 'Landed' : 'Flight ended') : 'All goals done')], ['Flight time', fmtT(Math.max(0, c.t))], ['Highest', fmtAlt(c.maxH)], ['Fastest', kmh(r.maxV) + ' km/h'], ['Hardest air push (max Q)', (c.maxQ / 1000).toFixed(1) + ' kPa'], ['Most G', c.maxG.toFixed(1) + ' g']];
+    if (c.touch) rows.push(['Touchdown', c.touch.v.toFixed(1) + ' m/s, ' + fmtN(Math.abs(c.touch.d - (M.padD || 0))) + ' m from the target']);
+    if (o.peri > 0 && !c.touch) rows.push(['Orbit', fmtAlt(o.peri) + ' × ' + (o.apo === Infinity ? 'escape' : fmtAlt(o.apo))]);
+    rows.push(['Fuel left', Math.round(fuelLeft / Math.max(1, fuelAll) * 100) + '%'], ['Assist', ASSIST_NAME[assist]]);
+    $('rT').innerHTML = rows.map((q) => '<span>' + q[0] + '</span><b>' + q[1] + '</b>').join('');
+    $('rE').innerHTML = ok && !r.free ? (pay ? '+' + fmtN(pay) + ' credits' + (first ? ' (first time bonus)' : '') : ROCKETS[M.rocket].fun ? 'The Erika rocket flies for fun: no prize' : '') + '<small>' + (stars < 3 ? (assist === 'auto' ? 'Fly it without the autopilot for more stars.' : assist === 'steer' ? 'Fly it on Manual for the third star.' : M.type === 'space' ? 'Third star: keep it within 10° of straight up.' : (M.type === 'orbit' || M.type === 'gto' || M.type === 'tli') ? 'Third star: get there with 5% of the fuel left.' : 'Third star: touch down under 2.5 m/s, right on the target.') : 'A perfect flight.') + '</small>' : r.free ? '' : '<small>' + (res.fail || '') + '</small>';
+    const next = ok && !r.free ? MISSIONS[MISSIONS.indexOf(M) + 1] : null, rk = Cr.rank();
+    $('rB').innerHTML = (next && rk.i >= next.rank ? '<button class="btn" type="button" id="rNext">Next mission</button>' : '') + '<button class="btn' + (next && rk.i >= next.rank ? ' ghost' : '') + '" type="button" id="rAgain">' + (ok ? 'Fly again' : 'Try again') + '</button><button class="btn ghost" type="button" id="rMenu">Menu</button>';
+    if ($('rNext')) $('rNext').onclick = () => { this.cfg.mission = next.id; this.saveCfg(); this.start(false); };
+    $('rAgain').onclick = () => this.start(r.free); $('rMenu').onclick = () => this.toMenu();
+  },
+};
+(window.__gateReady || Promise.resolve()).then(() => Game.init());
+window.__rockets = { Game, World, R3, ROCKETS, MISSIONS, autopilot, judge, orbit, alt, local };
+})();
+</script>
+</body>
+</html>

@@ -51,6 +51,14 @@ service cloud.firestore {
         && request.resource.data.status.owned is list && request.resource.data.status.owned.size() <= 250
         && request.resource.data.status.applied is list && request.resource.data.status.applied.size() <= 60
         && request.resource.data.status.at == request.time
+      ) || (
+        // a code for several games: the same report, kept per game under statusBy.<game>
+        request.auth != null
+        && resource.data.claimedBy == request.auth.uid
+        && resource.data.revoked != true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusBy'])
+        && request.resource.data.statusBy is map
+        && request.resource.data.statusBy.keys().hasOnly(['air', 'race', 'boat', 'kart', 'moto', 'train', 'rocket'])
       );
     }
 
@@ -61,7 +69,7 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly(['kind', 'game', 'name', 'contact', 'text', 'by', 'at', 'seen'])
         && request.resource.data.kind in ['code', 'msg']
-        && request.resource.data.game in ['air', 'race', 'boat', 'kart', 'moto', 'train']
+        && request.resource.data.game in ['air', 'race', 'boat', 'kart', 'moto', 'train', 'rocket']
         && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
         && request.resource.data.contact is string && request.resource.data.contact.size() <= 120
         && request.resource.data.text is string && request.resource.data.text.size() <= 1000
