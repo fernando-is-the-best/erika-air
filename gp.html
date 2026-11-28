@@ -1265,11 +1265,53 @@ const GP_BIKE = { id: 'road_moto', name: 'GP Bike 1000', desc: '1000 cc V4 proto
     grip: 7, maxLat: 26, hbMaxLat: 6, aMax: 24, traction: 9.5, brake: 12.5, rolling: .25, drag: .00077, noDrift: true,
     wheelbase: 1.45, length: 2.05, width: .8, lock: .7, eye: [0.44, 1.18, 0], lookDrop: .5, chase: [5.2, 1.9],
     sound: { cyl: 4, pattern: [1, .85, 1, .85], tone: 2.7, scream: 1.1, crackle: .7, turbo: 0, gearW: 0, shift: 'quick' } } };
+// Erika Moto's other bikes: real MotoGP bikes and road superbikes, each in its real colours, with its own power, weight and feel.
+// They are built from the GP bike above: `power` scales the horsepower, `rpm` the rev range (the gears follow it), `kg` is the
+// bike's real weight (the rider and fuel are added on top), and `look` changes the model: road lights and mirrors, winglets, exhaust.
+function makeBike(id, name, desc, paint, look, o = {}) {
+  const G = GP_BIKE.mod, r = o.rpm || 1, t = (o.power || 1) / r, gear = r * (o.gear || 1);
+  const mod = Object.assign({}, G, {
+    massAdd: (o.kg || 157) + 83 - 1700, engineName: o.engine || G.engineName,
+    torque: G.torque.map(([a, b]) => [Math.round(a * r), Math.round(b * t * 10) / 10]),
+    limit: Math.round(G.limit * r), idle: Math.round(G.idle * r), autoUp: Math.round(G.autoUp * r), autoDown: Math.round(G.autoDown * r), autoDownCoast: Math.round(G.autoDownCoast * r),
+    ratios: Object.fromEntries(Object.entries(G.ratios).map(([k, v]) => [k, Math.round(v * gear * 100) / 100])),
+    sound: Object.assign({}, G.sound, { tone: G.sound.tone * r }, o.sound || {}),
+  }, o.mod || {});
+  return { id, name, desc, price: 0, paint, model: 'moto', hidden: true, look, group: o.group || 'Superbikes', mod };
+}
+const I4_FLAT = { pattern: [1, 1, 1, 1], scream: 1.25 }, I4_CROSS = { pattern: [1, .7, 1, .55], scream: .9 };   // engine sounds: a screaming flat-plane four, a growly crossplane four
+const ROAD = { grip: 6.8, maxLat: 25, brake: 11.6, drag: .00088 };   // road superbikes: road-legal tyres, lights and mirrors (less grip, more drag)
+const MOTO_BIKES = [Object.assign(GP_BIKE, { look: 'gp', group: 'MotoGP bikes' }),
+  makeBike('moto_ducati', 'Ducati Desmosedici GP', 'MotoGP bike: 1000 cc V4, about 300 hp and 157 kg. The fastest one down the straights', ['#c8102e', '#f2f2f2'], 'gp',
+    { group: 'MotoGP bikes', power: 1.155, engine: '1000 cc Desmo V4', sound: { tone: 2.6 } }),
+  makeBike('moto_yamaha', 'Yamaha YZR-M1', 'MotoGP bike: 1000 cc crossplane inline-four, about 290 hp and 157 kg. Smooth and sweet in the corners', ['#0a2c8c', '#0b0b10'], 'gp',
+    { group: 'MotoGP bikes', power: 1.115, engine: '1000 cc inline-4', sound: I4_CROSS, mod: { maxLat: 27, grip: 7.3 } }),
+  makeBike('moto_honda', 'Honda RC213V', 'MotoGP bike: 1000 cc V4, about 290 hp and 157 kg. Brakes later than anything', ['#f2f2f2', '#d0021b'], 'gp',
+    { group: 'MotoGP bikes', power: 1.115, engine: '1000 cc V4', mod: { brake: 13.3 } }),
+  makeBike('moto_ktm', 'KTM RC16', 'MotoGP bike: 1000 cc V4, about 285 hp and 157 kg. Fierce on the way out of the corners', ['#ff6a00', '#0d1b3d'], 'gp',
+    { group: 'MotoGP bikes', power: 1.096, engine: '1000 cc V4', mod: { traction: 10 } }),
+  makeBike('moto_aprilia', 'Aprilia RS-GP', 'MotoGP bike: 1000 cc V4, about 285 hp and 157 kg. Lots of grip in fast corners', ['#141414', '#b0123f'], 'gp',
+    { group: 'MotoGP bikes', power: 1.096, engine: '1000 cc V4', mod: { maxLat: 27 } }),
+  makeBike('moto_panigale', 'Ducati Panigale V4 R', 'Road superbike with winglets: 998 cc V4, 237 hp and 188 kg', ['#c8102e', '#1a1a1a'], 'lights,wings',
+    { power: .912, rpm: .9, kg: 188, engine: '998 cc V4 R', mod: ROAD }),
+  makeBike('moto_bmw', 'BMW M 1000 RR', 'Road superbike with carbon winglets: 999 cc inline-four, 212 hp and 192 kg', ['#f2f2f2', '#1c69d4'], 'lights,wings',
+    { power: .815, rpm: .84, kg: 192, engine: '999 cc inline-4', sound: I4_FLAT, mod: ROAD }),
+  makeBike('moto_fireblade', 'Honda CBR1000RR-R Fireblade SP', 'Road superbike: 1000 cc inline-four, 215 hp and 201 kg, revs to 14,500', ['#f2f2f2', '#c8102e'], 'lights,wings',
+    { power: .827, rpm: .81, kg: 201, engine: '1000 cc inline-4', sound: I4_FLAT, mod: ROAD }),
+  makeBike('moto_r1m', 'Yamaha YZF-R1M', 'Road superbike: 998 cc crossplane inline-four, 200 hp and 202 kg', ['#9aa1a9', '#0b3d91'], 'lights',
+    { power: .77, rpm: .78, kg: 202, engine: '998 cc crossplane inline-4', sound: I4_CROSS, mod: ROAD }),
+  makeBike('moto_gsxr', 'Suzuki GSX-R1000R', 'Road superbike: 999 cc inline-four, 202 hp and 203 kg', ['#0c3c9e', '#f2f2f2'], 'lights',
+    { power: .777, rpm: .8, kg: 203, engine: '999 cc inline-4', sound: I4_FLAT, mod: ROAD }),
+  makeBike('moto_h2r', 'Kawasaki Ninja H2R', 'Track-only supercharged bike: 998 cc, 310 hp and 216 kg. About 370 km/h flat out', ['#1a1d21', '#5bbf21'], 'wings,stub',
+    { power: 1.19, rpm: .78, gear: .8, kg: 216, engine: '998 cc supercharged inline-4', sound: Object.assign({ turbo: 1 }, I4_FLAT), mod: { grip: 6.6, maxLat: 24, brake: 11.4, drag: .0006 } }),
+];
+const isBike = (id) => MOTO_BIKES.some((b) => b.id === id);
+const MOTO_SEL = 'erikamoto.v1.bike';   // the bike you picked last
 const modelOf = (cls, vid) => variantOf(cls, vid).model;
 const RICK_LIVERIES = [['#1c1c1c', '#ffd21a'], ['#2a6fb0', '#ffd21a'], ['#c7322b', '#1c1c1c'], ['#e8b917', '#1c1c1c'], ['#3a8f5c', '#1c1c1c'], ['#7a3fa0', '#ffd21a'], ['#e0662a', '#f4f1ea'], ['#1f7a7a', '#ffd21a'], ['#f4f1ea', '#2e8b3e'], ['#2e8b3e', '#ffd21a']];
 // the spec the rival cars race with: the class standard, or the special model's own (a rickshaw race)
 const raceSpec = (cls, vid) => modelOf(cls, vid) ? tunedSpec(cls, TUNE_DEF, vid) : CAR_SPECS[cls];
-const variantOf = (cls, id) => id === RUSH_RICK.id ? RUSH_RICK : id === GP_BIKE.id ? GP_BIKE : (VARIANTS[cls] || []).find(v => v.id === id) || VARIANTS[cls][0];
+const variantOf = (cls, id) => id === RUSH_RICK.id ? RUSH_RICK : MOTO_BIKES.find((b) => b.id === id) || ((VARIANTS[cls] || []).find(v => v.id === id) || VARIANTS[cls][0]);
 function tunedSpec(cls, T = loadTune(cls), vid = cls) {
   const B = Object.assign({}, CAR_SPECS[cls]), V = variantOf(cls, vid), M = V.mod || {};
   // the car model first (engine, weight, aero), then your setup on top
@@ -3211,13 +3253,14 @@ function carTemplate(cls) {
   if (CAR_TPL[cls]) return CAR_TPL[cls];
   carMats();
   const kit = new Kit(), T = { cls };
-  if (cls === 'f1') buildF1Kit(kit, T); else if (cls === 'gt') buildGT3Kit(kit, T); else if (cls === 'rickshaw') buildRickshawKit(kit, T); else if (cls === 'moto') buildMotoKit(kit, T); else buildSaloonKit(kit, T, false);
+  if (cls === 'f1') buildF1Kit(kit, T); else if (cls === 'gt') buildGT3Kit(kit, T); else if (cls === 'rickshaw') buildRickshawKit(kit, T); else if (cls.startsWith('moto')) buildMotoKit(kit, T, cls.split(':')[1] || 'gp'); else buildSaloonKit(kit, T, false);
   T.parts = kit.build();
   return CAR_TPL[cls] = T;
 }
 /* GP racing motorcycle with its rider tucked in: full fairing with aero winglets, screen, fork, swingarm, exhaust.
    Car space: x forward, y up, z across. About 2.05 m long; wheels 1.45 m apart.                                   */
-function buildMotoKit(kit, T) {
+function buildMotoKit(kit, T, look = 'gp') {
+  const L = look.split(','), gp = look === 'gp', wings = gp || L.includes('wings'), lights = L.includes('lights'), stub = L.includes('stub') || lights;
   // fairing, tank and tail unit (livery)
   // narrow full fairing: nose at wheel height, widest low down where the winglets are, the tail unit kicked up high
   kit.add('paint', loftGeo([[-0.97, .88, .98, .02, .02, 2.5], [-0.72, .76, .97, .08, .09, 3], [-0.42, .66, .9, .11, .12, 3.5], [-0.18, .5, .88, .14, .15, 4],
@@ -3226,14 +3269,26 @@ function buildMotoKit(kit, T) {
   kit.add('paint2', rbox(.7, .12, .3).translate(0.12, .2, 0));                                                                          // belly pan
   kit.add('trim', rbox(.36, .05, .22).translate(-0.36, .9, 0), '#202227');                                                             // seat
   for (const zs of [1, -1]) {
-    kit.add('carbon', airfoil(.16, .02, .12).rotateX(zs * .25).translate(0.72, .58, .25 * zs), '#16171a');                             // aero winglets
-    kit.add('carbon', airfoil(.12, .02, .1).rotateX(zs * .25).translate(0.68, .5, .26 * zs), '#16171a');
+    if (wings) {
+      kit.add('carbon', airfoil(.16, .02, .12).rotateX(zs * .25).translate(0.72, .58, .25 * zs), '#16171a');                           // aero winglets
+      if (gp) kit.add('carbon', airfoil(.12, .02, .1).rotateX(zs * .25).translate(0.68, .5, .26 * zs), '#16171a');
+    }
+    if (lights) {   // road bike: twin headlights in the nose, mirrors on stalks, indicators
+      kit.add('head', loftGeo([[0.9, .6, .68, .045, .04, 2.4, .075 * zs], [0.99, .61, .67, .035, .03, 2.4, .07 * zs]], 12));
+      kit.add('trim', tube([[0.62, .84, .17 * zs], [0.6, .9, .26 * zs]], .01, 4), '#1a1b1e');
+      kit.add('trim', rbox(.05, .05, .1).translate(0.6, .91, .3 * zs), '#1a1b1e');
+      kit.add('head', rbox(.02, .015, .04).translate(0.62, .91, .3 * zs));
+    }
     kit.add('chrome', tube([[0.73, .31, .075 * zs], [0.6, .62, .075 * zs], [0.5, .88, .075 * zs]], .022, 6), '#c9ced4');             // fork legs
     kit.add('trim', tube([[0.5, .88, .08 * zs], [0.46, .87, .2 * zs], [0.43, .86, .3 * zs]], .014, 4), '#202227');                   // clip-on bars
     kit.add('carbon', tube([[-0.18, .37, .1 * zs], [-0.45, .34, .11 * zs], [-0.73, .31, .1 * zs]], .03, 6), '#232528');              // swingarm
     kit.add('trim', rbox(.06, .03, .06).translate(-0.1, .36, .2 * zs), '#9aa0a6');                                                     // footpegs
   }
-  kit.add('chrome', tube([[0.15, .26, .12], [-0.2, .28, .14], [-0.5, .45, .14], [-0.72, .6, .13]], .045, 10), '#8a8f96');               // exhaust
+  if (stub) {   // short side silencer (road bikes), and a number-plate hanger under the tail
+    kit.add('chrome', tube([[0.15, .26, .12], [-0.1, .27, .15], [-0.3, .36, .17]], .045, 10), '#8a8f96');
+    kit.add('carbon', new THREE.CylinderGeometry(.065, .075, .34, 12).rotateZ(Math.PI / 2 + .35).translate(-0.42, .41, .18), '#2a2c30');
+  } else kit.add('chrome', tube([[0.15, .26, .12], [-0.2, .28, .14], [-0.5, .45, .14], [-0.72, .6, .13]], .045, 10), '#8a8f96');      // exhaust
+  if (lights) { kit.add('trim', rbox(.02, .16, .06).translate(-0.95, .66, 0), '#1a1b1e'); kit.add('trim', rbox(.015, .1, .17).translate(-0.98, .56, 0), '#e8e8e8'); }
   kit.add('tail', rbox(.03, .05, .12).translate(-0.98, .8, 0));
   // rider: tucked in, knees out, chin on the tank (leathers in the team colour)
   kit.add('accent', loftGeo([[-0.44, .9, 1.06, .15, .15, 4], [-0.16, .95, 1.15, .18, .18, 4], [0.1, 1.0, 1.17, .17, .15, 4], [0.27, 1.03, 1.15, .11, .1, 3]], 18));   // torso
@@ -3509,7 +3564,7 @@ function buildF1Kit(kit, T) {
 
 /* ------------------------- car object instances ------------------------- */
 function createCarObject(cls, livery = ['#e8412c', '#f2f2f2'], opts = {}) {
-  const T = carTemplate(opts.model || cls), C = carMats(), [base, accent] = livery, rick = opts.model === 'rickshaw';
+  const T = carTemplate(opts.model === 'moto' && opts.look ? 'moto:' + opts.look : opts.model || cls), C = carMats(), [base, accent] = livery, rick = opts.model === 'rickshaw';
   const group = new THREE.Group(), body = new THREE.Group(); group.add(body);
   // the rickshaw is plain painted metal + a fabric canopy (both seen from inside too); the others carry the livery texture
   const plain = rick && !opts.ghost ? new THREE.MeshPhysicalMaterial({ color: base, roughness: .38, metalness: .05, clearcoat: .6, side: THREE.DoubleSide }) : null;
@@ -5755,7 +5810,7 @@ class Race {
       if (!show.has(k)) return;
       list += `<div class="row lb${r.player ? ' me' : ''}"><span><i style="background:${r.color}"></i>${k + 1}. ${r.name}</span><b>${k === 0 ? (r.finished ? '🏁' : '') : (r.finished ? '🏁' : this.gapText(r, st[k - 1]))}</b></div>`;
     });
-    return `<div class="title">${W_.name} · ${this.spec.pid === 'road_rick' ? 'Rickshaw' : this.spec.pid === 'road_moto' ? 'GP Bike' : this.cls === 'f1' ? 'F1' : this.cls === 'gt' ? 'GT3' : 'Road car'} race</div>
+    return `<div class="title">${W_.name} · ${this.spec.pid === 'road_rick' ? 'Rickshaw' : isBike(this.spec.pid) ? 'GP Bike' : this.cls === 'f1' ? 'F1' : this.cls === 'gt' ? 'GT3' : 'Road car'} race</div>
       <div class="pos">P${me + 1}<small>/${st.length}</small></div>
       <div class="row"><span>Lap</span><b>${this.state === 'formation' ? 'Formation' : this.state === 'grid' ? '–' : Math.min(lap, this.laps) + ' / ' + this.laps}</b></div>
       <div class="row"><span>Race time</span><b>${fmtTime(this.t)}</b></div>
@@ -5785,7 +5840,7 @@ class Race {
     }).join('');
     const penNote = this.penLog.length ? `<tr><td colspan="4" style="color:#ff9a8a;font-size:.85em;padding-top:10px">Penalties: ${this.penLog.map(p => `+${p.sec} s ${p.why}`).join(' · ')}</td></tr>` : '';
     const careerNote = game.cfg && game.cfg.challenge ? Challenges.raceDone(st) : game.cfg && game.cfg.career && game.cfg.career.event ? Career.raceDone(game.cfg, st) : '';
-    $('resultsTitle').textContent = `${this.world.name} — ${this.spec.pid === 'road_rick' ? 'Rickshaw' : this.spec.pid === 'road_moto' ? 'GP Bike' : this.cls === 'f1' ? 'F1' : this.cls === 'gt' ? 'GT3' : 'Road car'} race, ${this.laps} lap${this.laps > 1 ? 's' : ''}`;
+    $('resultsTitle').textContent = `${this.world.name} — ${this.spec.pid === 'road_rick' ? 'Rickshaw' : isBike(this.spec.pid) ? 'GP Bike' : this.cls === 'f1' ? 'F1' : this.cls === 'gt' ? 'GT3' : 'Road car'} race, ${this.laps} lap${this.laps > 1 ? 's' : ''}`;
     $('resultsTable').innerHTML = `<tr><th>Pos</th><th>Driver</th><th>Time</th><th>Best lap</th></tr>` + rows + penNote + careerNote;
     Menu.show('results'); setPaused(true, true);
   }
@@ -7048,7 +7103,7 @@ const Menu = {
     }
     else if (k === 'home') { if (game.cfg && game.cfg.net) { if (Net.isHost) Net.bcast({ t: 'left', pid: Net.myId }); else Net.send({ t: 'left' }); Net.backToLobby(); return; } game.race = null; game.chal = null; MenuScene.start(); this.show('home'); }
     else if (['car', 'laps', 'difficulty', 'opponents', 'startPos', 'gfx', 'tod', 'limits', 'tyre', 'weather', 'formation', 'fuel', 'damage'].includes(k) || k.startsWith('v_')) {
-      c[k] = isNaN(+v) ? v : +v; const keep = this.sel; this.renderSetup(); this.sel = keep; this.highlight();
+      c[k] = isNaN(+v) ? v : +v; if (k === 'v_moto') store(MOTO_SEL, v); const keep = this.sel; this.renderSetup(); this.sel = keep; this.highlight();
     }
   },
   back() {
@@ -7066,7 +7121,7 @@ const Menu = {
     if (['career', 'board', 'race', 'cafe', 'chal'].includes(this.screen)) { this.show(game.world ? 'pause' : 'world'); return; } if (this.screen === 'track') { this.show(this.choice.mode !== 'free' ? 'race' : 'world'); return; } if (this.screen === 'track') this.show('home'); else if (this.screen === 'setup') this.show('track'); else if (this.screen === 'tune') this.show('setup'); else if (this.screen === 'pause') setPaused(false); },
   config() {
     const c = this.choice;
-    return { mode: c.mode, track: c.track, car: c.mode === 'free' ? c.car : c.mode, laps: c.laps, difficulty: c.difficulty, opponents: c.opponents, startPos: c.startPos, gfx: c.gfx, tod: c.tod || 'noon', weather: c.weather || 'clear', limits: c.limits || 'lenient', tyre: c.tyre || 'M', formation: c.formation === 'on', fuel: c.fuel || 'on', damage: c.damage || 'light', variant: c.bikes && c.mode === 'road' ? GP_BIKE.id : c['v_' + (c.mode === 'free' ? c.car : c.mode)] };
+    return { mode: c.mode, track: c.track, car: c.mode === 'free' ? c.car : c.mode, laps: c.laps, difficulty: c.difficulty, opponents: c.opponents, startPos: c.startPos, gfx: c.gfx, tod: c.tod || 'noon', weather: c.weather || 'clear', limits: c.limits || 'lenient', tyre: c.tyre || 'M', formation: c.formation === 'on', fuel: c.fuel || 'on', damage: c.damage || 'light', variant: c.bikes && c.mode === 'road' ? (c.v_moto || GP_BIKE.id) : c['v_' + (c.mode === 'free' ? c.car : c.mode)] };
   },
   renderTitle() {
     const a = Saves.active, s = a >= 0 && Saves.slot(a), hm = (icon, title, sub, act, cls = '') => this.card('hm ' + cls, `${ICON[icon]}<span><b>${title}</b><small>${sub}</small></span><span class="chev">›</span>`, act);
@@ -7160,7 +7215,7 @@ const Menu = {
       : !todo ? "You finished the briefing! Bring it to my pit wall."
       : `Next on your briefing: ${todo[0]}.`;
     if (MOTO) {   // Erika Moto: straight to a Grand Prix bike race, or the settings
-      $('modeCards').innerHTML = hm('flag', 'Race', 'Grand Prix bikes on ' + TRACK_ORDER.length + ' circuits: 1000 cc V4, about 270 hp and 157 kg. Choose a track, the field and the weather.', 'bikes', 'big')
+      $('modeCards').innerHTML = hm('flag', 'Race', MOTO_BIKES.length + ' bikes on ' + TRACK_ORDER.length + ' circuits: MotoGP bikes and road superbikes. Choose a bike, a track, the field and the weather.', 'bikes', 'big')
         + hm('gear', 'Settings', 'Graphics, sound, steering and controls.', 'settings');
       $('nextEvent').innerHTML = ''; this.bind('modeCards'); return;
     }
@@ -7228,7 +7283,7 @@ const Menu = {
     $('raceCards').innerHTML = this.card('back', '← Back', 'back')
       + ['gt', 'f1'].map(k => { const S = CAR_SPECS[k]; return this.card('world big', `${CAR_SIL[k]}<h3>${k === 'gt' ? 'GT3 Race' : 'F1 Race'}</h3><p>${MODES[k].desc}</p>
         <div class="stats" style="margin-top:12px"><div><span>Power</span><b>${S.hp} hp</b></div><div><span>Weight</span><b>${S.mass} kg</b></div><div><span>Top speed</span><b>${Math.round(topSpeedOf(S))} km/h</b></div></div>`, 'mode:' + k); }).join('')
-      + (!MOTO ? '' : this.card('world big', `${CAR_SIL.moto}<h3>GP Bikes</h3><p>Grand Prix motorcycles: 1000 cc V4, about 270 hp and 157 kg. Lean into the corners, brake upright, and feed the power in gently on the way out.</p>
+      + (!MOTO ? '' : this.card('world big', `${CAR_SIL.moto}<h3>GP Bikes</h3><p>${MOTO_BIKES.length} bikes: MotoGP bikes and road superbikes. Lean into the corners, brake upright, and feed the power in gently on the way out.</p>
         <div class="stats" style="margin-top:12px"><div><span>Power</span><b>~270 hp</b></div><div><span>Weight</span><b>157 kg</b></div><div><span>Top speed</span><b>~360 km/h</b></div></div>`, 'bikes'))
       + this.card('world big rushcard', `${CAR_SIL.rick}<h3>🛺 Rickshaw Rush</h3><p>Its own mode: a rocket-powered auto-rickshaw on the Grand Trunk Expressway. 1,000 mph, easy drifting, Indian music.</p>
         <div class="stats" style="margin-top:12px"><div><span>Top speed</span><b>~1,000 mph</b></div><div><span>Map</span><b>14 km oval</b></div><div><span>Drifting</span><b>Easy</b></div></div>`, 'rush');
@@ -7276,7 +7331,13 @@ const Menu = {
     let html = '<div class="sec">Car</div>';
     if (!race) html += row('Car', 'car', [['road', `Road car · 5.0 V8 · ${CAR_SPECS.road.hp} hp · ${CAR_SPECS.road.mass.toLocaleString()} kg`], ['gt', `GT3 · 6.2 V8 · ${CAR_SPECS.gt.hp} hp · ${CAR_SPECS.gt.mass.toLocaleString()} kg`], ['f1', `F1 2026 · V6 turbo hybrid · ${CAR_SPECS.f1.hp} hp · ${CAR_SPECS.f1.mass} kg`]]);
     const bike = race && c.bikes && c.mode === 'road';   // GP Bikes: everyone rides the GP bike (no car models to pick)
-    if (bike) html += `<div class="optrow"><span>Model</span><div>${this.card('opt on', `${GP_BIKE.name} · ${tunedSpec('road', TUNE_DEF, GP_BIKE.id).hp} hp`, 'noop')}</div></div>`;
+    if (bike) {   // everyone rides the bike you pick (bikes the admin has blocked for this player are left out; the GP bike always stays)
+      const list = MOTO_BIKES.filter(b => b.id === GP_BIKE.id || !Career.blocked(b.id));
+      if (!c.v_moto) c.v_moto = load(MOTO_SEL) || GP_BIKE.id;
+      if (!list.some(b => b.id === c.v_moto)) c.v_moto = GP_BIKE.id;
+      for (const g of ['MotoGP bikes', 'Superbikes']) { const l = list.filter(b => b.group === g); if (l.length) html += row(g === 'MotoGP bikes' ? 'MotoGP' : 'Superbikes', 'v_moto', l.map(b => [b.id, `${b.name} · ${tunedSpec('road', TUNE_DEF, b.id).hp} hp`])); }
+      const B = variantOf('road', c.v_moto); html += `<p style="opacity:.7;font-size:13px;margin:-2px 0 8px 144px">${B.desc}.</p>`;
+    }
     else { const cls = race ? c.mode : c.car, key = 'v_' + cls;
       // models the admin has blocked for this player can't be picked here either (the standard car always stays)
       const list = VARIANTS[cls].filter(v => v.id === cls || !Career.blocked(v.id));
@@ -7305,7 +7366,7 @@ const Menu = {
     html += '<div class="sec">Display</div>';
     html += row('Graphics', 'gfx', [['high', 'High (shadows)'], ['low', 'Low (faster)']]);
     // summary card
-    const cls = race ? c.mode : c.car, V = bike ? GP_BIKE : variantOf(cls, c['v_' + cls] || cls), S = tunedSpec(cls, loadTune(cls), V.id);
+    const cls = race ? c.mode : c.car, V = bike ? variantOf('road', c.v_moto || GP_BIKE.id) : variantOf(cls, c['v_' + cls] || cls), S = tunedSpec(cls, loadTune(cls), V.id);
     const tk = c.track, tn = tk === 'flat' ? 'Flat World' : TRACK_DATA[tk].name;
     const lbl = { qualify: 'Qualifying sets the grid', pole: 'Start on pole', middle: 'Start mid-pack', back: 'Start at the back' };
     const sum = `<div class="summary">${trackSVG(tk)}<h2>${tn}</h2><p>${bike ? 'GP Bike Race' : MODES[c.mode].name}${tk !== 'flat' ? ' · ' + TRACK_DATA[tk].km.toFixed(2) + ' km' : ''}</p>
@@ -7485,7 +7546,7 @@ function endFormation() {
 }
 function startSession(cfg) {
   if (!glOK) return;
-  try { if (window.ErikaAccess) window.ErikaAccess.flew('Racing: ' + (cfg.variant === 'road_moto' ? 'GP bike' : cfg.car === 'f1' ? 'F1 car' : cfg.car === 'gt3' ? 'GT3 car' : cfg.car === 'road' ? 'road car' : String(cfg.car || 'car'))); } catch (e) { /* logging is optional */ }
+  try { if (window.ErikaAccess) window.ErikaAccess.flew('Racing: ' + (isBike(cfg.variant) ? variantOf('road', cfg.variant).name : cfg.car === 'f1' ? 'F1 car' : cfg.car === 'gt3' ? 'GT3 car' : cfg.car === 'road' ? 'road car' : String(cfg.car || 'car'))); } catch (e) { /* logging is optional */ }
   MenuScene.stop();
   if (cfg.rush) { Music.start(); Rush.reset(); } else { Music.stop(); Rush.hide(); }
   if (cfg.mode !== 'free' && cfg.startPos === 'qualify' && cfg.track !== 'flat') return startQualifying(cfg);
@@ -7523,7 +7584,7 @@ function startSession(cfg) {
   // your car (with its interior), on its own layer so the mirror camera can't see it
   GFX.carsRoot.clear();
   const myTeam = cfg.career && !model ? Career.team() : null;   // in a career race your team's livery
-  game.playerObj = createCarObject(cfg.car, myTeam ? myTeam.col : variantOf(cfg.car, cfg.variant).paint || PLAYER_LIVERY[cfg.car], { number: 1, team: myTeam ? myTeam.name.toUpperCase() : 'ERIKA RACING', model });
+  game.playerObj = createCarObject(cfg.car, myTeam ? myTeam.col : variantOf(cfg.car, cfg.variant).paint || PLAYER_LIVERY[cfg.car], { number: 1, team: myTeam ? myTeam.name.toUpperCase() : MOTO ? 'ERIKA MOTO' : 'ERIKA RACING', model, look: variantOf(cfg.car, cfg.variant).look });
   game.playerObj.interior = model === 'moto' ? null : buildInterior(game.playerObj, game.car.spec);   // on a bike you look over the screen
   game.playerObj.group.traverse(o => o.layers.set(1));
   GFX.carsRoot.add(game.playerObj.group);
@@ -7532,7 +7593,7 @@ function startSession(cfg) {
   if (cfg.mode !== 'free' && game.world instanceof CircuitWorld) {
     game.race = new Race(game.world, cfg.car, cfg);
     game.race.placePlayer(game.car);
-    for (const a of game.race.ai) { a.obj = createCarObject(cfg.car, [a.color, a.accent], { number: a.number, lite: true, model }); GFX.carsRoot.add(a.obj.group); }
+    for (const a of game.race.ai) { a.obj = createCarObject(cfg.car, [a.color, a.accent], { number: a.number, lite: true, model, look: variantOf(cfg.car, cfg.variant).look }); GFX.carsRoot.add(a.obj.group); }
     game.wheelBatch = new WheelBatch(cfg.car, game.race.ai.length, model); GFX.carsRoot.add(game.wheelBatch.group);
   } else {
     const s = game.world.spawn(); game.car.reset(s.x, s.y, s.h);
@@ -8612,7 +8673,7 @@ const MenuScene = {
     const L = ISLE.S.free; let best = 1e9, ux = 1, uz = 0;   // u: from the lighthouse towards the nearest open sea
     for (let k = 0; k < 72; k++) { const a = k / 72 * 6.2832, cx = Math.cos(a), cz = Math.sin(a); for (let d = 10; d < best; d += 5) if (ISLE.coast(L.x + cx * d, L.z + cz * d) < 0) { best = d; ux = cx; uz = cz; break; } }
     SKY.sunDir.set(-ux * .55 + uz * .6, .66, -uz * .55 - ux * .6).normalize(); buildEnv(); WX.envCloud = 0; WX.apply();
-    this.obj = MOTO ? createCarObject('road', GP_BIKE.paint, { number: 1, team: 'ERIKA MOTO', model: 'moto' }) : createCarObject('gt', PLAYER_LIVERY.gt, { number: 1, team: 'ERIKA RACING' });   // Erika Moto shows its bike
+    this.obj = MOTO ? (B => createCarObject('road', B.paint, { number: 1, team: 'ERIKA MOTO', model: 'moto', look: B.look }))(variantOf('road', load(MOTO_SEL) || GP_BIKE.id)) : createCarObject('gt', PLAYER_LIVERY.gt, { number: 1, team: 'ERIKA RACING' });   // Erika Moto shows its bike
     GFX.carsRoot.add(this.obj.group);
     const x = L.x + ux * 11 + uz * 10, y = L.z + uz * 11 - ux * 10;   // beside the lighthouse, on the seaward side of its pad
     this.pose = { x, y, h: Math.atan2(-uz, -ux) + .55, s: 0, steer: .15, axS: 0, latG: 0, v: 0, yawRate: 0 };
@@ -8920,7 +8981,7 @@ if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
   ownedIds: () => Career.p.cars.slice(),
   give: (id) => { const P = Career.p; if (!P.cars.includes(id)) P.cars.push(id); },
   take: (id) => { const P = Career.p; P.cars = P.cars.filter((x) => x !== id); if (P.sel) for (const k in P.sel) if (P.sel[k] === id) delete P.sel[k]; },
-  name: (id) => { if (id === GP_BIKE.id) return GP_BIKE.name; for (const k in VARIANTS) { const v = VARIANTS[k].find((x) => x.id === id); if (v) return v.name; } return id; },
+  name: (id) => { if (isBike(id)) return variantOf('road', id).name; for (const k in VARIANTS) { const v = VARIANTS[k].find((x) => x.id === id); if (v) return v.name; } return id; },
   // career: the licences (B, then A, then Super), in the save that is open
   career: () => [{ id: 'lic', name: 'Licences', levels: ['No licence', 'National B', 'National A', 'Super licence'], level: ['B', 'A', 'S'].filter((x) => Career.p.lic.includes(x)).length }],
   setCareer: (t, lvl) => { if (t !== 'lic' || !(lvl >= 0 && lvl <= 3)) return null; Career.p.lic = ['B', 'A', 'S'].slice(0, lvl); return 'licences: ' + (lvl ? Career.p.lic.join(', ') : 'none'); },
