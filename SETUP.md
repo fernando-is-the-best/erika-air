@@ -25,7 +25,7 @@ The games stay locked until this is done. It takes about 10 minutes, once.
 - Make a code: give it a name, pick the **Games** it opens (one or more: tap each game to turn it on or off) and the **Type**:
   - **35-character code**: the first person to enter it owns it and stays unlocked on their browser; anyone else who tries it is blocked.
   - **10-digit one-time code**: unlocks one visit, then it is used up (it can be typed with a space, e.g. `12345 67890`). **Free up** makes it usable once more.
-- The games are Erika Air, Erika Racing, Erika Moto, Erika Boats, Erika Karts and Erika Trains.
+- The games are Erika Air, Erika Racing, Erika Moto, Erika Boats, Erika Karts, Erika Trains and Erika Rockets.
 - **Codes for more than one game:** the player types the code once; the other games on the code open by themselves in the same browser. Click **Games** on a code to add or remove games later (its first game always stays). In **Manage**, pick which game's credits and items to change. Unlocking works straight away. For the desk to see credits and items from the extra games, paste the updated `codes` block and the `okStatus` function below it from `firestore.rules` into **Firestore Database → Rules** and click **Publish** (keep your admin email in place).
 - Old codes, made before there was more than one game, count as Erika Air codes.
 - If a player changes device or clears their browser, click **Free up** on their code so they can enter it again.

@@ -18,6 +18,7 @@ The home page (`index.html`) shows every game as a big card. Tap one to play.
 | **Erika Boats** | `boat.html` | Race boats on the water |
 | **Erika Karts** | `kart.html` | Race go-karts |
 | **Erika Trains** | `train.html` | Drive real trains |
+| **Erika Rockets** | `rocket.html` | Launch real rockets (V-2 to Starship), land the boosters. Physics in `rocket-core.js`; `node tools/rocket-test.js` flies every mission on autopilot |
 
 Each game has an "All games" link back to the home page, and the top bar links to the other games. Each game lists its controls in a Controls tab. In Erika Air, press C to change camera; in the cockpit, click switches and levers, scroll to zoom and double-click to look straight ahead again.
 
