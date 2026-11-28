@@ -91,6 +91,10 @@ button:disabled { opacity: .5; cursor: wait }
 .chips { display: flex; gap: 6px; flex-wrap: wrap }
 .chips button { padding: 6px 12px; font-size: 13px; border-radius: 99px }
 .chips button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent }
+.gpick { display: flex; gap: 6px; flex-wrap: wrap }
+.gpick button { padding: 6px 12px; font-size: 13px; border-radius: 99px }
+.gpick button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent }
+.gpick button[disabled] { cursor: default; opacity: 1 }
 .list { display: grid; gap: 10px }
 .item { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--st, var(--line)); border-radius: 10px; background: var(--bg); min-width: 0 }
 .item.free { --st: var(--ok) } .item.used { --st: var(--warn) } .item.off { --st: var(--bad); opacity: .8 }
@@ -221,14 +225,14 @@ button.main { font-weight: 700 }
 
     <section class="card">
       <h2>Make codes</h2>
-      <p>Codes work for one game. A <b>35-character code</b> belongs to the first person who enters it; anyone else is blocked. A <b>10-digit one-time code</b> unlocks a single visit and is then used up.</p>
+      <p>Pick every game the code should open (one or more). A <b>35-character code</b> belongs to the first person who enters it; anyone else is blocked. A <b>10-digit one-time code</b> unlocks a single visit and is then used up.</p>
       <div class="row">
         <div class="grow"><label for="who">Name</label><input id="who" maxlength="60" placeholder="Who is this code for?"></div>
-        <div class="fix" style="flex-basis:150px"><label for="game">Game</label><select id="game"><option value="air">Erika Air (flight)</option><option value="race">Erika Racing</option><option value="boat">Erika Boats</option><option value="kart">Erika Karts</option><option value="moto">Erika Moto</option><option value="train">Erika Trains</option></select></div>
         <div class="fix" style="flex-basis:190px"><label for="kind">Type</label><select id="kind"><option value="long">35-character code</option><option value="once">10-digit one-time code</option></select></div>
         <div class="fix"><label for="qty">How many</label><select id="qty"><option>1</option><option>3</option><option>5</option><option>10</option></select></div>
         <button class="main" id="btnMake" type="button">Generate</button>
       </div>
+      <div style="display:grid;gap:6px"><span class="lbl" id="gamesLbl">Games</span><div class="gpick" id="games" role="group" aria-labelledby="gamesLbl"></div></div>
       <div class="fresh" id="fresh" hidden><span class="lbl">New codes — copy them now and send them to your players</span><div id="freshList" style="display:grid;gap:8px"></div><div class="row"><button id="btnCopyFresh" type="button">Copy all new codes</button></div></div>
       <div class="msg" id="makeMsg" role="status" aria-live="polite"></div>
     </section>
@@ -249,6 +253,7 @@ button.main { font-weight: 700 }
 </main>
 <dialog class="mg" id="mg" aria-labelledby="mgTitle"><div class="in">
   <div class="hd"><div><h3 id="mgTitle">Player</h3><div class="sub" id="mgSub"></div></div><button type="button" id="mgClose">Close</button></div>
+  <div class="gpick" id="mgGames" role="group" aria-label="Which game to manage" hidden></div>
   <div class="wal" id="mgWal"></div>
   <div class="grp"><span class="lbl">Credits</span>
     <div class="crow"><input id="mgCr" type="number" min="0" step="100" placeholder="Amount" aria-label="Amount of credits"><button type="button" class="main" data-cr="add">Give</button><button type="button" data-cr="take">Take away</button><button type="button" data-cr="set">Set to</button></div></div>
@@ -287,6 +292,24 @@ button.main { font-weight: 700 }
   const showCode = (c) => (c && c.once && /^\d{10}$/.test(c.code || '') ? c.code.slice(0, 5) + ' ' + c.code.slice(5) : (c && c.code) || '');
   const GAMES = { air: 'Erika Air', race: 'Erika Racing', boat: 'Erika Boats', kart: 'Erika Karts', moto: 'Erika Moto', train: 'Erika Trains' };
   const KIND = { air: 'Flight', race: 'Racing', boat: 'Boats', kart: 'Karts', moto: 'Moto', train: 'Trains' };
+  // a code works in one or more games: 'games' (older codes only have 'game'). The first game keeps its data in
+  // 'grants', 'blocked' and 'status'; every other game on the code uses 'grants_<game>', 'blocked_<game>', 'status_<game>'
+  const gamesOf = (c) => { const l = (Array.isArray(c.games) ? c.games : []).filter((g) => GAMES[g]); return l.length ? l : [GAMES[c.game] ? c.game : 'air']; };
+  const field = (c, game, base) => (gamesOf(c)[0] === game ? base : base + '_' + game);
+  const gameNames = (c) => gamesOf(c).map((g) => GAMES[g]).join(' + ');
+  // toggle buttons for picking games; 'locked' games stay picked
+  function gamePicker(box, picked, locked) {
+    box.textContent = '';
+    Object.keys(GAMES).forEach((g) => {
+      const b = document.createElement('button'); b.type = 'button'; b.dataset.g = g; b.textContent = GAMES[g];
+      b.setAttribute('aria-pressed', String(picked.includes(g)));
+      if (locked && locked.includes(g)) { b.disabled = true; b.title = 'The first game of a code stays on it'; }
+      else b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')));
+      box.appendChild(b);
+    });
+  }
+  const pickedIn = (box) => [...box.querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.g);
+  gamePicker($('games'), ['air']);
   async function copy(text, btn) {
     try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1400); }
     catch (e) { window.prompt('Copy this:', text); }
@@ -373,13 +396,14 @@ button.main { font-weight: 700 }
   let fresh = [];
   $('btnMake').addEventListener('click', async () => {
     const b = $('btnMake'); b.disabled = true; say('makeMsg', '');
-    const n = +$('qty').value || 1, base = $('who').value.trim().slice(0, 60), game = GAMES[$('game').value] ? $('game').value : 'air', once = $('kind').value === 'once';
+    const n = +$('qty').value || 1, base = $('who').value.trim().slice(0, 60), games = pickedIn($('games')), game = games[0], once = $('kind').value === 'once';
+    if (!games.length) { say('makeMsg', 'Pick at least one game for the code.', 'bad'); b.disabled = false; return; }
     try {
       const batch = db.batch(), made = [];
       for (let i = 0; i < n; i++) {
         const code = once ? makeOnce() : makeCode(), id = await sha256(code), label = base && n > 1 ? base + ' ' + (i + 1) : base;
-        batch.set(db.collection('codes').doc(id), { code, label, game, once, createdAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: null, claimedAt: null, revoked: false, plays: 0, lastSeen: null });
-        made.push({ code, label, game, once });
+        batch.set(db.collection('codes').doc(id), { code, label, game, games, once, createdAt: firebase.firestore.FieldValue.serverTimestamp(), claimedBy: null, claimedAt: null, revoked: false, plays: 0, lastSeen: null });
+        made.push({ code, label, game, games, once });
       }
       await batch.commit();
       fresh = made; paintFresh(); $('who').value = '';
@@ -393,13 +417,13 @@ button.main { font-weight: 700 }
       const row = document.createElement('div'); row.className = 'fc';
       const left = document.createElement('div'); left.style.minWidth = '0';
       const c = document.createElement('code'); c.textContent = showCode(f); left.appendChild(c);
-      const w = document.createElement('div'); w.className = 'who'; w.textContent = [f.label ? 'For ' + f.label : '', GAMES[f.game], f.once ? 'one-time' : ''].filter(Boolean).join(' · '); left.appendChild(w);
+      const w = document.createElement('div'); w.className = 'who'; w.textContent = [f.label ? 'For ' + f.label : '', gameNames(f), f.once ? 'one-time' : ''].filter(Boolean).join(' · '); left.appendChild(w);
       const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Copy'; b.addEventListener('click', (e) => copy(f.code, e.currentTarget));
       row.append(left, b); L.appendChild(row);
     });
     show('fresh', fresh.length > 0);
   }
-  $('btnCopyFresh').addEventListener('click', (e) => copy(fresh.map((f) => (f.label ? f.label + ': ' : '') + showCode(f) + ' (' + GAMES[f.game] + (f.once ? ', one-time' : '') + ')').join('\n'), e.currentTarget));
+  $('btnCopyFresh').addEventListener('click', (e) => copy(fresh.map((f) => (f.label ? f.label + ': ' : '') + showCode(f) + ' (' + gameNames(f) + (f.once ? ', one-time' : '') + ')').join('\n'), e.currentTarget));
 
   // ---- roster
   let docs = [], filter = 'all', q = '';
@@ -414,7 +438,7 @@ button.main { font-weight: 700 }
   $('btnCopyUnused').addEventListener('click', (e) => {
     const u = docs.filter((d) => stateOf(d.c) === 'free');
     if (!u.length) { say('listMsg', 'There are no unused codes to copy.', 'bad'); return; }
-    copy(u.map((d) => (d.c.label ? d.c.label + ': ' : '') + showCode(d.c) + ' (' + GAMES[d.c.game || 'air'] + (d.c.once ? ', one-time' : '') + ')').join('\n'), e.currentTarget); say('listMsg', '');
+    copy(u.map((d) => (d.c.label ? d.c.label + ': ' : '') + showCode(d.c) + ' (' + gameNames(d.c) + (d.c.once ? ', one-time' : '') + ')').join('\n'), e.currentTarget); say('listMsg', '');
   });
   const stateOf = (c) => (c.revoked ? 'off' : c.claimedBy ? 'used' : 'free');
 
@@ -432,10 +456,10 @@ button.main { font-weight: 700 }
   }
   // how each game's activity reads on the desk: [last …, … count word, live tooltip]
   const WORDS = { air: ['last flew', 'flight', 'Flying in the last 15 minutes'], race: ['last raced', 'race', 'Racing in the last 15 minutes'], boat: ['last played', 'session', 'Playing in the last 15 minutes'], kart: ['last raced', 'race', 'Racing in the last 15 minutes'], moto: ['last raced', 'race', 'Racing in the last 15 minutes'], train: ['last drove', 'service', 'Driving in the last 15 minutes'] };
-  let editing = null;
+  let editing = null, editingGames = null;
   function paintList() {
     const L = $('list'); L.textContent = '';
-    const rows = docs.filter(({ c }) => (filter === 'all' || stateOf(c) === filter) && (!q || (c.label || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q) || (KIND[c.game] || KIND.air).toLowerCase().includes(q)));
+    const rows = docs.filter(({ c }) => (filter === 'all' || stateOf(c) === filter) && (!q || (c.label || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q) || gamesOf(c).some((g) => (KIND[g] + ' ' + GAMES[g]).toLowerCase().includes(q))));
     if (!rows.length) { const p = document.createElement('p'); p.textContent = docs.length ? 'No codes match.' : 'No codes yet. Make one above.'; L.appendChild(p); return; }
     rows.forEach(({ ref, c }) => {
       const st = stateOf(c), it = document.createElement('div'); it.className = 'item ' + st;
@@ -448,17 +472,29 @@ button.main { font-weight: 700 }
         const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'main'; ok.textContent = 'Save'; ok.addEventListener('click', save);
         const no = document.createElement('button'); no.type = 'button'; no.textContent = 'Cancel'; no.addEventListener('click', () => { editing = null; paintList(); });
         box.append(inp, ok, no); left.appendChild(box); setTimeout(() => inp.focus(), 0);
+      } else if (editingGames === ref.id) {
+        const box = document.createElement('div'); box.className = 'ren';
+        const pick = document.createElement('div'); pick.className = 'gpick'; pick.setAttribute('role', 'group'); pick.setAttribute('aria-label', 'Games for this code');
+        gamePicker(pick, gamesOf(c), [gamesOf(c)[0]]);
+        const save = () => {   // the first game stays first, so its credits and items stay where they are
+          const main = gamesOf(c)[0], l = [main].concat(pickedIn(pick).filter((g) => g !== main));
+          ref.update({ games: l, game: main }).catch(() => say('listMsg', 'Could not change the games.', 'bad')); editingGames = null; paintList(); };
+        const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'main'; ok.textContent = 'Save'; ok.addEventListener('click', save);
+        const no = document.createElement('button'); no.type = 'button'; no.textContent = 'Cancel'; no.addEventListener('click', () => { editingGames = null; paintList(); });
+        const nm = document.createElement('div'); nm.className = 'nm' + (c.label ? '' : ' none'); nm.textContent = c.label || 'No name';
+        box.append(pick, ok, no); left.append(nm, box);
       } else {
         const nm = document.createElement('div'); nm.className = 'nm' + (c.label ? '' : ' none'); nm.textContent = c.label || 'No name'; left.appendChild(nm);
       }
       const code = document.createElement('code'); code.textContent = showCode(c) || '(hidden)';
       const meta = document.createElement('div'); meta.className = 'meta';
       const pill = document.createElement('span'); pill.className = 'pill ' + st; pill.textContent = st === 'free' ? 'Unused' : st === 'used' ? (c.once ? 'Used' : 'In use') : 'Turned off'; meta.appendChild(pill);
-      const gp = document.createElement('span'); gp.className = 'pill game ' + (GAMES[c.game] ? c.game : 'air'); gp.textContent = (KIND[c.game] || KIND.air) + (c.once ? ' · one-time' : ''); meta.appendChild(gp);
+      gamesOf(c).forEach((g, i, l) => { const gp = document.createElement('span'); gp.className = 'pill game ' + g; gp.textContent = KIND[g] + (c.once && i === l.length - 1 ? ' · one-time' : ''); meta.appendChild(gp); });
+      const WD = gamesOf(c).length > 1 ? ['last played', 'visit', 'Playing in the last 15 minutes'] : WORDS[c.game] || WORDS.air;
       const recent = c.lastSeen && c.lastSeen.toDate && Date.now() - c.lastSeen.toDate().getTime() < 15 * 60000;
-      if (recent && st === 'used') { const d = document.createElement('span'); d.className = 'dot'; d.title = WORDS[c.game] ? WORDS[c.game][2] : WORDS.air[2]; meta.appendChild(d); }
+      if (recent && st === 'used') { const d = document.createElement('span'); d.className = 'dot'; d.title = WD[2]; meta.appendChild(d); }
       const info = document.createElement('span');
-      info.textContent = [st === 'used' ? 'claimed ' + fmt(c.claimedAt) : 'made ' + fmt(c.createdAt), c.lastSeen ? (WORDS[c.game] || WORDS.air)[0] + ' ' + ago(c.lastSeen) : '', c.plays ? c.plays + ' ' + (WORDS[c.game] || WORDS.air)[1] + (c.plays === 1 ? '' : 's') : ''].filter(Boolean).join(' · ');
+      info.textContent = [st === 'used' ? 'claimed ' + fmt(c.claimedAt) : 'made ' + fmt(c.createdAt), c.lastSeen ? WD[0] + ' ' + ago(c.lastSeen) : '', c.plays ? c.plays + ' ' + WD[1] + (c.plays === 1 ? '' : 's') : ''].filter(Boolean).join(' · ');
       meta.appendChild(info);
       left.append(code, meta);
       if (showFleet) {
@@ -471,9 +507,10 @@ button.main { font-weight: 700 }
       const acts = document.createElement('div'); acts.className = 'acts';
       const btn = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; if (cls) b.className = cls; b.addEventListener('click', fn); acts.appendChild(b); return b; };
       const fail = () => say('listMsg', 'That change did not save. Check your connection.', 'bad');
-      btn('Manage', () => openManage({ game: GAMES[c.game] ? c.game : 'air', id: ref.id }), 'main');
+      btn('Manage', () => openManage({ game: gamesOf(c)[0], id: ref.id }), 'main');
       btn('Copy', (e) => copy(c.code, e.currentTarget));
-      btn('Rename', () => { editing = ref.id; paintList(); });
+      btn('Rename', () => { editing = ref.id; editingGames = null; paintList(); });
+      btn('Games', () => { editingGames = ref.id; editing = null; paintList(); });
       if (c.claimedBy) btn('Free up', () => ref.update({ claimedBy: null, claimedAt: null }).catch(fail));
       btn(c.revoked ? 'Turn on' : 'Turn off', () => ref.update({ revoked: !c.revoked }).catch(fail));
       let armed = false;
@@ -481,7 +518,7 @@ button.main { font-weight: 700 }
       it.append(left, acts); L.appendChild(it);
     });
   }
-  setInterval(() => { if (docs.length && !editing) paintList(); if (alerts.length) paintAlerts(); if (msgs.length) paintMsgs(); }, 60000);   // keep times fresh
+  setInterval(() => { if (docs.length && !editing && !editingGames) paintList(); if (alerts.length) paintAlerts(); if (msgs.length) paintMsgs(); }, 60000);   // keep times fresh
 
   // ---- my own games: grants for the admin's own play on this browser. The desk queues them in this browser's storage
   // (erika.self.<game>); the game (gate.js) applies each once and writes back what you have (erika.selfstatus.<game>)
@@ -538,7 +575,7 @@ button.main { font-weight: 700 }
   const ITEM = { air: 'aircraft', race: 'cars', boat: 'boats', kart: 'karts', moto: 'bikes', train: 'trains' };
   let mgTarget = null;   // { game, id } for one code, or { game, all: true }
   const FV = () => firebase.firestore.FieldValue;
-  const targets = () => mgTarget.all ? docs.filter(({ c }) => (c.game || 'air') === mgTarget.game && !c.revoked) : docs.filter(({ ref }) => ref.id === mgTarget.id);
+  const targets = () => mgTarget.all ? docs.filter(({ c }) => gamesOf(c).includes(mgTarget.game) && !c.revoked) : docs.filter(({ ref }) => ref.id === mgTarget.id);
   const nameOf = (game, id) => { for (const [, l] of CATALOG[game]) { const x = l.find((i) => i[0] === id); if (x) return x[1]; } return id; };
   function openManage(t) { mgTarget = t; $('mgFind').value = ''; say('mgMsg', ''); paintManage(); if (!$('mg').open) $('mg').showModal(); }
   $('mgClose').addEventListener('click', () => $('mg').close());
@@ -551,13 +588,13 @@ button.main { font-weight: 700 }
     const gid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     g.at = Date.now();
     try {
-      for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(({ ref }) => b.update(ref, new firebase.firestore.FieldPath('grants', gid), g)); await b.commit(); }
+      for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(({ ref, c }) => b.update(ref, new firebase.firestore.FieldPath(field(c, mgTarget.game, 'grants'), gid), g)); await b.commit(); }
       say('mgMsg', what + (list.length > 1 ? ' for ' + list.length + ' players' : '') + '. It reaches the player the next time they play (straight away if they are playing now).', 'ok');
     } catch (e) { say('mgMsg', 'That did not save: ' + (e.code || e.message), 'bad'); }
   }
   async function setBlock(id, on) {
     const list = targets();
-    try { for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(({ ref }) => b.update(ref, { blocked: on ? FV().arrayUnion(id) : FV().arrayRemove(id) })); await b.commit(); }
+    try { for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(({ ref, c }) => b.update(ref, { [field(c, mgTarget.game, 'blocked')]: on ? FV().arrayUnion(id) : FV().arrayRemove(id) })); await b.commit(); }
       say('mgMsg', (on ? 'Blocked: ' : 'Unblocked: ') + nameOf(mgTarget.game, id) + (list.length > 1 ? ' for ' + list.length + ' players' : ''), 'ok'); }
     catch (e) { say('mgMsg', 'That did not save: ' + (e.code || e.message), 'bad'); }
   }
@@ -573,9 +610,15 @@ button.main { font-weight: 700 }
     const game = mgTarget.game, list = targets(), one = !mgTarget.all && list[0] ? list[0].c : null;
     $('mgTitle').textContent = mgTarget.all ? 'Everyone in ' + GAMES[game] : (one && one.label) || 'No name';
     $('mgSub').textContent = mgTarget.all ? list.length + (list.length === 1 ? ' active code. Changes apply to it.' : ' active codes. Changes apply to each of them.') : GAMES[game] + (one && one.claimedBy ? '' : ' · not used yet: changes wait for the first visit');
+    // a code for more than one game: pick which game's credits and items to look at
+    const gl = one ? gamesOf(one) : [], GB = $('mgGames');
+    GB.hidden = gl.length < 2; GB.textContent = '';
+    if (gl.length > 1) gl.forEach((g) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = GAMES[g]; b.setAttribute('aria-pressed', String(g === game));
+      b.addEventListener('click', () => { if (g !== mgTarget.game) { mgTarget.game = g; $('mgFind').value = ''; say('mgMsg', ''); paintManage(); } }); GB.appendChild(b); });
+    const grantsF = one ? field(one, game, 'grants') : 'grants';
     // what the player has (reported by the game)
     const W = $('mgWal'); W.textContent = '';
-    const st = one && one.status;
+    const st = one && one[field(one, game, 'status')];
     if (mgTarget.all) { W.hidden = true; } else {
       W.hidden = false;
       if (st) {
@@ -587,7 +630,7 @@ button.main { font-weight: 700 }
     }
     // grants not yet delivered
     const P = $('mgPend'); P.textContent = '';
-    const pend = one ? Object.entries(one.grants || {}).filter(([gid]) => !(st && (st.applied || []).includes(gid))).sort((a, b) => a[1].at - b[1].at) : [];
+    const pend = one ? Object.entries(one[grantsF] || {}).filter(([gid]) => !(st && (st.applied || []).includes(gid))).sort((a, b) => a[1].at - b[1].at) : [];
     $('mgPendBox').hidden = !pend.length;
     pend.forEach(([gid, g]) => {
       const it = document.createElement('div'); it.className = 'it';
@@ -595,13 +638,13 @@ button.main { font-weight: 700 }
       n.textContent = [typeof g.set === 'number' ? 'Set credits to ' + g.set.toLocaleString() : '', g.credits ? (g.credits > 0 ? 'Give ' : 'Take ') + Math.abs(g.credits).toLocaleString() + ' credits' : '',
         (g.give || []).map((id) => 'Give ' + nameOf(game, id)).join(', '), (g.take || []).map((id) => 'Take ' + nameOf(game, id)).join(', ')].filter(Boolean).join(' · ');
       const b = document.createElement('div'); b.className = 'b'; const x = document.createElement('button'); x.type = 'button'; x.className = 'danger'; x.textContent = 'Cancel';
-      x.addEventListener('click', () => list[0].ref.update(new firebase.firestore.FieldPath('grants', gid), FV().delete()).catch(() => say('mgMsg', 'Could not cancel that.', 'bad')));
+      x.addEventListener('click', () => list[0].ref.update(new firebase.firestore.FieldPath(grantsF, gid), FV().delete()).catch(() => say('mgMsg', 'Could not cancel that.', 'bad')));
       b.appendChild(x); it.append(n, b); P.appendChild(it);
     });
     // the catalogue
     $('mgItemsLbl').textContent = 'Give or take ' + ITEM[game];
     const I = $('mgItems'); I.textContent = '';
-    const q2 = $('mgFind').value.trim().toLowerCase(), owned = new Set((st && st.owned) || []), blocked = new Set(one ? one.blocked || [] : []);
+    const q2 = $('mgFind').value.trim().toLowerCase(), owned = new Set((st && st.owned) || []), blocked = new Set(one ? one[field(one, game, 'blocked')] || [] : []);
     const pendGive = new Set(), pendTake = new Set(); pend.forEach(([, g]) => { (g.give || []).forEach((id) => pendGive.add(id)); (g.take || []).forEach((id) => pendTake.add(id)); });
     CATALOG[game].forEach(([grp, items]) => {
       const rows = items.filter(([id, nm]) => !q2 || nm.toLowerCase().includes(q2) || grp.toLowerCase().includes(q2)); if (!rows.length) return;
@@ -661,7 +704,7 @@ button.main { font-weight: 700 }
       if (m.kind === 'code') {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'main'; b.textContent = 'Make code';
         b.addEventListener('click', () => {   // fill in the Make codes form for this person and game
-          $('who').value = (m.name || '').slice(0, 60); if (GAMES[m.game]) $('game').value = m.game;
+          $('who').value = (m.name || '').slice(0, 60); if (GAMES[m.game]) gamePicker($('games'), [m.game]);
           $('who').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('who').focus();
         });
         acts.appendChild(b);

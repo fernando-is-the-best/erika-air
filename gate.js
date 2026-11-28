@@ -1,5 +1,7 @@
 // Erika access gate: a game only starts once this browser holds a valid access code for THAT game.
-// window.ERIKA_GAME = 'air' (flight, the default), 'race' (Erika Racing) or 'boat' (Erika Boats); codes are made for one game.
+// window.ERIKA_GAME = 'air' (flight, the default), 'race' (Erika Racing), 'boat' (Erika Boats) and so on. A code is made for one
+// or more games ('games' on the code, first one also kept as 'game' for older pages). The code's first game keeps its
+// admin data in 'grants', 'blocked' and 'status' as before; each other game on the code uses 'grants_<game>' and so on.
 // Two kinds of code: a 35-character code that the first person to enter it owns (anyone else is turned away),
 // and a one-time 10-digit code that unlocks a single visit and is then spent.
 // window.ERIKA_GATE_DEFER = true: the gate waits until window.__gateStart() is called (the game choice comes first).
@@ -13,11 +15,15 @@
     train: { name: 'Erika Trains', word: 'Trains', verb: 'drive trains', accent: '#a78bfa', ink: '#140a2e' } };
   const GAME = GAMES[window.ERIKA_GAME] ? window.ERIKA_GAME : 'air', G = GAMES[GAME], NAME = G.name;
 
-  const KEY = GAME === 'air' ? 'erika.access.v1' : 'erika.access.' + GAME + '.v1';
+  const keyOf = (g) => (g === 'air' ? 'erika.access.v1' : 'erika.access.' + g + '.v1'), KEY = keyOf(GAME);
   const store = {
-    get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } },
+    get(k) { try { return localStorage.getItem(k || KEY); } catch (e) { return null; } },
     set(v) { try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) { /* storage unavailable */ } },
   };
+  // the games a code works in (older codes only have 'game'), and where this game's admin data lives on it
+  const gamesOf = (c) => { const l = (Array.isArray(c.games) ? c.games : []).filter((g) => GAMES[g]); return l.length ? l : [GAMES[c.game] ? c.game : 'air']; };
+  const field = (c, base) => (gamesOf(c)[0] === GAME ? base : base + '_' + GAME);
+  const namesOf = (c) => { const n = gamesOf(c).map((g) => GAMES[g].name); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0]; };
 
   const css = `
     #gate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,#14273a 0%,#070b10 70%);color:var(--text,#e8f0f6);
@@ -171,7 +177,7 @@
   if ($('gateAsk')) $('gateAsk').addEventListener('click', (e) => { e.preventDefault(); openMessage('code'); });
 
   // every flight started with a code adds one to that aircraft's count on the code (shown on the admin desk on request)
-  let codeHash = null;
+  let codeHash = null, statusField = 'status';
   window.ErikaAccess = {
     flew(name) {
       if (!codeHash || !name) return;
@@ -240,7 +246,7 @@
       const live = ctl.grants || {}, st = { credits: Math.round(adapter.credits() || 0), owned: adapter.ownedIds().slice(0, 250), applied: getApplied().filter((g) => live[g]).slice(-300) }, key = JSON.stringify(st);
       if (key === lastRep) return; lastRep = key;
       st.at = firebase.firestore.FieldValue.serverTimestamp();
-      db.collection('codes').doc(codeHash).update({ status: st }).catch(() => { lastRep = ''; });
+      db.collection('codes').doc(codeHash).update({ [statusField]: st }).catch(() => { lastRep = ''; });
     }, lastRep ? 15000 : 2000);
   }
   setInterval(() => syncControl(), 5000);   // picks up a save being opened, credits earned, and so on
@@ -255,8 +261,10 @@
     // if the admin turns the code off or hands it to someone else, lock the game again
     unwatch = db.collection('codes').doc(hash).onSnapshot((d) => {
       const c = d.exists ? d.data() : null;
-      if (!c || c.revoked || c.claimedBy !== uid) { store.set(null); location.reload(); return; }
-      ctl = { grants: c.grants || {}, blocked: Array.isArray(c.blocked) ? c.blocked : [] };
+      if (!c || c.revoked || c.claimedBy !== uid || !gamesOf(c).includes(GAME)) { store.set(null); location.reload(); return; }
+      const b = c[field(c, 'blocked')];
+      statusField = field(c, 'status');
+      ctl = { grants: c[field(c, 'grants')] || {}, blocked: Array.isArray(b) ? b : [] };
       syncControl();
     }, () => {});
   }
@@ -269,7 +277,7 @@
     let snap = await ref.get();
     if (!snap.exists) return { ok: false, why: 'That code is not valid. Check it and try again.' };
     let c = snap.data();
-    if ((c.game || 'air') !== GAME) { const o = (GAMES[c.game] || GAMES.air).name; return { ok: false, why: 'That is an ' + o + ' code. It only works in ' + o + '.' }; }
+    if (!gamesOf(c).includes(GAME)) return { ok: false, why: 'That code is not for ' + NAME + '. It only works in ' + namesOf(c) + '.' };
     if (c.revoked) return { ok: false, why: 'This code has been turned off by Fernando.' };
     if (c.once && c.claimedBy) { if (c.claimedBy !== uid) reportShared(hash); return { ok: false, why: 'This one-time code has already been used.' }; }
     if (c.claimedBy === uid) return { ok: true, hash };
@@ -294,10 +302,11 @@
     db.collection('alerts').add({ code: hash, by: uid, at: firebase.firestore.FieldValue.serverTimestamp(), seen: false }).catch(() => {});
   }
 
-  async function checkSaved(hash) {
+  async function checkSaved(hash, quiet) {
     const snap = await db.collection('codes').doc(hash).get();
     const c = snap.exists ? snap.data() : null;
-    if (c && !c.revoked && !c.once && (c.game || 'air') === GAME && c.claimedBy === uid) return true;
+    if (c && !c.revoked && !c.once && gamesOf(c).includes(GAME) && c.claimedBy === uid) return true;
+    if (quiet) return false;
     store.set(null);
     say(!c ? 'Your code no longer exists. Enter a new one.' : c.revoked ? 'Your code has been turned off by Fernando.' : 'Your code is now assigned to someone else.', 'bad');
     return false;
@@ -387,7 +396,14 @@
     uid = user.uid;
     const saved = store.get();
     if (saved && await checkSaved(saved).catch(() => false)) { unlock(saved); return; }
-    if (!saved) say('');
+    // no code saved for this game yet: a code already entered in another game may cover this one too
+    if (!saved) {
+      for (const g of Object.keys(GAMES)) {
+        const h = g !== GAME && store.get(keyOf(g));
+        if (h && await checkSaved(h, true).catch(() => false)) { unlock(h); return; }
+      }
+      say('');
+    }
     busy(false); $('gateCode').focus();
   }).catch((e) => { say(explain(e, 'Could not reach the access server. Check your connection and reload.'), 'bad'); });
 

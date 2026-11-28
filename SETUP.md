@@ -22,7 +22,8 @@ The game stays locked until this is done. It takes about 10 minutes, once.
 
 ## 5. Use it
 - Admin page: https://fernando-is-the-best.github.io/erika-air/admin.html — enter the admin code, then sign in with Google.
-- Make a code: give it a name, pick the **Game** (Erika Air or Erika Racing: each game needs its own code) and the **Type**:
+- Make a code: give it a name, pick the **Games** it opens (one or more: tap each game to turn it on or off) and the **Type**:
+- **Codes for more than one game:** the player types the code once; the other games on the code open by themselves in the same browser. Click **Games** on a code to add or remove games later (its first game always stays). In **Manage**, pick which game's credits and items to change. Unlocking works straight away. For the desk to see credits and items from the extra games, paste the updated `codes` block and the `okStatus` function below it from `firestore.rules` into **Firestore Database → Rules** and click **Publish** (keep your admin email in place).
   - **35-character code**: the first person to enter it owns it and stays unlocked on their browser; anyone else who tries it is blocked.
   - **10-digit one-time code**: unlocks one visit, then it is used up (it can be typed with a space, e.g. `12345 67890`). **Free up** makes it usable once more.
 - Codes made before games were separate count as Erika Air codes.
