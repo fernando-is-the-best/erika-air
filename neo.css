@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap');
 /* =====================================================================================================
    Erika Neo: one new look for every screen.
    Saira Condensed for titles (wide Saira for the big words), Inter for text. Frosted-glass panels that
@@ -89,6 +90,9 @@ body.neo-air .btn:not(.ghost), body.neo-boat #menu .btn.main, body.neo-kart .btn
 body.neo-air .btn:not(.ghost):hover, body.neo-boat #menu .btn.main:hover, body.neo-kart .btn:not(.ghost):hover:not([disabled]), body.neo-race .setup .summary .startbtn:hover, body.neo-race .btn:not(.ghostbtn):hover, body.neo-admin button.main:hover {
   transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 16px 40px color-mix(in srgb, var(--accent) 48%, transparent), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
 }
+/* the admin desk has many main buttons: keep them calm, with only a soft glow and no shine */
+body.neo-admin button.main { background: var(--accent) !important; box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+body.neo-admin button.main:hover { filter: brightness(1.05); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 24%, transparent) !important; }
 body.neo-air .btn.ghost, body.neo-boat #menu .btn:not(.main), body.neo-kart .btn.ghost, body.neo-race .btn.ghostbtn {
   border-radius: 999px !important; background: rgba(255, 255, 255, .05) !important; border: 1px solid var(--neo-line-2) !important; color: var(--neo-text) !important; box-shadow: none !important;
 }
@@ -182,9 +186,7 @@ body.neo #chooser .card:hover, body.neo #chooser .card:focus-visible {
   transform: translateY(-6px) !important; border-color: color-mix(in srgb, var(--c) 65%, transparent) !important;
   box-shadow: 0 40px 90px rgba(0, 0, 0, .6), 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent), 0 0 60px color-mix(in srgb, var(--c) 22%, transparent) !important;
 }
-body.neo #chooser .cards .card { flex: 1 1 160px; max-width: 300px; padding-inline: 18px; }
-body.neo #chooser .card em { white-space: nowrap; }
-@media (min-width: 1200px) { body.neo #chooser .wrap { width: min(1400px, 100%) !important; } body.neo #chooser .cards { flex-wrap: nowrap; } body.neo #chooser .cards .card { min-width: 0; } }
+body.neo #chooser .cards .card { flex: 1 1 190px; max-width: 300px; padding-inline: 20px; }
 body.neo #chooser .card b { font-size: 30px !important; }
 @media (max-width: 640px) { body.neo #chooser .card { min-height: 0; } body.neo #chooser .card b { font-size: 28px !important; } }
 
@@ -227,3 +229,163 @@ body.neo #gate h1 b { color: var(--accent, #ffb52e); }
 body.neo #gate input { border-radius: 14px !important; }
 body.neo #gate button { border-radius: 999px !important; border: 0; background: linear-gradient(135deg, var(--accent, #ffb52e), color-mix(in srgb, var(--accent, #ffb52e) 60%, #fff)) !important; color: var(--accent-ink, #06080c) !important;
   font: 800 14px var(--neo-wide) !important; font-stretch: 112%; font-variation-settings: "wdth" 112; letter-spacing: .16em !important; box-shadow: 0 12px 32px color-mix(in srgb, var(--accent, #ffb52e) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, .45) !important; }
+
+
+/* =====================================================================================================
+   Erika Neo HUD (2026-11): a cleaner, more professional, futuristic finish on every game page.
+   Sharper corners, hairline borders, corner brackets on panels, cut-corner buttons, flat colour instead
+   of big glows, and mono "readout" type for labels and numbers. Loaded last, so it wins over the rules above.
+   The admin desk and the all-games page keep their own look.
+   ===================================================================================================== */
+:root {
+  --neo-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --neo-cut: 10px;                     /* size of the cut corner on buttons */
+  --neo-hud-r: 12px;
+}
+/* Racing and Moto name their colour --acc: share it so the rules here can use it */
+body.neo-race { --accent: var(--acc); --accent-ink: var(--acc-ink); }
+/* panels: crisp glass, a hairline in the game colour along the top, small corner brackets */
+body.neo-air .sheet,
+body.neo-race #menu:not([data-screen=world]):not([data-screen=cafe]) .menu-box,
+body.neo-boat #menu .card,
+body.neo-kart #menu .card,
+body.neo-kart .ov .card,
+body.neo-boat .ov .card {
+  border-radius: var(--neo-hud-r) !important;
+  background:
+    linear-gradient(180deg, rgba(18, 22, 30, .86), rgba(8, 10, 14, .9)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04)) border-box !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05) !important;
+}
+body.neo-air .sheet { border-radius: 0 var(--neo-hud-r) var(--neo-hud-r) 0 !important; }
+body.neo-race #menu:not([data-screen=world]):not([data-screen=cafe]) .menu-box,
+body.neo-boat #menu .card, body.neo-kart #menu .card { position: relative; }
+body.neo-race #menu:not([data-screen=world]):not([data-screen=cafe]) .menu-box::after,
+body.neo-boat #menu .card::after, body.neo-kart #menu .card::after, body.neo-air .sheet::after {
+  content: ""; position: absolute; inset: 8px; pointer-events: none; z-index: 0;
+  background:
+    linear-gradient(var(--accent), var(--accent)) top left / 14px 2px,
+    linear-gradient(var(--accent), var(--accent)) top left / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 14px 2px,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 2px 14px;
+  background-repeat: no-repeat; opacity: .75;
+}
+body.neo-air .sheet::after { position: fixed; inset: auto; width: 0; height: 0; display: none; }   /* the Air sheet scrolls: no brackets there */
+body.neo-kart .card::before, body.neo-boat #menu .card::before {
+  height: 1px !important; opacity: 1 !important;
+  background: linear-gradient(90deg, var(--accent) 0, var(--accent) 64px, color-mix(in srgb, var(--accent) 35%, transparent) 64px, transparent 70%) !important;
+}
+
+/* titles: keep the wide heavy type, flat white with the game word in solid colour (no shine) */
+body.neo-air .brand h1, body.neo-boat #menu h1, body.neo-kart #menu h1, body.neo-race .menu-box > h1 {
+  background: none !important; color: #f4f7fa !important; -webkit-text-fill-color: currentColor; letter-spacing: .04em !important;
+}
+body.neo-air .brand h1 b, body.neo-boat #menu h1 b, body.neo-kart #menu h1 b, body.neo-race .menu-box > h1 span {
+  background: none !important; color: var(--accent) !important; -webkit-text-fill-color: currentColor;
+}
+
+/* labels: mono readout with a small colour tick */
+body.neo .lbl {
+  font: 600 10.5px var(--neo-mono) !important; letter-spacing: .16em !important; color: #8793a3 !important;
+}
+body.neo-air .lbl::before, body.neo-boat .lbl::before, body.neo-kart .lbl::before, body.neo-race .lbl::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; vertical-align: 1px; background: var(--accent);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+body.neo-air .lbl::before { display: none; }   /* Air spreads its labels across the row: no tick there */
+
+/* tabs: a flat strip; the chosen tab gets a colour bar underneath instead of a white pill */
+body.neo-air .tabs, body.neo-boat .tabs, body.neo-kart .tabs {
+  border-radius: 8px !important; padding: 3px !important; gap: 2px !important; background: rgba(255, 255, 255, .03) !important;
+}
+body.neo-air .tab, body.neo-boat .tabs button, body.neo-kart .tabs button {
+  border-radius: 6px !important; padding: 8px 16px 9px !important; font-family: var(--neo-mono) !important; font-weight: 600 !important; letter-spacing: .12em !important;
+  position: relative;
+}
+body.neo-air .tab[aria-selected="true"], body.neo-boat .tabs button[aria-selected="true"], body.neo-kart .tabs button[aria-selected="true"] {
+  background: rgba(255, 255, 255, .09) !important; color: #fff !important; box-shadow: inset 0 -2px 0 var(--accent) !important;
+}
+
+/* choices (laps, rivals, boats, courses): squared chips; the chosen one is a tinted box with a colour edge */
+body.neo .seg { border-radius: 10px !important; padding: 3px !important; background: rgba(255, 255, 255, .03) !important; }
+body.neo .seg button, body.neo .chip { border-radius: 7px !important; }
+body.neo-air .seg button[aria-pressed="true"], body.neo-boat .seg button[aria-pressed="true"], body.neo-kart .seg button[aria-pressed="true"], body.neo-race .seg button[aria-pressed="true"],
+body.neo-air .chip[aria-pressed="true"], body.neo-boat .chip[aria-pressed="true"], body.neo-kart .chip[aria-pressed="true"], body.neo-race .chip[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, .02)) !important; color: #fff !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 80%, transparent) !important;
+}
+
+/* main buttons: solid colour with cut corners, no glow */
+body.neo-air .btn:not(.ghost), body.neo-boat #menu .btn.main, body.neo-kart .btn:not(.ghost), body.neo-race .setup .summary .startbtn, body.neo-race .btn:not(.ghostbtn) {
+  border-radius: 0 !important; background: var(--accent) !important;
+  clip-path: polygon(var(--neo-cut) 0, 100% 0, 100% calc(100% - var(--neo-cut)), calc(100% - var(--neo-cut)) 100%, 0 100%, 0 var(--neo-cut));
+  box-shadow: none !important; letter-spacing: .16em !important;
+}
+body.neo-air .btn:not(.ghost):hover, body.neo-boat #menu .btn.main:hover, body.neo-kart .btn:not(.ghost):hover:not([disabled]), body.neo-race .setup .summary .startbtn:hover, body.neo-race .btn:not(.ghostbtn):hover {
+  transform: none; filter: brightness(1.1); box-shadow: none !important;
+}
+body.neo-air .btn:not(.ghost):focus-visible, body.neo-boat #menu .btn.main:focus-visible, body.neo-kart .btn:not(.ghost):focus-visible, body.neo-race .btn:not(.ghostbtn):focus-visible {
+  outline: none !important; filter: brightness(1.15); box-shadow: inset 0 0 0 2px #fff !important;
+}
+body.neo-air .btn.ghost, body.neo-boat #menu .btn:not(.main), body.neo-kart .btn.ghost, body.neo-race .btn.ghostbtn {
+  border-radius: 8px !important; background: rgba(255, 255, 255, .04) !important; border: 1px solid rgba(255, 255, 255, .16) !important;
+}
+
+/* picker cards (tracks, lines, karts, trains, planes, worlds): squarer, the chosen one edged in colour with a corner mark */
+body.neo-air .ac, body.neo-air .chal, body.neo-air .crcard, body.neo-kart .pick, body.neo-kart .ev, body.neo-kart .box,
+body.neo-boat .ggrid button, body.neo-boat .ev, body.neo-boat .tm, body.neo-race .world {
+  border-radius: 10px !important; background: rgba(255, 255, 255, .035) !important; border: 1px solid rgba(255, 255, 255, .08) !important;
+}
+body.neo-air .ac:hover, body.neo-air .chal:hover, body.neo-kart .pick:hover:not([disabled]), body.neo-boat .ggrid button:hover, body.neo-boat .ev:hover, body.neo-boat .tm:hover, body.neo-race .world:hover {
+  transform: none !important; background: rgba(255, 255, 255, .06) !important; border-color: rgba(255, 255, 255, .2) !important;
+}
+body.neo-air .ac[aria-pressed="true"], body.neo-air .chal[aria-pressed="true"], body.neo-kart .pick[aria-pressed="true"], body.neo-boat .ggrid button[aria-pressed="true"], body.neo-boat .tm.on, body.neo-race .world.sel {
+  background:
+    linear-gradient(135deg, var(--accent) 0 9px, transparent 9px) top left / 100% 100% no-repeat,
+    color-mix(in srgb, var(--accent) 12%, rgba(255, 255, 255, .02)) !important;
+  border-color: color-mix(in srgb, var(--accent) 85%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+/* race menu rows: squarer, the chosen row with a colour edge on the left */
+body.neo-race .item { border-radius: 8px !important; }
+body.neo-race .item.sel, body.neo-race .item.hm.sel {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, transparent), rgba(255, 255, 255, .02) 70%) !important;
+  box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent) !important;
+}
+
+/* money, licence and grade badges: mono readouts in squared boxes */
+body.neo .wallet, body.neo .lic {
+  border-radius: 6px !important; font-family: var(--neo-mono) !important; font-weight: 600 !important; letter-spacing: .04em;
+}
+body.neo .wallet { background: rgba(255, 200, 80, .08) !important; border-color: rgba(255, 211, 107, .35) !important; }
+
+/* inputs and drop-downs: squarer */
+body.neo-air input:not([type=checkbox]):not([type=radio]):not([type=range]), body.neo-air select,
+body.neo-boat input:not([type=checkbox]):not([type=radio]):not([type=range]), body.neo-boat select,
+body.neo-kart input:not([type=checkbox]):not([type=radio]):not([type=range]), body.neo-kart select,
+body.neo-race input:not([type=checkbox]):not([type=radio]):not([type=range]), body.neo-race select { border-radius: 8px !important; }
+
+/* the in-game HUD panels in Karts and Trains */
+body.neo-kart .hp { border-radius: 10px !important; }
+body.neo-kart #hBtns button { border-radius: 8px !important; }
+
+/* the code screen: squarer card, solid button with cut corners */
+body.neo #gate .card { border-radius: 14px !important; }
+body.neo #gate button {
+  border-radius: 0 !important; background: var(--accent, #ffb52e) !important; box-shadow: none !important;
+  clip-path: polygon(var(--neo-cut) 0, 100% 0, 100% calc(100% - var(--neo-cut)), calc(100% - var(--neo-cut)) 100%, 0 100%, 0 var(--neo-cut));
+}
+body.neo #gate input { border-radius: 8px !important; font-family: var(--neo-mono) !important; }
+
+/* a faint scanline sheen over panels, like a cockpit screen (off for people who ask for less motion/effects) */
+@media (prefers-reduced-transparency: no-preference) {
+  body.neo-boat #menu .card, body.neo-kart #menu .card, body.neo-race #menu:not([data-screen=world]):not([data-screen=cafe]) .menu-box {
+    background-image:
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, .012) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg, rgba(18, 22, 30, .86), rgba(8, 10, 14, .9)),
+      linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04)) !important;
+    background-origin: padding-box, padding-box, border-box !important; background-clip: padding-box, padding-box, border-box !important;
+  }
+}

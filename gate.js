@@ -1,6 +1,7 @@
 // Erika access gate: a game only starts once this browser holds a valid access code for THAT game.
-// window.ERIKA_GAME = 'air' (flight, the default), 'race' (Erika Racing), 'boat' (Erika Boats) and so on. A code is made for one game,
-// for several (its 'games' list) or for all of them (games: 'all'); a code for several games is entered once and then opens each of them.
+// window.ERIKA_GAME = 'air' (flight, the default), 'race' (Erika Racing), 'boat' (Erika Boats) and so on. A code is made for one
+// or more games ('games' on the code, first one also kept as 'game' for older pages). The code's first game keeps its
+// admin data in 'grants', 'blocked' and 'status' as before; each other game on the code uses 'grants_<game>' and so on.
 // Two kinds of code: a 35-character code that the first person to enter it owns (anyone else is turned away),
 // and a one-time 10-digit code that unlocks a single visit and is then spent.
 // window.ERIKA_GATE_DEFER = true: the gate waits until window.__gateStart() is called (the game choice comes first).
@@ -17,16 +18,13 @@
 
   const keyOf = (g) => (g === 'air' ? 'erika.access.v1' : 'erika.access.' + g + '.v1'), KEY = keyOf(GAME);
   const store = {
-    get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } },
+    get(k) { try { return localStorage.getItem(k || KEY); } catch (e) { return null; } },
     set(v) { try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) { /* storage unavailable */ } },
-    // a code for several games is remembered for each of them, so it only has to be typed once
-    setFor(games, v) { games.forEach((g) => { try { if (!localStorage.getItem(keyOf(g))) localStorage.setItem(keyOf(g), v); } catch (e) { /* storage unavailable */ } }); },
   };
-  // which games a code opens: its 'games' list, every game for 'all', or else its single 'game'
-  const gamesOf = (c) => (c.games === 'all' ? Object.keys(GAMES) : Array.isArray(c.games) && c.games.length ? c.games.filter((g) => GAMES[g]) : [c.game || 'air']);
-  const fits = (c) => c.games === 'all' || gamesOf(c).indexOf(GAME) >= 0;
-  const multi = (c) => !!c && (c.games === 'all' || (Array.isArray(c.games) && c.games.length > 1));
-  const listNames = (gs) => { const n = gs.map((g) => GAMES[g].name); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0]; };
+  // the games a code works in (older codes only have 'game'), and where this game's admin data lives on it
+  const gamesOf = (c) => { const l = (Array.isArray(c.games) ? c.games : []).filter((g) => GAMES[g]); return l.length ? l : [GAMES[c.game] ? c.game : 'air']; };
+  const field = (c, base) => (gamesOf(c)[0] === GAME ? base : base + '_' + GAME);
+  const namesOf = (c) => { const n = gamesOf(c).map((g) => GAMES[g].name); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0]; };
 
   const css = `
     #gate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,#14273a 0%,#070b10 70%);color:var(--text,#e8f0f6);
@@ -62,7 +60,7 @@
   const html = `
     <form class="card" id="gateForm" autocomplete="off">
       <h1>Erika <b>${G.word}</b></h1>
-      <p>Enter your ${NAME} access code to ${G.verb}. A code belongs to one person; some codes open more than one game.</p>
+      <p>Enter your ${NAME} access code to ${G.verb}. Codes work for one game and one person only.</p>
       <label for="gateCode">Access code</label>
       <input id="gateCode" name="code" spellcheck="false" autocapitalize="off" maxlength="64" placeholder="35-character code, or 10-digit one-time code" required>
       <button id="gateGo" type="submit">Unlock</button>
@@ -180,7 +178,7 @@
   if ($('gateAsk')) $('gateAsk').addEventListener('click', (e) => { e.preventDefault(); openMessage('code'); });
 
   // every flight started with a code adds one to that aircraft's count on the code (shown on the admin desk on request)
-  let codeHash = null;
+  let codeHash = null, statusField = 'status';
   window.ErikaAccess = {
     flew(name) {
       if (!codeHash || !name) return;
@@ -189,7 +187,7 @@
     },
     // the game hands over its wallet (credits and what it owns) so the admin's grants can be applied to it
     attach(a) { adapter = a; syncControl(); },
-    blocked(id) { return blockedHere().indexOf(id) >= 0; },
+    blocked(id) { return (ctl.blocked || []).indexOf(id) >= 0; },
     message() { openMessage('msg'); },   // the 'Message Fernando' links in the game menus
     sync() { syncControl(); },
   };
@@ -197,9 +195,7 @@
   // ---- admin control. On this code the admin desk keeps 'grants' (one-off changes: credits added, taken away or set,
   // items given or taken) and 'blocked' (items this player may not have or buy). Each grant is applied once in this browser,
   // and the game reports its wallet back ('status') so the desk can show what the player has.
-  let ctl = { grants: {}, blocked: [], multi: false }, adapter = null, lastRep = '', repT = null;
-  // blocked items: a plain id counts in every game the code opens, 'game:id' only in that game
-  const blockedHere = () => (ctl.blocked || []).map((b) => { const i = String(b).indexOf(':'); return i < 0 ? b : b.slice(0, i) === GAME ? b.slice(i + 1) : null; }).filter((b) => b != null);
+  let ctl = { grants: {}, blocked: [] }, adapter = null, lastRep = '', repT = null;
   // the admin, signed in on this browser, plays without a code. Their own grants come from the admin desk's "My own games"
   // panel through this browser's storage (same site), and what they have is written back there for the desk to show
   let selfMode = false;
@@ -225,7 +221,7 @@
     if (!adapter || (!codeHash && !selfMode) || (adapter.ready && !adapter.ready())) return;
     const grants = selfMode ? (ls.get(SELF, {}).grants || {}) : (ctl.grants || {}), done = selfMode ? ls.get(SELF_DONE, []) : getApplied(), msgs = [], name = (id) => (adapter.name ? adapter.name(id) : id) || id;
     let changed = false;
-    Object.entries(grants).filter(([gid, g]) => g && done.indexOf(gid) < 0 && (!g.game || g.game === GAME)).sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).forEach(([gid, g]) => {
+    Object.entries(grants).filter(([gid, g]) => g && done.indexOf(gid) < 0).sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).forEach(([gid, g]) => {
       if (typeof g.set === 'number') { adapter.setCredits(Math.max(0, Math.round(g.set))); msgs.push('your credits are now ' + Math.round(g.set).toLocaleString()); }
       if (typeof g.credits === 'number' && g.credits) { const was = adapter.credits(), now = Math.max(0, Math.round(was + g.credits)), d = now - was; adapter.setCredits(now); if (d) msgs.push((d > 0 ? '+' : '\u2212') + Math.abs(d).toLocaleString() + ' credits'); }   // the real change (a take stops at 0)
       (g.give || []).forEach((id) => { adapter.give(id); msgs.push('you now have the ' + name(id)); });
@@ -234,7 +230,7 @@
       done.push(gid); changed = true;
     });
     // blocked items are taken away and stay unavailable
-    if (!selfMode) blockedHere().forEach((id) => { if (adapter.ownedIds().indexOf(id) >= 0) { adapter.take(id); changed = true; } });
+    if (!selfMode) (ctl.blocked || []).forEach((id) => { if (adapter.ownedIds().indexOf(id) >= 0) { adapter.take(id); changed = true; } });
     if (changed) { if (selfMode) ls.set(SELF_DONE, done.slice(-400)); else setApplied(done); if (adapter.save) adapter.save(); if (adapter.refresh) adapter.refresh(); }
     if (msgs.length) toast(msgs.join(' \u00B7 '));
     report();
@@ -251,15 +247,13 @@
       const live = ctl.grants || {}, st = { credits: Math.round(adapter.credits() || 0), owned: adapter.ownedIds().slice(0, 250), applied: getApplied().filter((g) => live[g]).slice(-300) }, key = JSON.stringify(st);
       if (key === lastRep) return; lastRep = key;
       st.at = firebase.firestore.FieldValue.serverTimestamp();
-      // a code for several games reports each game separately, under statusBy.<game>
-      const upd = ctl.multi ? db.collection('codes').doc(codeHash).update(new firebase.firestore.FieldPath('statusBy', GAME), st) : db.collection('codes').doc(codeHash).update({ status: st });
-      upd.catch(() => { lastRep = ''; });
+      db.collection('codes').doc(codeHash).update({ [statusField]: st }).catch(() => { lastRep = ''; });
     }, lastRep ? 15000 : 2000);
   }
   setInterval(() => syncControl(), 5000);   // picks up a save being opened, credits earned, and so on
 
-  function unlock(hash, once, games) {
-    if (!once) { store.set(hash); if (games) store.setFor(games, hash); }   // a one-time code is good for this visit only
+  function unlock(hash, once) {
+    if (!once) store.set(hash);   // a one-time code is good for this visit only
     codeHash = hash;
     gate.remove();
     release();
@@ -268,9 +262,10 @@
     // if the admin turns the code off or hands it to someone else, lock the game again
     unwatch = db.collection('codes').doc(hash).onSnapshot((d) => {
       const c = d.exists ? d.data() : null;
-      if (!c || c.revoked || c.claimedBy !== uid) { store.set(null); location.reload(); return; }
-      if (!fits(c)) { store.set(null); location.reload(); return; }   // Fernando took this game off the code
-      ctl = { grants: c.grants || {}, blocked: Array.isArray(c.blocked) ? c.blocked : [], multi: multi(c) };
+      if (!c || c.revoked || c.claimedBy !== uid || !gamesOf(c).includes(GAME)) { store.set(null); location.reload(); return; }
+      const b = c[field(c, 'blocked')];
+      statusField = field(c, 'status');
+      ctl = { grants: c[field(c, 'grants')] || {}, blocked: Array.isArray(b) ? b : [] };
       syncControl();
     }, () => {});
   }
@@ -283,15 +278,15 @@
     let snap = await ref.get();
     if (!snap.exists) return { ok: false, why: 'That code is not valid. Check it and try again.' };
     let c = snap.data();
-    if (!fits(c)) { const gs = gamesOf(c), o = listNames(gs.length ? gs : ['air']); return { ok: false, why: 'That code is for ' + o + '. It does not open ' + NAME + '.' }; }
+    if (!gamesOf(c).includes(GAME)) return { ok: false, why: 'That code is not for ' + NAME + '. It only works in ' + namesOf(c) + '.' };
     if (c.revoked) return { ok: false, why: 'This code has been turned off by Fernando.' };
     if (c.once && c.claimedBy) { if (c.claimedBy !== uid) reportShared(hash); return { ok: false, why: 'This one-time code has already been used.' }; }
-    if (c.claimedBy === uid) return { ok: true, hash, games: c.once ? null : gamesOf(c) };
+    if (c.claimedBy === uid) return { ok: true, hash };
     if (c.claimedBy) { reportShared(hash); return { ok: false, why: 'This code is already being used by someone else.' }; }
     if (quiet) return { ok: false, why: '' };
     try {
       await ref.update({ claimedBy: uid, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      return { ok: true, hash, once: !!c.once, games: c.once ? null : gamesOf(c) };
+      return { ok: true, hash, once: !!c.once };
     } catch (e) {
       if (e && e.code !== 'permission-denied') throw e;
       snap = await ref.get(); c = snap.exists ? snap.data() : {};
@@ -308,10 +303,11 @@
     db.collection('alerts').add({ code: hash, by: uid, at: firebase.firestore.FieldValue.serverTimestamp(), seen: false }).catch(() => {});
   }
 
-  async function checkSaved(hash) {
+  async function checkSaved(hash, quiet) {
     const snap = await db.collection('codes').doc(hash).get();
     const c = snap.exists ? snap.data() : null;
-    if (c && !c.revoked && !c.once && fits(c) && c.claimedBy === uid) return true;
+    if (c && !c.revoked && !c.once && gamesOf(c).includes(GAME) && c.claimedBy === uid) return true;
+    if (quiet) return false;
     store.set(null);
     say(!c ? 'Your code no longer exists. Enter a new one.' : c.revoked ? 'Your code has been turned off by Fernando.' : 'Your code is now assigned to someone else.', 'bad');
     return false;
@@ -401,7 +397,14 @@
     uid = user.uid;
     const saved = store.get();
     if (saved && await checkSaved(saved).catch(() => false)) { unlock(saved); return; }
-    if (!saved) say('');
+    // no code saved for this game yet: a code already entered in another game may cover this one too
+    if (!saved) {
+      for (const g of Object.keys(GAMES)) {
+        const h = g !== GAME && store.get(keyOf(g));
+        if (h && await checkSaved(h, true).catch(() => false)) { unlock(h); return; }
+      }
+      say('');
+    }
     busy(false); $('gateCode').focus();
   }).catch((e) => { say(explain(e, 'Could not reach the access server. Check your connection and reload.'), 'bad'); });
 
@@ -410,7 +413,7 @@
     const code = $('gateCode').value.trim();
     if (!code) return;
     busy(true); say('Checking code…');
-    const done = (r) => { if (r.ok) { say(r.once ? 'Access granted for this visit.' : r.games && r.games.length > 1 ? 'Access granted. This code also opens ' + listNames(r.games.filter((g) => g !== GAME)) + '.' : 'Access granted.', 'ok'); unlock(r.hash, r.once, r.games); } else { say(r.why, 'bad'); busy(false); $('gateCode').select(); } };
+    const done = (r) => { if (r.ok) { say(r.once ? 'Access granted for this visit.' : 'Access granted.', 'ok'); unlock(r.hash, r.once); } else { say(r.why, 'bad'); busy(false); $('gateCode').select(); } };
     try { done(await check(code)); }
     catch (err) {
       // a refusal here means this browser's player sign-in is no longer valid (for example the anonymous account was

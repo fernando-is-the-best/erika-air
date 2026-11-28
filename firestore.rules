@@ -52,13 +52,25 @@ service cloud.firestore {
         && request.resource.data.status.applied is list && request.resource.data.status.applied.size() <= 60
         && request.resource.data.status.at == request.time
       ) || (
-        // a code for several games: the same report, kept per game under statusBy.<game>
+        // the same report for the other games on a code that works in more than one game ('status_race', 'status_boat' ...)
         request.auth != null
         && resource.data.claimedBy == request.auth.uid
         && resource.data.revoked != true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusBy'])
-        && request.resource.data.statusBy is map
-        && request.resource.data.statusBy.keys().hasOnly(['air', 'race', 'boat', 'kart', 'moto', 'train', 'rocket'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status_air', 'status_race', 'status_boat', 'status_kart', 'status_moto', 'status_train', 'status_rocket'])
+        && okStatus('status_air') && okStatus('status_race') && okStatus('status_boat')
+        && okStatus('status_kart') && okStatus('status_moto') && okStatus('status_train') && okStatus('status_rocket')
+      );
+    }
+
+    // a game report written by the player, checked only if this update changes it
+    function okStatus(k) {
+      return !(k in request.resource.data.diff(resource.data).affectedKeys()) || (
+        request.resource.data[k] is map
+        && request.resource.data[k].keys().hasOnly(['credits', 'owned', 'applied', 'at'])
+        && request.resource.data[k].credits is int
+        && request.resource.data[k].owned is list && request.resource.data[k].owned.size() <= 250
+        && request.resource.data[k].applied is list && request.resource.data[k].applied.size() <= 60
+        && request.resource.data[k].at == request.time
       );
     }
 
