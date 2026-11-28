@@ -8921,7 +8921,7 @@ if (window.ErikaAccess && ErikaAccess.attach) ErikaAccess.attach({
   ownedIds: () => Career.p.cars.slice(),
   give: (id) => { const P = Career.p; if (!P.cars.includes(id)) P.cars.push(id); },
   take: (id) => { const P = Career.p; P.cars = P.cars.filter((x) => x !== id); if (P.sel) for (const k in P.sel) if (P.sel[k] === id) delete P.sel[k]; },
-  name: (id) => { for (const k in VARIANTS) { const v = VARIANTS[k].find((x) => x.id === id); if (v) return v.name; } return id; },
+  name: (id) => { if (id === GP_BIKE.id) return GP_BIKE.name; for (const k in VARIANTS) { const v = VARIANTS[k].find((x) => x.id === id); if (v) return v.name; } return id; },
   // career: the licences (B, then A, then Super), in the save that is open
   career: () => [{ id: 'lic', name: 'Licences', levels: ['No licence', 'National B', 'National A', 'Super licence'], level: ['B', 'A', 'S'].filter((x) => Career.p.lic.includes(x)).length }],
   setCareer: (t, lvl) => { if (t !== 'lic' || !(lvl >= 0 && lvl <= 3)) return null; Career.p.lic = ['B', 'A', 'S'].slice(0, lvl); return 'licences: ' + (lvl ? Career.p.lic.join(', ') : 'none'); },
