@@ -89,6 +89,9 @@ body.neo-air .btn:not(.ghost), body.neo-boat #menu .btn.main, body.neo-kart .btn
 body.neo-air .btn:not(.ghost):hover, body.neo-boat #menu .btn.main:hover, body.neo-kart .btn:not(.ghost):hover:not([disabled]), body.neo-race .setup .summary .startbtn:hover, body.neo-race .btn:not(.ghostbtn):hover, body.neo-admin button.main:hover {
   transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 16px 40px color-mix(in srgb, var(--accent) 48%, transparent), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
 }
+/* the admin desk has many main buttons: keep them calm, with only a soft glow and no shine */
+body.neo-admin button.main { background: var(--accent) !important; box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+body.neo-admin button.main:hover { filter: brightness(1.05); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 24%, transparent) !important; }
 body.neo-air .btn.ghost, body.neo-boat #menu .btn:not(.main), body.neo-kart .btn.ghost, body.neo-race .btn.ghostbtn {
   border-radius: 999px !important; background: rgba(255, 255, 255, .05) !important; border: 1px solid var(--neo-line-2) !important; color: var(--neo-text) !important; box-shadow: none !important;
 }
