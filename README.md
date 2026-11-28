@@ -8,16 +8,18 @@ A website full of browser games built with three.js. No download needed: open th
 
 ## The games
 
+The home page (`index.html`) shows every game as a big card. Tap one to play.
+
 | Game | Page | What you do |
 | --- | --- | --- |
-| **Erika Air** | `index.html` | Fly planes over real airports, with 3D cockpits you can click |
+| **Erika Air** | `air.html` | Fly planes over real airports, with 3D cockpits you can click |
 | **Erika Racing** | `gp.html` | Race cars on a track |
 | **Erika Moto** | `moto.html` | Race Grand Prix bikes |
 | **Erika Boats** | `boat.html` | Race boats on the water |
 | **Erika Karts** | `kart.html` | Race go-karts |
 | **Erika Trains** | `train.html` | Drive real trains |
 
-The top bar in each game links to the other games. Each game lists its controls in a Controls tab. In Erika Air, press C to change camera; in the cockpit, click switches and levers, scroll to zoom and double-click to look straight ahead again.
+Each game has an "All games" link back to the home page, and the top bar links to the other games. Each game lists its controls in a Controls tab. In Erika Air, press C to change camera; in the cockpit, click switches and levers, scroll to zoom and double-click to look straight ahead again.
 
 **Coming soon:** Erika Rockets.
 
